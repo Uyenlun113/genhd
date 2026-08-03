@@ -137,17 +137,14 @@ const TestResultSchema = new Schema<ITestResult>(
   }
 );
 
-// Function to generate unique maSo with duplicate check & Mongoose 8+ returnDocument syntax
+// Function to generate unique maSo with duplicate check according to requested formats:
+// CELL: GTHD-C001, GTHD-C002...
+// HPV 40: GTHD-40HP001, GTHD-40HP002...
+// HPV 20: GTHD-20HP001, GTHD-20HP002...
 export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
-  const now = new Date();
-  const mm = String(now.getMonth() + 1).padStart(2, '0');
-  const dd = String(now.getDate()).padStart(2, '0');
-  const yy = String(now.getFullYear()).slice(-2);
-  const datePrefix = `${mm}${dd}${yy}`;
-
-  let codePrefix = 'C';
-  if (loaiXetNghiem === 'hpv40') codePrefix = 'HPV40-';
-  else if (loaiXetNghiem === 'hpv20') codePrefix = 'HPV20-';
+  let prefix = 'GTHD-C';
+  if (loaiXetNghiem === 'hpv40') prefix = 'GTHD-40HP';
+  else if (loaiXetNghiem === 'hpv20') prefix = 'GTHD-20HP';
 
   let uniqueMaSo = '';
   let isUnique = false;
@@ -156,14 +153,14 @@ export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
 
   while (!isUnique) {
     const counter = await Counter.findByIdAndUpdate(
-      `testResult_${datePrefix}_${loaiXetNghiem}`,
+      `testResult_${loaiXetNghiem}`,
       { $inc: { seq: 1 } },
       { upsert: true, returnDocument: 'after' }
     );
 
-    const seqNum = counter ? (counter as any).seq : 1;
-    const seqStr = String(seqNum).padStart(4, '0');
-    uniqueMaSo = `${datePrefix} – ${codePrefix}${seqStr}`;
+    const seqNum = counter ? (counter as { seq: number }).seq : 1;
+    const seqStr = String(seqNum).padStart(3, '0');
+    uniqueMaSo = `${prefix}${seqStr}`;
 
     // Verify if maSo already exists in DB to prevent E11000 duplicate key error
     const existing = await TestResultModel.findOne({ maSo: uniqueMaSo }).lean();
