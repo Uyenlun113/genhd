@@ -210,6 +210,18 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     }
   }
 
+  // Embed Red Stamp (dau-do.png)
+  let stampImage: any = null;
+  const stampPath = path.join(process.cwd(), 'public', 'dau-do.png');
+  if (fs.existsSync(stampPath)) {
+    try {
+      const stampBytes = fs.readFileSync(stampPath);
+      stampImage = await pdfDoc.embedPng(stampBytes);
+    } catch (err) {
+      console.error('Failed to embed stamp:', err);
+    }
+  }
+
   // Soft Watermark Overlay (opacity 0.06)
   const drawWatermarkOverlay = (targetPage: typeof page1) => {
     if (logoImage) {
@@ -231,20 +243,29 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     }
   };
 
-  // Common Top Header
+  // Common Top Header: Logo + Red Stamp + Company Info
   if (logoImage) {
     page1.drawImage(logoImage, {
       x: 35,
       y: 765,
-      width: 65,
-      height: 65,
+      width: 60,
+      height: 60,
     });
   }
 
-  drawTextOnPage(page1, 'CÔNG TY TNHH GIẢI PHÁP DI TRUYỀN Y HỌC GEN HD', 115, 810, 11, true, blackColor);
-  drawTextOnPage(page1, 'CƠ SỞ XÉT NGHIỆM GEN HD', 115, 796, 11, true, primaryBlue);
-  drawTextOnPage(page1, 'Địa chỉ: Số 217 Yên Tân, P. Bồ Đề, Q. Long Biên, Hà Nội', 115, 783, 9, false, rgb(0.3, 0.3, 0.3));
-  drawTextOnPage(page1, 'Hotline / Zalo: 0915.891.616 - 0942.023.555', 115, 771, 9, false, rgb(0.3, 0.3, 0.3));
+  if (stampImage) {
+    page1.drawImage(stampImage, {
+      x: 100,
+      y: 765,
+      width: 60,
+      height: 60,
+    });
+  }
+
+  drawTextOnPage(page1, 'CÔNG TY TNHH GIẢI PHÁP DI TRUYỀN Y HỌC GEN HD', 168, 810, 10, true, blackColor);
+  drawTextOnPage(page1, 'CƠ SỞ XÉT NGHIỆM GEN HD', 168, 796, 10, true, primaryBlue);
+  drawTextOnPage(page1, 'Địa chỉ: Số 217 Yên Tân, P. Bồ Đề, Q. Long Biên, Hà Nội', 168, 783, 8.5, false, rgb(0.3, 0.3, 0.3));
+  drawTextOnPage(page1, 'Hotline / Zalo: 0915.891.616 - 0942.023.555', 168, 771, 8.5, false, rgb(0.3, 0.3, 0.3));
 
   page1.drawLine({
     start: { x: 35, y: 755 },
