@@ -54,15 +54,16 @@ export function useWebSocket(onEvent: EventCallback) {
       connect();
     }
 
-    // Polling interval every 6 seconds for production (Vercel serverless)
+    // Polling interval every 10 seconds for production (Vercel serverless) when tab is active
     const fallbackInterval = setInterval(() => {
+      if (document.hidden) return; // Do not call API when tab is inactive/hidden
       if (!isLocalhost || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         if (callbackRef.current) {
           callbackRef.current({ type: 'REFRESH_TEST_RESULTS' });
           callbackRef.current({ type: 'REFRESH_NOTIFICATIONS' });
         }
       }
-    }, 6000);
+    }, 10000);
 
     return () => {
       clearTimeout(retryTimer);
