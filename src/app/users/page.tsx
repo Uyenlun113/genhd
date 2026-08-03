@@ -24,8 +24,9 @@ interface UserItem {
   _id: string;
   username: string;
   fullName: string;
-  role: 'admin' | 'doctor' | 'staff';
-  allowedCategories?: Array<'cell' | 'hpv40' | 'hpv20'>;
+  role: 'admin' | 'doctor' | 'staff' | 'lab_admin';
+  allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20'>;
+  title?: string;
   createdAt: string;
 }
 
@@ -56,8 +57,9 @@ export default function UserManagementPage() {
     username: '',
     password: '',
     fullName: '',
-    role: 'doctor' as 'admin' | 'doctor' | 'staff',
-    allowedCategories: ['cell', 'hpv40', 'hpv20'] as string[],
+    role: 'doctor' as 'admin' | 'doctor' | 'staff' | 'lab_admin',
+    allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'] as string[],
+    title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
   });
 
   const fetchUsers = async () => {
@@ -91,7 +93,8 @@ export default function UserManagementPage() {
       password: '',
       fullName: '',
       role: 'doctor',
-      allowedCategories: ['cell', 'hpv40', 'hpv20'],
+      allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
     setShowModal(true);
   };
@@ -103,7 +106,8 @@ export default function UserManagementPage() {
       password: '',
       fullName: user.fullName,
       role: user.role,
-      allowedCategories: user.allowedCategories || ['cell', 'hpv40', 'hpv20'],
+      allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      title: user.title || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
     setShowModal(true);
   };
@@ -111,55 +115,85 @@ export default function UserManagementPage() {
   const handleCategoryToggle = (category: string) => {
     setFormData((prev) => {
       const exists = prev.allowedCategories.includes(category);
-      const updated = exists
-        ? prev.allowedCategories.filter((c) => c !== category)
-        : [...prev.allowedCategories, category];
-      return { ...prev, allowedCategories: updated };
+      if (exists) {
+        return {
+          ...prev,
+          allowedCategories: prev.allowedCategories.filter((c) => c !== category),
+        };
+      } else {
+        return {
+          ...prev,
+          allowedCategories: [...prev.allowedCategories, category],
+        };
+      }
     });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!formData.username.trim() || !formData.fullName.trim()) {
+      toast.error('Vui lòng điền đầy đủ tên đăng nhập và họ tên');
+      return;
+    }
+
+    if (!editUser && !formData.password) {
+      toast.error('Vui lòng nhập mật khẩu cho tài khoản mới');
+      return;
+    }
+
     try {
       const url = editUser ? `/api/users/${editUser._id}` : '/api/users';
       const method = editUser ? 'PUT' : 'POST';
 
+      const payload: any = {
+        username: formData.username,
+        fullName: formData.fullName,
+        role: formData.role,
+        allowedCategories: formData.allowedCategories,
+        title: formData.title,
+      };
+
+      if (formData.password) {
+        payload.password = formData.password;
+      }
+
       const res = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
-        toast.success(editUser ? 'Đã cập nhật tài khoản!' : 'Đã tạo tài khoản mới thành công!');
+        toast.success(editUser ? 'Cập nhật tài khoản thành công!' : 'Tạo tài khoản mới thành công!');
         setShowModal(false);
         fetchUsers();
       } else {
-        const data = await res.json();
-        toast.error(data.error || 'Lỗi xử lý tài khoản!');
+        const errorData = await res.json();
+        toast.error(errorData.error || 'Thao tác thất bại');
       }
     } catch {
-      toast.error('Lỗi kết nối!');
+      toast.error('Lỗi kết nối cơ sở dữ liệu');
     }
   };
 
-  const handleDeleteClick = (id: string, name: string) => {
+  const handleDeleteClick = (userId: string, userName: string) => {
     setConfirmConfig({
       isOpen: true,
-      title: 'Xóa tài khoản người dùng',
-      message: `Bạn có chắc chắn muốn xóa tài khoản "${name}"? Hành động này không thể hoàn tác.`,
+      title: 'Xác nhận xóa tài khoản',
+      message: `Bạn có chắc chắn muốn xóa tài khoản "${userName}"? Thao tác này không thể hoàn tác.`,
       onConfirm: async () => {
         setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+          const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
           if (res.ok) {
-            toast.success(`Đã xóa tài khoản "${name}" thành công!`);
+            toast.success('Xóa tài khoản thành công');
             fetchUsers();
           } else {
-            toast.error('Lỗi xóa tài khoản!');
+            toast.error('Không thể xóa tài khoản này');
           }
         } catch {
-          toast.error('Lỗi kết nối!');
+          toast.error('Lỗi khi gửi yêu cầu xóa');
         }
       },
     });
@@ -172,65 +206,64 @@ export default function UserManagementPage() {
       <div className="flex flex-1 w-full">
         <Sidebar />
 
-        <main className="flex-1 p-8 w-full">
-          <div className="flex items-center justify-between mb-6">
+        <main className="flex-1 p-6 md:p-8 w-full">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-800 flex items-center gap-2.5">
+              <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
                 <Users className="w-6 h-6 text-sky-600" />
-                <span>Quản Lý Danh Sách Tài Khoản & Phân Quyền</span>
+                <span>Quản lý Tài Khoản & Phân Quyền</span>
               </h1>
               <p className="text-xs text-slate-500 mt-1">
-                Tạo tài khoản Bác sĩ, Nhân viên, phân quyền danh mục xét nghiệm và đổi mật khẩu
+                Tạo mới, phân quyền danh mục xét nghiệm và quản lý tài khoản Bác sĩ / Nhân viên
               </p>
             </div>
 
-            <button onClick={handleOpenAddModal} className="btn btn-primary">
+            <button onClick={handleOpenAddModal} className="btn btn-primary text-xs">
               <UserPlus className="w-4 h-4" />
               <span>Thêm tài khoản mới</span>
             </button>
           </div>
 
-          {/* Users Table */}
-          <div className="glass-card overflow-hidden">
+          <div className="glass-card">
             <div className="data-table-container">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Họ và tên</th>
                     <th>Tên đăng nhập</th>
+                    <th>Họ và tên</th>
                     <th>Vai trò</th>
-                    <th>Quyền danh mục xét nghiệm</th>
+                    <th>Danh mục được phân quyền</th>
                     <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={5} className="text-center py-8 text-slate-400 text-sm">
                         Đang tải danh sách tài khoản...
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-10 text-slate-400 text-sm">
-                        Không có tài khoản nào
+                      <td colSpan={5} className="text-center py-8 text-slate-400 text-sm">
+                        Chưa có tài khoản nào
                       </td>
                     </tr>
                   ) : (
                     users.map((user) => (
                       <tr key={user._id}>
-                        <td className="font-bold text-slate-800 flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-bold text-xs">
-                            {user.fullName.charAt(0).toUpperCase()}
-                          </div>
-                          <span>{user.fullName}</span>
-                        </td>
-                        <td className="font-mono text-sky-600">{user.username}</td>
+                        <td className="font-semibold text-slate-800 text-xs">{user.username}</td>
+                        <td className="font-bold text-sky-900 text-xs">{user.fullName}</td>
                         <td>
                           {user.role === 'admin' ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
                               <ShieldCheck className="w-3.5 h-3.5" />
-                              <span>Admin</span>
+                              <span>Admin Hệ Thống</span>
+                            </span>
+                          ) : user.role === 'lab_admin' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200">
+                              <ShieldCheck className="w-3.5 h-3.5" />
+                              <span>Admin Phòng Lab</span>
                             </span>
                           ) : user.role === 'doctor' ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
@@ -255,6 +288,8 @@ export default function UserManagementPage() {
                                   className={`px-2 py-0.5 rounded-md font-bold uppercase ${
                                     cat === 'cell'
                                       ? 'bg-sky-100 text-sky-700'
+                                      : cat === 'thinprep'
+                                      ? 'bg-purple-100 text-purple-700'
                                       : cat === 'hpv40'
                                       ? 'bg-indigo-100 text-indigo-700'
                                       : 'bg-teal-100 text-teal-700'
@@ -292,7 +327,6 @@ export default function UserManagementPage() {
             </div>
           </div>
 
-          {/* Create / Edit Modal */}
           {showModal && (
             <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
@@ -342,17 +376,33 @@ export default function UserManagementPage() {
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          role: e.target.value as 'admin' | 'doctor' | 'staff',
+                          role: e.target.value as 'admin' | 'doctor' | 'staff' | 'lab_admin',
                         })
                       }
                     >
                       <option value="doctor">Bác sĩ đọc kết quả</option>
                       <option value="staff">Phòng khám / Nhân viên nhập phiếu</option>
-                      <option value="admin">Quản trị viên (Admin)</option>
+                      <option value="lab_admin">Admin Phòng Lab (Xem tất cả phiếu các Bác sĩ)</option>
+                      <option value="admin">Quản trị viên (Admin Hệ Thống)</option>
                     </select>
                   </div>
 
-                  {/* Allowed Categories Checkboxes for Doctors */}
+                  {formData.role === 'doctor' && (
+                    <div className="form-group">
+                      <label className="font-bold text-sky-800 text-xs">Chức danh / Chuyên khoa (Hiển thị dưới chữ ký PDF)</label>
+                      <input
+                        type="text"
+                        className="form-input text-xs"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)"
+                      />
+                      <span className="text-[10px] text-slate-500 mt-1 block">
+                        Ví dụ: (Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý) hoặc (Chuyên khoa Sản phụ khoa)
+                      </span>
+                    </div>
+                  )}
+
                   {formData.role === 'doctor' && (
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                       <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider">
@@ -366,6 +416,14 @@ export default function UserManagementPage() {
                             onChange={() => handleCategoryToggle('cell')}
                           />
                           <span className="text-xs">XÉT NGHIỆM CELL</span>
+                        </label>
+                        <label className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('thinprep')}
+                            onChange={() => handleCategoryToggle('thinprep')}
+                          />
+                          <span className="text-xs">XÉT NGHIỆM THINPREP</span>
                         </label>
                         <label className="checkbox-item">
                           <input

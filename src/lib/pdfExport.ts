@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'hpv40' | 'hpv20';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -39,6 +39,7 @@ export interface ITestResultData {
   khuyenNghi?: string;
   ngayXetNghiem: string | Date;
   bacSiDoc?: string;
+  bacSiTitle?: string;
   anhTeBao?: string;
 }
 
@@ -299,9 +300,10 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     drawCenteredText(targetPage, docName, rightXStart, rightXEnd, yStart - 90, 11, true, blackColor);
 
     // 4. Subtitle centered
+    const titleText = data.bacSiTitle || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)';
     drawCenteredText(
       targetPage,
-      '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
+      titleText,
       rightXStart,
       rightXEnd,
       yStart - 105,
@@ -692,7 +694,11 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   // BRANCH 3: CELL / BETHESDA 2014 (MẪU CELL)
   // -------------------------------------------------------------
 
-  drawCenteredText(page1, 'PHIẾU KẾT QUẢ XÉT NGHIỆM TẾ BÀO CỔ TỬ CUNG', 35, 560, 735, 14, true, primaryBlue);
+  const cellTitleStr = data.loaiXetNghiem === 'thinprep'
+    ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM TẾ BÀO CỔ TỬ CUNG (THIN PREP PAP TEST)'
+    : 'PHIẾU KẾT QUẢ XÉT NGHIỆM TẾ BÀO CỔ TỬ CUNG';
+
+  drawCenteredText(page1, cellTitleStr, 35, 560, 735, 14, true, primaryBlue);
 
   // Patient Information Table Grid
   const tableX = 35;

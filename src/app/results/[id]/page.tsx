@@ -57,7 +57,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     _id: '',
     maSo: '',
-    loaiXetNghiem: 'cell' as 'cell' | 'hpv40' | 'hpv20',
+    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20',
     hoTen: '',
     namSinh: 1990,
     gioiTinh: 'Nữ',
@@ -256,7 +256,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
         <main className="flex-1 p-6 md:p-8 w-full">
           <Header
             title={`Phiếu xét nghiệm: ${formData.maSo}`}
-            subtitle={`Bệnh nhân: ${formData.hoTen} (${formData.loaiXetNghiem === 'cell' ? 'Mẫu CELL' : isHPV40 ? 'Mẫu HPV 40' : 'Mẫu HPV 20'})`}
+            subtitle={`Bệnh nhân: ${formData.hoTen} (${formData.loaiXetNghiem === 'cell' ? 'Mẫu CELL' : formData.loaiXetNghiem === 'thinprep' ? 'Mẫu ThinPrep' : isHPV40 ? 'Mẫu HPV 40' : 'Mẫu HPV 20'})`}
             action={
               <div className="flex items-center gap-3">
                 <StatusBadge status={formData.trangThai} />
@@ -264,7 +264,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                 {(userRole === 'doctor' || userRole === 'admin') && formData.trangThai === 'nhap_thong_tin' && (
                   <button onClick={handleAccept} className="btn btn-success">
                     <FileCheck className="w-4 h-4" />
-                    <span>Nhận xử lý phiếu</span>
+                    <span>Nhận mẫu</span>
                   </button>
                 )}
 
@@ -295,7 +295,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.hoTen}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -307,7 +307,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.namSinh}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -318,7 +318,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-select disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.gioiTinh}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   >
                     <option value="Nữ">Nữ</option>
                     <option value="Nam">Nam</option>
@@ -333,7 +333,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.soDienThoai}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -345,7 +345,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.diaChi}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -357,7 +357,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.loaiMau}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -369,7 +369,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.donVi}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -381,7 +381,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.bacSiChiDinh}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>
 
@@ -392,9 +392,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.bacSiDoc}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                     required
                   >
+                    <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
                     {doctors.map((doc) => (
                       <option key={doc._id} value={doc.fullName}>
                         {doc.fullName}
@@ -404,10 +405,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {userRole === 'doctor' || formData.trangThai !== 'nhap_thong_tin' ? (
+              {userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin' ? (
                 <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 inline-flex items-center gap-1.5">
-                    🔒 Thông tin hành chính bệnh nhân được khóa cố định đối với bác sĩ / phiếu đã nhận mẫu.
+                    🔒 Thông tin hành chính bệnh nhân được khóa cố định đối với Bác sĩ / Admin phòng Lab / Phiếu đã nhận mẫu.
                   </span>
                 </div>
               ) : (

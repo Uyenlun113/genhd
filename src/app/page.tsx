@@ -26,6 +26,7 @@ import {
   MoreVertical,
   Download,
   Calendar,
+  User,
 } from 'lucide-react';
 
 interface TestResultItem {
@@ -44,6 +45,7 @@ interface TestResultItem {
   ngayDuKienTra?: string;
   createdAt: string;
   bacSiDoc?: string;
+  nguoiNhap?: any;
 }
 
 interface DoctorUser {
@@ -100,7 +102,7 @@ function DashboardContent() {
     message: '',
     confirmText: 'Xác nhận',
     type: 'info',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   // Close 3-dots menu on click outside
@@ -117,6 +119,8 @@ function DashboardContent() {
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [creatorFilter, setCreatorFilter] = useState('');
+  const [allUsers, setAllUsers] = useState<Array<{ _id: string; fullName: string; username: string; role: string }>>([]);
 
   const fetchResults = useCallback(async () => {
     setLoading(true);
@@ -130,6 +134,9 @@ function DashboardContent() {
       });
       if (doctorFilter) {
         query.set('doctor', doctorFilter);
+      }
+      if (userRole === 'admin' && creatorFilter) {
+        query.set('creator', creatorFilter);
       }
       if (startDate) {
         query.set('startDate', startDate);
@@ -148,7 +155,7 @@ function DashboardContent() {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, categoryFilter, doctorFilter, search, page, startDate, endDate]);
+  }, [activeTab, categoryFilter, doctorFilter, creatorFilter, search, page, startDate, endDate, userRole]);
 
   useEffect(() => {
     fetchResults();
@@ -161,19 +168,27 @@ function DashboardContent() {
   });
 
   useEffect(() => {
-    async function fetchDoctors() {
+    async function fetchUsersData() {
       try {
-        const res = await fetch('/api/users?role=doctor');
-        if (res.ok) {
-          const data = await res.json();
+        const docRes = await fetch('/api/users?role=doctor');
+        if (docRes.ok) {
+          const data = await docRes.json();
           setDoctors(data || []);
         }
+
+        if (userRole === 'admin') {
+          const allRes = await fetch('/api/users');
+          if (allRes.ok) {
+            const allData = await allRes.json();
+            setAllUsers(allData || []);
+          }
+        }
       } catch (err) {
-        console.error('Fetch doctors error:', err);
+        console.error('Fetch users error:', err);
       }
     }
-    fetchDoctors();
-  }, []);
+    fetchUsersData();
+  }, [userRole]);
 
   const handleOpenEditModal = (item: TestResultItem) => {
     setEditItem(item);
@@ -228,7 +243,7 @@ function DashboardContent() {
       isOpen: true,
       title: 'Nhận xử lý phiếu xét nghiệm',
       message: `Bạn có muốn nhận xử lý phiếu ${maSo} không? Trạng thái sẽ chuyển thành CHẠY KẾT QUẢ.`,
-      confirmText: 'Nhận phiếu',
+      confirmText: 'Nhận mẫu',
       type: 'info',
       onConfirm: async () => {
         setModalConfig((prev) => ({ ...prev, isOpen: false }));
@@ -279,23 +294,25 @@ function DashboardContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
       <TopHeader />
 
-      <div className="flex flex-1 w-full">
+      <div className="flex flex-1 w-full overflow-hidden">
         <Sidebar />
 
-        <main className="flex-1 p-6 md:p-8 w-full">
+        <main className="flex-1 p-5 md:p-6 w-full overflow-y-auto max-h-[calc(100vh-61px)]">
           <Header
             title={doctorFilter ? `Phiếu xét nghiệm: ${doctorFilter}` : 'Danh sách phiếu xét nghiệm'}
             subtitle={
               doctorFilter
                 ? `Danh sách các phiếu xét nghiệm phụ trách bởi ${doctorFilter}`
-                : categoryFilter === 'hpv40'
-                ? 'Quản lý workflow xét nghiệm HPV 40 Types GenHD'
-                : categoryFilter === 'hpv20'
-                ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
-                : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
+                : categoryFilter === 'thinprep'
+                  ? 'Quản lý workflow xét nghiệm Tế bào học ThinPrep GenHD'
+                  : categoryFilter === 'hpv40'
+                    ? 'Quản lý workflow xét nghiệm HPV 40 Types GenHD'
+                    : categoryFilter === 'hpv20'
+                      ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
+                      : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
             }
             action={
               (userRole === 'staff' || userRole === 'admin') ? (
@@ -333,22 +350,22 @@ function DashboardContent() {
                       setActiveTab(tab.id);
                       setPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      activeTab === tab.id
-                        ? 'bg-sky-600 text-white shadow-xs'
-                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                    }`}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id
+                      ? 'bg-sky-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
                   >
                     {tab.label}
                   </button>
                 ))}
               </div>
 
-              <div className="relative w-full sm:w-64">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <div className="relative w-full sm:w-80 md:w-96">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                 <input
                   type="text"
-                  className="form-input pl-9 w-full text-xs"
+                  style={{ paddingLeft: '2.35rem' }}
+                  className="form-input w-full text-xs"
                   placeholder="Tìm theo Tên, Mã số, SĐT..."
                   value={search}
                   onChange={(e) => {
@@ -359,50 +376,79 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Date Range Filter Row */}
-            <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-slate-100 text-xs">
-              <span className="font-bold text-slate-600 flex items-center gap-1.5">
-                <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                <span>Lọc theo ngày tạo:</span>
-              </span>
+            {/* Date Range & Creator Filter Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-bold text-slate-600 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Lọc theo ngày tạo:</span>
+                </span>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500 font-medium">Từ ngày:</span>
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    setStartDate(e.target.value);
-                    setPage(1);
-                  }}
-                  className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
-                />
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 font-medium">Từ ngày:</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      setStartDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 font-medium">Đến ngày:</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      setEndDate(e.target.value);
+                      setPage(1);
+                    }}
+                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                {(startDate || endDate) && (
+                  <button
+                    onClick={() => {
+                      setStartDate('');
+                      setEndDate('');
+                      setPage(1);
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-1"
+                  >
+                    Xóa lọc ngày
+                  </button>
+                )}
               </div>
 
-              <div className="flex items-center gap-1.5">
-                <span className="text-slate-500 font-medium">Đến ngày:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value);
-                    setPage(1);
-                  }}
-                  className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
-                />
-              </div>
-
-              {(startDate || endDate) && (
-                <button
-                  onClick={() => {
-                    setStartDate('');
-                    setEndDate('');
-                    setPage(1);
-                  }}
-                  className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-1"
-                >
-                  Xóa lọc ngày
-                </button>
+              {/* Creator Filter Dropdown (ADMIN ONLY) */}
+              {userRole === 'admin' && (
+                <div className="flex items-center gap-1.5">
+                  <span className="font-bold text-slate-600 flex items-center gap-1">
+                    <User className="w-3.5 h-3.5 text-purple-600" />
+                    <span>Lọc theo nguồn:</span>
+                  </span>
+                  <select
+                    value={creatorFilter}
+                    onChange={(e) => {
+                      setCreatorFilter(e.target.value);
+                      setPage(1);
+                    }}
+                    className="form-select py-1 px-2.5 text-xs bg-white border border-slate-200 rounded-lg font-semibold text-slate-700"
+                  >
+                    <option value="">-- Tất cả nguồn tạo --</option>
+                    {allUsers
+                      .filter((u) => u.role === 'admin' || u.role === 'staff')
+                      .map((u) => (
+                        <option key={u._id} value={u._id}>
+                          {u.fullName} ({u.role === 'admin' ? 'Admin tổng' : 'Nhân viên PK'})
+                        </option>
+                      ))}
+                  </select>
+                </div>
               )}
             </div>
           </div>
@@ -416,9 +462,10 @@ function DashboardContent() {
                     <th>Mã số</th>
                     <th>Họ và tên</th>
                     <th>Năm sinh</th>
+                    {userRole === 'admin' && <th>Nguồn (Người tạo)</th>}
                     <th>BS Đọc KQ</th>
                     <th>Trạng thái</th>
-                    <th>Dự kiến trả (SLA 72h)</th>
+                    <th>Dự kiến trả</th>
                     <th>Ngày tạo</th>
                     <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
@@ -426,19 +473,27 @@ function DashboardContent() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={userRole === 'admin' ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
                         Đang tải dữ liệu...
                       </td>
                     </tr>
                   ) : results.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={userRole === 'admin' ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
                         Không tìm thấy phiếu xét nghiệm nào
                       </td>
                     </tr>
                   ) : (
                     results.map((item, index) => {
                       const popUpward = index > 1 && index >= results.length - 2;
+
+                      // Creator / Nguồn
+                      const creatorName =
+                        typeof item.nguoiNhap === 'object' && item.nguoiNhap && (item.nguoiNhap as any).fullName
+                          ? (item.nguoiNhap as any).fullName
+                          : typeof item.nguoiNhap === 'object' && item.nguoiNhap && (item.nguoiNhap as any).username
+                            ? (item.nguoiNhap as any).username
+                            : 'Hệ thống';
 
                       // SLA Calculations (72 hours from Doctor Acceptance)
                       const now = new Date().getTime();
@@ -462,15 +517,31 @@ function DashboardContent() {
                       const duKienDate = item.ngayDuKienTra
                         ? new Date(item.ngayDuKienTra)
                         : item.ngayNhanMau
-                        ? new Date(new Date(item.ngayNhanMau).getTime() + 3 * 24 * 60 * 60 * 1000)
-                        : null;
+                          ? new Date(new Date(item.ngayNhanMau).getTime() + 3 * 24 * 60 * 60 * 1000)
+                          : null;
 
                       return (
                         <tr key={item._id} className={rowBgClass}>
                           <td className="font-bold text-sky-600">{item.maSo}</td>
                           <td className="font-semibold text-slate-800">{item.hoTen}</td>
                           <td>{item.namSinh}</td>
-                          <td className="text-xs text-slate-600 font-medium">{item.bacSiDoc || '---'}</td>
+                          {userRole === 'admin' && (
+                            <td className="text-xs text-slate-700 font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100/80 text-slate-700 text-[11px] font-medium border border-slate-200">
+                                <User className="w-3 h-3 text-slate-500 shrink-0" />
+                                <span>{creatorName}</span>
+                              </span>
+                            </td>
+                          )}
+                          <td className="text-xs text-slate-600 font-medium">
+                            {item.bacSiDoc === 'Chưa phân loại' ? (
+                              <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] font-semibold">
+                                Chưa phân loại
+                              </span>
+                            ) : (
+                              item.bacSiDoc || '---'
+                            )}
+                          </td>
                           <td>
                             <StatusBadge status={item.trangThai} />
                           </td>
@@ -512,7 +583,7 @@ function DashboardContent() {
                                     className="btn btn-success text-xs py-1 px-2.5"
                                   >
                                     <FileCheck className="w-3.5 h-3.5" />
-                                    <span>Nhận phiếu</span>
+                                    <span>Nhận mẫu</span>
                                   </button>
                                 )}
 
@@ -528,95 +599,120 @@ function DashboardContent() {
                               {/* Floating Dropdown Menu */}
                               {activeMenuId === item._id && (
                                 <div
-                                  className={`absolute right-0 w-52 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-[100] text-left space-y-0.5 animate-in fade-in zoom-in-95 duration-100 ${
-                                    popUpward ? 'bottom-full mb-2' : 'top-full mt-1'
-                                  }`}
+                                  className={`absolute right-0 w-52 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-[100] text-left space-y-0.5 animate-in fade-in zoom-in-95 duration-100 ${popUpward ? 'bottom-full mb-2' : 'top-full mt-1'
+                                    }`}
                                 >
-                                <button
-                                  onClick={() => {
-                                    setActiveMenuId(null);
-                                    router.push(`/results/${item._id}`);
-                                  }}
-                                  className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors"
-                                >
-                                  <Eye className="w-4 h-4 text-sky-600" />
-                                  <span>
-                                    {item.trangThai === 'chay_ket_qua' &&
-                                    (userRole === 'doctor' || userRole === 'admin')
-                                      ? 'Nhập kết quả'
-                                      : 'Xem chi tiết'}
-                                  </span>
-                                </button>
-
-                                {(userRole === 'staff' || userRole === 'admin') && item.trangThai === 'nhap_thong_tin' && (
                                   <button
-                                    onClick={() => handleOpenEditModal(item)}
-                                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      router.push(`/results/${item._id}`);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors"
                                   >
-                                    <Edit3 className="w-4 h-4 text-indigo-600" />
-                                    <span>Sửa thông tin phiếu</span>
+                                    <Eye className="w-4 h-4 text-sky-600" />
+                                    <span>
+                                      {item.trangThai === 'chay_ket_qua' &&
+                                        (userRole === 'doctor' || userRole === 'admin')
+                                        ? 'Nhập kết quả'
+                                        : 'Xem chi tiết'}
+                                    </span>
                                   </button>
-                                )}
 
-                                {/* Download PDF option ONLY when da_tra_ket_qua */}
-                                {item.trangThai === 'da_tra_ket_qua' && (
-                                  <button
-                                    onClick={() => handleDownloadPDF(item._id)}
-                                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
-                                  >
-                                    <Download className="w-4 h-4 text-emerald-600" />
-                                    <span>Tải kết quả (PDF)</span>
-                                  </button>
-                                )}
-
-                                {(userRole === 'staff' || userRole === 'admin') && (
-                                  <>
-                                    <div className="my-1 border-t border-slate-100" />
-
+                                  {(userRole === 'staff' || userRole === 'admin') && item.trangThai === 'nhap_thong_tin' && (
                                     <button
-                                      onClick={() => handleDeleteClick(item._id, item.maSo, item.hoTen)}
-                                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                      onClick={() => handleOpenEditModal(item)}
+                                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                                     >
-                                      <Trash2 className="w-4 h-4 text-red-500" />
-                                      <span>Xóa phiếu này</span>
+                                      <Edit3 className="w-4 h-4 text-indigo-600" />
+                                      <span>Sửa thông tin phiếu</span>
                                     </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
+                                  )}
+
+                                  {/* Download PDF option ONLY when da_tra_ket_qua */}
+                                  {item.trangThai === 'da_tra_ket_qua' && (
+                                    <button
+                                      onClick={() => handleDownloadPDF(item._id)}
+                                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"
+                                    >
+                                      <Download className="w-4 h-4 text-emerald-600" />
+                                      <span>Tải kết quả (PDF)</span>
+                                    </button>
+                                  )}
+
+                                  {(userRole === 'staff' || userRole === 'admin') && (
+                                    <>
+                                      <div className="my-1 border-t border-slate-100" />
+
+                                      <button
+                                        onClick={() => handleDeleteClick(item._id, item.maSo, item.hoTen)}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                      >
+                                        <Trash2 className="w-4 h-4 text-red-500" />
+                                        <span>Xóa phiếu này</span>
+                                      </button>
+                                    </>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
             </div>
 
-            {totalPages > 1 && (
-              <div className="flex justify-end items-center gap-3 p-3 border-t border-slate-100">
+            {/* PAGINATION BAR (ALWAYS VISIBLE) */}
+            <div className="flex flex-wrap justify-between items-center gap-3 p-3.5 border-t border-slate-100 bg-slate-50/50 text-xs">
+              <div className="text-slate-500 font-medium">
+                {results.length > 0 ? (
+                  <span>
+                    Hiển thị <b>{results.length}</b> phiếu xét nghiệm (Trang <b>{page}</b> / <b>{totalPages}</b>)
+                  </span>
+                ) : (
+                  <span>Chưa có phiếu xét nghiệm nào</span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
                 <button
-                  disabled={page === 1}
+                  disabled={page <= 1}
                   onClick={() => setPage(page - 1)}
-                  className="btn btn-secondary text-xs py-1 px-2.5 disabled:opacity-50"
+                  className="btn btn-secondary text-xs py-1 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <ChevronLeft className="w-3.5 h-3.5" />
-                  <span>Trước</span>
+                  <span>Trang trước</span>
                 </button>
-                <span className="text-xs text-slate-500 font-medium">
-                  Trang {page} / {totalPages}
-                </span>
+
+                {totalPages > 1 && (
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`w-7 h-7 rounded-lg text-xs font-bold transition-all ${p === page
+                          ? 'bg-sky-600 text-white shadow-xs'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+                          }`}
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                )}
+
                 <button
-                  disabled={page === totalPages}
+                  disabled={page >= totalPages}
                   onClick={() => setPage(page + 1)}
-                  className="btn btn-secondary text-xs py-1 px-2.5 disabled:opacity-50"
+                  className="btn btn-secondary text-xs py-1 px-3 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  <span>Sau</span>
+                  <span>Trang sau</span>
                   <ChevronRight className="w-3.5 h-3.5" />
                 </button>
               </div>
-            )}
+            </div>
           </div>
         </main>
 
@@ -731,6 +827,7 @@ function DashboardContent() {
                       onChange={(e) => setEditFormData({ ...editFormData, bacSiDoc: e.target.value })}
                       required
                     >
+                      <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
                       {doctors.map((doc) => (
                         <option key={doc._id} value={doc.fullName}>
                           {doc.fullName}

@@ -15,7 +15,7 @@ export {
 
 export interface ITestResult extends Document {
   maSo: string;
-  loaiXetNghiem: 'cell' | 'hpv40' | 'hpv20';
+  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20';
 
   // Thông tin bệnh nhân
   hoTen: string;
@@ -85,7 +85,7 @@ const TestResultSchema = new Schema<ITestResult>(
     maSo: { type: String, unique: true, required: true },
     loaiXetNghiem: {
       type: String,
-      enum: ['cell', 'hpv40', 'hpv20'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20'],
       default: 'cell',
     },
 
@@ -159,7 +159,8 @@ const TestResultSchema = new Schema<ITestResult>(
 // HPV 20: GTHD-20HP001, GTHD-20HP002...
 export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
   let prefix = 'GTHD-C';
-  if (loaiXetNghiem === 'hpv40') prefix = 'GTHD-40HP';
+  if (loaiXetNghiem === 'thinprep') prefix = 'GTHD-TP';
+  else if (loaiXetNghiem === 'hpv40') prefix = 'GTHD-40HP';
   else if (loaiXetNghiem === 'hpv20') prefix = 'GTHD-20HP';
 
   let uniqueMaSo = '';

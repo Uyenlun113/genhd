@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, password, fullName, role, allowedCategories } = body;
+    const { username, password, fullName, role, allowedCategories, title } = body;
 
     if (!username || !password || !fullName || !role) {
       return NextResponse.json({ error: 'Vui lòng nhập đầy đủ thông tin' }, { status: 400 });
@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       fullName,
       role,
-      allowedCategories: allowedCategories || ['cell', 'hpv40', 'hpv20'],
+      allowedCategories: allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      title: title || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
 
     return NextResponse.json(

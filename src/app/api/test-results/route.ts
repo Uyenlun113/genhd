@@ -41,7 +41,13 @@ export async function GET(request: NextRequest) {
 
     const userId = (session.user as { id?: string })?.id;
 
+    const creator = searchParams.get('creator');
+
     // Filter by doctor name if provided, or if user is doctor viewing their own menu
+    if (creator && userRole === 'admin') {
+      query.nguoiNhap = creator;
+    }
+
     if (doctor) {
       query.bacSiDoc = { $regex: doctor, $options: 'i' };
     } else if (userRole === 'doctor' && userName) {
@@ -77,6 +83,7 @@ export async function GET(request: NextRequest) {
       .skip((page - 1) * limit)
       .limit(limit)
       .select('-anhTeBao -pdfDaKy')
+      .populate('nguoiNhap', 'fullName username')
       .lean();
 
     return NextResponse.json({

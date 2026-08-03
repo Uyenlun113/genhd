@@ -4,8 +4,8 @@ export interface IUser extends Document {
   username: string;
   password: string;
   fullName: string;
-  role: 'admin' | 'doctor' | 'staff';
-  allowedCategories: Array<'cell' | 'hpv40' | 'hpv20'>;
+  role: 'admin' | 'doctor' | 'staff' | 'lab_admin';
+  allowedCategories: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20'>;
   title: string;
   createdAt: Date;
   updatedAt: Date;
@@ -30,13 +30,13 @@ const UserSchema = new Schema<IUser>(
     },
     role: {
       type: String,
-      enum: ['admin', 'doctor', 'staff'],
+      enum: ['admin', 'doctor', 'staff', 'lab_admin'],
       default: 'staff',
     },
     allowedCategories: {
       type: [String],
-      enum: ['cell', 'hpv40', 'hpv20'],
-      default: ['cell', 'hpv40', 'hpv20'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      default: ['cell', 'thinprep', 'hpv40', 'hpv20'],
     },
     title: {
       type: String,

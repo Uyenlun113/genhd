@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const { id } = await params;
     const body = await request.json();
-    const { username, fullName, role, password, allowedCategories } = body;
+    const { username, fullName, role, password, allowedCategories, title } = body;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
@@ -39,6 +39,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (fullName) updateData.fullName = fullName;
     if (role) updateData.role = role;
     if (allowedCategories) updateData.allowedCategories = allowedCategories;
+    if (title !== undefined) updateData.title = title;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }

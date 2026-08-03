@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import TestResult from '@/models/TestResult';
+import User from '@/models/User';
 import { generatePDF } from '@/lib/pdfExport';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
@@ -22,6 +23,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 
     if (!testResult) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
+    }
+
+    let bacSiTitle = '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)';
+    if (testResult.bacSiDoc && testResult.bacSiDoc !== 'Chưa phân loại') {
+      const docUser = await User.findOne({ fullName: { $regex: testResult.bacSiDoc.trim(), $options: 'i' } }).lean();
+      if (docUser && docUser.title) {
+        bacSiTitle = docUser.title;
+      }
     }
 
     const pdfBuffer = await generatePDF({
@@ -59,6 +68,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       khuyenNghi: testResult.khuyenNghi || '',
       ngayXetNghiem: testResult.ngayXetNghiem,
       bacSiDoc: testResult.bacSiDoc || 'BS CK1 PHẠM THẾ HÙNG',
+      bacSiTitle,
       anhTeBao: testResult.anhTeBao,
     });
 
