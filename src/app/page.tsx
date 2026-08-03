@@ -289,7 +289,11 @@ function DashboardContent() {
             subtitle={
               doctorFilter
                 ? `Danh sách các phiếu xét nghiệm phụ trách bởi ${doctorFilter}`
-                : 'Quản lý workflow xét nghiệm tế bào cổ tử cung GenHD'
+                : categoryFilter === 'hpv40'
+                ? 'Quản lý workflow xét nghiệm HPV 40 Types GenHD'
+                : categoryFilter === 'hpv20'
+                ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
+                : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
             }
             action={
               (userRole === 'staff' || userRole === 'admin') ? (
