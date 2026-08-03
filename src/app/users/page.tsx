@@ -318,7 +318,6 @@ export default function UserManagementPage() {
                       value={formData.username}
                       onChange={(e) => setFormData({ ...formData, username: e.target.value })}
                       placeholder="bacsi_duong"
-                      disabled={!!editUser}
                       required
                     />
                   </div>
@@ -347,9 +346,9 @@ export default function UserManagementPage() {
                         })
                       }
                     >
-                      <option value="doctor">👨‍⚕️ Bác sĩ đọc kết quả</option>
-                      <option value="staff">🧑‍💼 Phòng khám / Nhân viên nhập phiếu</option>
-                      <option value="admin">🛡️ Quản trị viên (Admin)</option>
+                      <option value="doctor">Bác sĩ đọc kết quả</option>
+                      <option value="staff">Phòng khám / Nhân viên nhập phiếu</option>
+                      <option value="admin">Quản trị viên (Admin)</option>
                     </select>
                   </div>
 
@@ -366,7 +365,7 @@ export default function UserManagementPage() {
                             checked={formData.allowedCategories.includes('cell')}
                             onChange={() => handleCategoryToggle('cell')}
                           />
-                          <span className="text-xs">🔬 XÉT NGHIỆM CELL</span>
+                          <span className="text-xs">XÉT NGHIỆM CELL</span>
                         </label>
                         <label className="checkbox-item">
                           <input
@@ -374,7 +373,7 @@ export default function UserManagementPage() {
                             checked={formData.allowedCategories.includes('hpv40')}
                             onChange={() => handleCategoryToggle('hpv40')}
                           />
-                          <span className="text-xs">🧬 XÉT NGHIỆM HPV 40 TYPES</span>
+                          <span className="text-xs">XÉT NGHIỆM HPV 40 TYPES</span>
                         </label>
                         <label className="checkbox-item">
                           <input
@@ -382,7 +381,7 @@ export default function UserManagementPage() {
                             checked={formData.allowedCategories.includes('hpv20')}
                             onChange={() => handleCategoryToggle('hpv20')}
                           />
-                          <span className="text-xs">🧪 XÉT NGHIỆM HPV 20 TYPES</span>
+                          <span className="text-xs">XÉT NGHIỆM HPV 20 TYPES</span>
                         </label>
                       </div>
                     </div>

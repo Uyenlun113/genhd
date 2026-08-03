@@ -25,10 +25,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const { id } = await params;
     const body = await request.json();
-    const { fullName, role, password, allowedCategories } = body;
+    const { username, fullName, role, password, allowedCategories } = body;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
+    if (username) {
+      const existingUser = await User.findOne({ username, _id: { $ne: id } });
+      if (existingUser) {
+        return NextResponse.json({ error: 'Tên đăng nhập đã tồn tại trên hệ thống!' }, { status: 400 });
+      }
+      updateData.username = username;
+    }
     if (fullName) updateData.fullName = fullName;
     if (role) updateData.role = role;
     if (allowedCategories) updateData.allowedCategories = allowedCategories;
