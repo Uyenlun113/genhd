@@ -13,59 +13,56 @@ export function useWebSocket(onEvent: EventCallback) {
   }, [onEvent]);
 
   useEffect(() => {
-    let socketUrl = 'ws://localhost:3001';
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname || 'localhost';
-      socketUrl = `ws://${host}:3001`;
-    }
+    const isLocalhost =
+      typeof window !== 'undefined' &&
+      (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
     let ws: WebSocket | null = null;
     let retryTimer: NodeJS.Timeout;
 
-    function connect() {
-      try {
-        ws = new WebSocket(socketUrl);
-        wsRef.current = ws;
+    if (isLocalhost) {
+      const socketUrl = `ws://${window.location.hostname}:3001`;
 
-        ws.onopen = () => {
-          // Connected to WebSocket server
-        };
+      function connect() {
+        try {
+          ws = new WebSocket(socketUrl);
+          wsRef.current = ws;
 
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            if (callbackRef.current) {
-              callbackRef.current(data);
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (callbackRef.current) {
+                callbackRef.current(data);
+              }
+            } catch (err) {
+              console.error('WS client parse error:', err);
             }
-          } catch (err) {
-            console.error('WS client parse error:', err);
-          }
-        };
+          };
 
-        ws.onclose = () => {
-          // Retry connection after 3 seconds if disconnected
+          ws.onclose = () => {
+            retryTimer = setTimeout(connect, 3000);
+          };
+
+          ws.onerror = () => {
+            ws?.close();
+          };
+        } catch {
           retryTimer = setTimeout(connect, 3000);
-        };
-
-        ws.onerror = () => {
-          ws?.close();
-        };
-      } catch {
-        retryTimer = setTimeout(connect, 3000);
+        }
       }
+
+      connect();
     }
 
-    connect();
-
-    // Fallback polling interval every 8 seconds for serverless environments (Vercel)
+    // Polling interval every 6 seconds for production (Vercel serverless)
     const fallbackInterval = setInterval(() => {
-      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+      if (!isLocalhost || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
         if (callbackRef.current) {
           callbackRef.current({ type: 'REFRESH_TEST_RESULTS' });
           callbackRef.current({ type: 'REFRESH_NOTIFICATIONS' });
         }
       }
-    }, 8000);
+    }, 6000);
 
     return () => {
       clearTimeout(retryTimer);
