@@ -40,6 +40,8 @@ interface TestResultItem {
   donVi?: string;
   bacSiChiDinh?: string;
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
+  ngayNhanMau?: string;
+  ngayDuKienTra?: string;
   createdAt: string;
   bacSiDoc?: string;
 }
@@ -416,6 +418,7 @@ function DashboardContent() {
                     <th>Năm sinh</th>
                     <th>BS Đọc KQ</th>
                     <th>Trạng thái</th>
+                    <th>Dự kiến trả (SLA 72h)</th>
                     <th>Ngày tạo</th>
                     <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
@@ -423,13 +426,13 @@ function DashboardContent() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
                         Đang tải dữ liệu...
                       </td>
                     </tr>
                   ) : results.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={8} className="text-center py-10 text-slate-400 text-sm">
                         Không tìm thấy phiếu xét nghiệm nào
                       </td>
                     </tr>
@@ -437,14 +440,65 @@ function DashboardContent() {
                     results.map((item, index) => {
                       const popUpward = index > 1 && index >= results.length - 2;
 
+                      // SLA Calculations (72 hours from Doctor Acceptance)
+                      const now = new Date().getTime();
+                      const acceptedTime = item.ngayNhanMau ? new Date(item.ngayNhanMau).getTime() : null;
+                      let elapsedHours = 0;
+                      if (acceptedTime && item.trangThai !== 'da_tra_ket_qua') {
+                        elapsedHours = (now - acceptedTime) / (1000 * 60 * 60);
+                      }
+
+                      const isOverdue72h = acceptedTime && item.trangThai !== 'da_tra_ket_qua' && elapsedHours > 72;
+                      const isWarning48h = acceptedTime && item.trangThai !== 'da_tra_ket_qua' && elapsedHours > 48 && elapsedHours <= 72;
+
+                      let rowBgClass = 'hover:bg-slate-50/80 transition-colors';
+                      if (isOverdue72h) {
+                        rowBgClass = 'bg-red-50/90 text-red-950 font-semibold hover:bg-red-100/90 border-l-4 border-l-red-500';
+                      } else if (isWarning48h) {
+                        rowBgClass = 'bg-amber-50/90 text-amber-950 font-semibold hover:bg-amber-100/90 border-l-4 border-l-amber-500';
+                      }
+
+                      // Expected Completion Date
+                      const duKienDate = item.ngayDuKienTra
+                        ? new Date(item.ngayDuKienTra)
+                        : item.ngayNhanMau
+                        ? new Date(new Date(item.ngayNhanMau).getTime() + 3 * 24 * 60 * 60 * 1000)
+                        : null;
+
                       return (
-                        <tr key={item._id}>
+                        <tr key={item._id} className={rowBgClass}>
                           <td className="font-bold text-sky-600">{item.maSo}</td>
                           <td className="font-semibold text-slate-800">{item.hoTen}</td>
                           <td>{item.namSinh}</td>
                           <td className="text-xs text-slate-600 font-medium">{item.bacSiDoc || '---'}</td>
                           <td>
                             <StatusBadge status={item.trangThai} />
+                          </td>
+                          <td>
+                            {duKienDate ? (
+                              <div className="text-xs">
+                                <span className="font-semibold text-slate-700 block">
+                                  {duKienDate.toLocaleString('vi-VN', {
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    day: '2-digit',
+                                    month: '2-digit',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                                {item.trangThai === 'da_tra_ket_qua' ? (
+                                  <span className="text-[10px] text-emerald-600 font-bold">✓ Đã trả kết quả</span>
+                                ) : isOverdue72h ? (
+                                  <span className="text-[10px] text-red-600 font-bold animate-pulse">⚠️ Quá hạn 72h!</span>
+                                ) : isWarning48h ? (
+                                  <span className="text-[10px] text-amber-600 font-bold">⏰ Cảnh báo &gt;48h</span>
+                                ) : (
+                                  <span className="text-[10px] text-sky-600 font-bold">Trong thời hạn</span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-slate-400 text-xs">Chưa nhận mẫu</span>
+                            )}
                           </td>
                           <td className="text-xs text-slate-500">
                             {new Date(item.createdAt).toLocaleDateString('vi-VN')}
@@ -494,7 +548,7 @@ function DashboardContent() {
                                   </span>
                                 </button>
 
-                                {item.trangThai === 'nhap_thong_tin' && (
+                                {(userRole === 'staff' || userRole === 'admin') && item.trangThai === 'nhap_thong_tin' && (
                                   <button
                                     onClick={() => handleOpenEditModal(item)}
                                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
@@ -504,8 +558,8 @@ function DashboardContent() {
                                   </button>
                                 )}
 
-                                {/* Download PDF option if result ready or entered */}
-                                {item.trangThai !== 'nhap_thong_tin' && (
+                                {/* Download PDF option ONLY when da_tra_ket_qua */}
+                                {item.trangThai === 'da_tra_ket_qua' && (
                                   <button
                                     onClick={() => handleDownloadPDF(item._id)}
                                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-emerald-700 hover:bg-emerald-50 transition-colors"

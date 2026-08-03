@@ -45,10 +45,35 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const body = await request.json();
 
-    // Don't allow changing maSo
+    // Don't allow changing read-only & system fields
     delete body.maSo;
+    delete body.lichSuChinhSua;
+    delete body._id;
+    delete body.createdAt;
+    delete body.updatedAt;
 
-    const result = await TestResult.findByIdAndUpdate(id, body, { new: true }).lean();
+    const editorName = session.user?.name || 'Người dùng';
+    let actionDesc = 'Cập nhật thông tin phiếu xét nghiệm';
+
+    if (body.trangThai === 'da_tra_ket_qua') {
+      body.ngayTraKetQua = new Date();
+      actionDesc = 'Hoàn tất & Trả kết quả xét nghiệm';
+    } else if (body.ketLuan || body.hpvHighRiskResult || body.bienDoiViSinh) {
+      actionDesc = 'Cập nhật kết quả xét nghiệm chuyên môn';
+    }
+
+    const updatePayload: any = {
+      ...body,
+      $push: {
+        lichSuChinhSua: {
+          nguoiSua: editorName,
+          thoiGian: new Date(),
+          noiDung: actionDesc,
+        },
+      },
+    };
+
+    const result = await TestResult.findByIdAndUpdate(id, updatePayload, { new: true }).lean();
 
     if (!result) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });

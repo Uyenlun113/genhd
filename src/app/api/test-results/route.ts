@@ -39,11 +39,15 @@ export async function GET(request: NextRequest) {
       query.loaiXetNghiem = category;
     }
 
+    const userId = (session.user as { id?: string })?.id;
+
     // Filter by doctor name if provided, or if user is doctor viewing their own menu
     if (doctor) {
       query.bacSiDoc = { $regex: doctor, $options: 'i' };
     } else if (userRole === 'doctor' && userName) {
       query.bacSiDoc = { $regex: userName, $options: 'i' };
+    } else if (userRole === 'staff' && userId) {
+      query.nguoiNhap = userId;
     }
 
     const startDate = searchParams.get('startDate');
@@ -117,6 +121,13 @@ export async function POST(request: NextRequest) {
           loaiXetNghiem,
           trangThai: 'nhap_thong_tin',
           nguoiNhap: (session.user as { id: string }).id,
+          lichSuChinhSua: [
+            {
+              nguoiSua: creatorName,
+              thoiGian: new Date(),
+              noiDung: 'Tạo mới phiếu xét nghiệm',
+            },
+          ],
         });
       } catch (err: any) {
         if (err.code === 11000 && attempts < maxAttempts) {

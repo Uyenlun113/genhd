@@ -22,11 +22,24 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const userId = (session.user as { id: string }).id;
 
+    const userName = session.user?.name || 'Bác sĩ';
+    const now = new Date();
+    const duKienTra = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Exactly +3 days (72 hours)
+
     const result = await TestResult.findByIdAndUpdate(
       id,
       {
         trangThai: 'chay_ket_qua',
         bacSiXuLy: userId,
+        ngayNhanMau: now,
+        ngayDuKienTra: duKienTra,
+        $push: {
+          lichSuChinhSua: {
+            nguoiSua: userName,
+            thoiGian: now,
+            noiDung: 'Bác sĩ nhận mẫu & tiếp nhận phiếu xét nghiệm',
+          },
+        },
       },
       { new: true }
     ).lean();

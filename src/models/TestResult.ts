@@ -28,7 +28,14 @@ export interface ITestResult extends Document {
   bacSiChiDinh: string;
 
   ngayNhanMau: Date;
+  ngayDuKienTra: Date;
   ngayTraKetQua: Date;
+
+  lichSuChinhSua: Array<{
+    nguoiSua: string;
+    thoiGian: Date;
+    noiDung: string;
+  }>;
 
   // Dành cho loại 'cell' (Bethesda 2014)
   tinhChatBenhPham: 'dat' | 'khongDat';
@@ -92,8 +99,17 @@ const TestResultSchema = new Schema<ITestResult>(
     donVi: { type: String, default: '' },
     bacSiChiDinh: { type: String, default: '' },
 
-    ngayNhanMau: { type: Date, default: Date.now },
-    ngayTraKetQua: { type: Date, default: Date.now },
+    ngayNhanMau: { type: Date },
+    ngayDuKienTra: { type: Date },
+    ngayTraKetQua: { type: Date },
+
+    lichSuChinhSua: [
+      {
+        nguoiSua: { type: String, required: true },
+        thoiGian: { type: Date, default: Date.now },
+        noiDung: { type: String, required: true },
+      },
+    ],
 
     // Cell / Bethesda
     tinhChatBenhPham: { type: String, enum: ['dat', 'khongDat'], default: 'dat' },
