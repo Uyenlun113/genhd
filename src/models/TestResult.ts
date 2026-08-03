@@ -1,0 +1,185 @@
+import mongoose, { Schema, Document, Model } from 'mongoose';
+import {
+  BIEN_DOI_VI_SINH_OPTIONS,
+  BIEN_DOI_KHAC_OPTIONS,
+  BAT_THUONG_VAY_OPTIONS,
+  BAT_THUONG_TUYEN_OPTIONS,
+} from '@/constants/options';
+
+export {
+  BIEN_DOI_VI_SINH_OPTIONS,
+  BIEN_DOI_KHAC_OPTIONS,
+  BAT_THUONG_VAY_OPTIONS,
+  BAT_THUONG_TUYEN_OPTIONS,
+};
+
+export interface ITestResult extends Document {
+  maSo: string;
+  loaiXetNghiem: 'cell' | 'hpv40' | 'hpv20';
+
+  // Thông tin bệnh nhân
+  hoTen: string;
+  namSinh: number;
+  gioiTinh: 'Nam' | 'Nữ';
+  diaChi: string;
+  soDienThoai: string;
+  loaiMau: string;
+  donVi: string;
+  bacSiChiDinh: string;
+
+  ngayNhanMau: Date;
+  ngayTraKetQua: Date;
+
+  // Dành cho loại 'cell' (Bethesda 2014)
+  tinhChatBenhPham: 'dat' | 'khongDat';
+  lyDoKhongDat: string;
+  khongTonThuong: boolean;
+  batThuongKhac: boolean;
+  teBaoNoiMac: boolean;
+  bienDoiViSinh: string[];
+  bienDoiKhac: string[];
+  batThuongVay: string[];
+  batThuongTuyen: string[];
+
+  // Dành cho HPV 40 & HPV 20 Types
+  hpvHighRiskResult: string;      // Type 16, 18
+  hpvHighRiskOtherResult: string; // 16 Types
+  hpvLowRiskResult: string;       // 2 Types (6, 11)
+  hpvOtherTypesResult: string;    // 20 Types (chỉ dành cho HPV40)
+
+  // Chung
+  ketLuan: string;
+  khuyenNghi: string;
+  ngayXetNghiem: Date;
+  bacSiDoc: string;
+
+  trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
+
+  anhTeBao: string; // Ảnh soi tế bào hoặc biểu đồ PCR
+  pdfDaKy: string;
+
+  nguoiNhap: mongoose.Types.ObjectId;
+  bacSiXuLy: mongoose.Types.ObjectId;
+
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CounterSchema = new Schema({
+  _id: String,
+  seq: { type: Number, default: 0 },
+});
+
+const Counter: Model<Document & { _id: string; seq: number }> =
+  mongoose.models.Counter || mongoose.model('Counter', CounterSchema);
+
+const TestResultSchema = new Schema<ITestResult>(
+  {
+    maSo: { type: String, unique: true, required: true },
+    loaiXetNghiem: {
+      type: String,
+      enum: ['cell', 'hpv40', 'hpv20'],
+      default: 'cell',
+    },
+
+    // Thông tin bệnh nhân
+    hoTen: { type: String, required: true },
+    namSinh: { type: Number, required: true },
+    gioiTinh: { type: String, enum: ['Nam', 'Nữ'], default: 'Nữ' },
+    diaChi: { type: String, default: '' },
+    soDienThoai: { type: String, default: '' },
+    loaiMau: { type: String, default: 'Dịch phết' },
+    donVi: { type: String, default: '' },
+    bacSiChiDinh: { type: String, default: '' },
+
+    ngayNhanMau: { type: Date, default: Date.now },
+    ngayTraKetQua: { type: Date, default: Date.now },
+
+    // Cell / Bethesda
+    tinhChatBenhPham: { type: String, enum: ['dat', 'khongDat'], default: 'dat' },
+    lyDoKhongDat: { type: String, default: '' },
+    khongTonThuong: { type: Boolean, default: false },
+    batThuongKhac: { type: Boolean, default: false },
+    teBaoNoiMac: { type: Boolean, default: false },
+    bienDoiViSinh: [{ type: String }],
+    bienDoiKhac: [{ type: String }],
+    batThuongVay: [{ type: String }],
+    batThuongTuyen: [{ type: String }],
+
+    // HPV Types
+    hpvHighRiskResult: { type: String, default: 'Âm tính' },
+    hpvHighRiskOtherResult: { type: String, default: 'Âm tính' },
+    hpvLowRiskResult: { type: String, default: 'Âm tính' },
+    hpvOtherTypesResult: { type: String, default: 'Âm tính' },
+
+    // Kết luận & Khuyến nghị
+    ketLuan: { type: String, default: '' },
+    khuyenNghi: { type: String, default: '' },
+
+    ngayXetNghiem: { type: Date, default: Date.now },
+    bacSiDoc: { type: String, default: 'BS CK1 PHẠM THẾ HÙNG' },
+
+    trangThai: {
+      type: String,
+      enum: ['nhap_thong_tin', 'chay_ket_qua', 'da_tra_ket_qua'],
+      default: 'nhap_thong_tin',
+    },
+
+    anhTeBao: { type: String, default: '' },
+    pdfDaKy: { type: String, default: '' },
+
+    nguoiNhap: { type: Schema.Types.ObjectId, ref: 'User' },
+    bacSiXuLy: { type: Schema.Types.ObjectId, ref: 'User' },
+  },
+  {
+    timestamps: true,
+    strict: false,
+  }
+);
+
+// Function to generate unique maSo with duplicate check & Mongoose 8+ returnDocument syntax
+export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
+  const now = new Date();
+  const mm = String(now.getMonth() + 1).padStart(2, '0');
+  const dd = String(now.getDate()).padStart(2, '0');
+  const yy = String(now.getFullYear()).slice(-2);
+  const datePrefix = `${mm}${dd}${yy}`;
+
+  let codePrefix = 'C';
+  if (loaiXetNghiem === 'hpv40') codePrefix = 'HPV40-';
+  else if (loaiXetNghiem === 'hpv20') codePrefix = 'HPV20-';
+
+  let uniqueMaSo = '';
+  let isUnique = false;
+
+  const TestResultModel = mongoose.models.TestResult || mongoose.model('TestResult', TestResultSchema);
+
+  while (!isUnique) {
+    const counter = await Counter.findByIdAndUpdate(
+      `testResult_${datePrefix}_${loaiXetNghiem}`,
+      { $inc: { seq: 1 } },
+      { upsert: true, returnDocument: 'after' }
+    );
+
+    const seqNum = counter ? (counter as any).seq : 1;
+    const seqStr = String(seqNum).padStart(4, '0');
+    uniqueMaSo = `${datePrefix} – ${codePrefix}${seqStr}`;
+
+    // Verify if maSo already exists in DB to prevent E11000 duplicate key error
+    const existing = await TestResultModel.findOne({ maSo: uniqueMaSo }).lean();
+    if (!existing) {
+      isUnique = true;
+    }
+  }
+
+  return uniqueMaSo;
+}
+
+if (mongoose.models.TestResult) {
+  delete mongoose.models.TestResult;
+}
+
+const TestResult: Model<ITestResult> =
+  mongoose.models.TestResult || mongoose.model<ITestResult>('TestResult', TestResultSchema);
+
+export default TestResult;
