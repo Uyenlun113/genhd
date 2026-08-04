@@ -53,9 +53,11 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   // Load Arial Fonts for Vietnamese Unicode support
   let fontBytes: Buffer | null = null;
   let boldFontBytes: Buffer | null = null;
+  let italicFontBytes: Buffer | null = null;
 
   const fontPath = path.join(process.cwd(), 'public', 'Arial.ttf');
   const boldFontPath = path.join(process.cwd(), 'public', 'Arial-Bold.ttf');
+  const italicFontPath = path.join(process.cwd(), 'public', 'Arial-Italic.ttf');
 
   if (fs.existsSync(fontPath)) {
     try {
@@ -73,8 +75,17 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     }
   }
 
+  if (fs.existsSync(italicFontPath)) {
+    try {
+      italicFontBytes = fs.readFileSync(italicFontPath);
+    } catch (err) {
+      console.error('Error reading Arial Italic font:', err);
+    }
+  }
+
   let font: any;
   let boldFont: any;
+  let italicFont: any;
 
   if (fontBytes) {
     font = await pdfDoc.embedFont(fontBytes);
@@ -86,6 +97,12 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     boldFont = await pdfDoc.embedFont(boldFontBytes);
   } else {
     boldFont = font;
+  }
+
+  if (italicFontBytes) {
+    italicFont = await pdfDoc.embedFont(italicFontBytes);
+  } else {
+    italicFont = font;
   }
 
   // Colors
@@ -105,15 +122,17 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     y: number,
     size = 9.5,
     isBold = false,
-    color = blackColor
+    color = blackColor,
+    isItalic = false
   ) => {
     if (!text) return;
     try {
+      const fontToUse = isItalic ? italicFont : isBold ? boldFont : font;
       targetPage.drawText(String(text), {
         x,
         y,
         size,
-        font: isBold ? boldFont : font,
+        font: fontToUse,
         color,
       });
     } catch (err) {
@@ -882,7 +901,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const isChecked = (data.bienDoiViSinh || []).includes(item.key);
     const itemY = sec3HeaderY - 15 - idx * 15;
     drawCheckboxSymbolOnPage(page1, isChecked, 42, itemY);
-    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, isChecked ? primaryBlue : blackColor);
+    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, isChecked ? primaryBlue : blackColor, true);
   });
 
   const bienDoiKhacList = [
@@ -1041,7 +1060,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   }
 
   // Footer Block for Cell Test
-  const drawFooterBlock = (targetPage: typeof page1) => {
+  const drawFooterBlock = async (targetPage: typeof page1) => {
     const footerY = 36;
 
     if (data.anhTeBao && data.anhTeBao.length > 20) {
@@ -1049,38 +1068,28 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       try {
         let imageBytes: Buffer;
         if (anhTeBaoUrl.startsWith('http://') || anhTeBaoUrl.startsWith('https://')) {
-          fetch(anhTeBaoUrl)
-            .then((res) => res.arrayBuffer())
-            .then((arrayBuf) => {
-              imageBytes = Buffer.from(arrayBuf);
-              const embedPromise = anhTeBaoUrl.includes('.png') || anhTeBaoUrl.includes('image/png')
-                ? pdfDoc.embedPng(imageBytes)
-                : pdfDoc.embedJpg(imageBytes);
-              return embedPromise;
-            })
-            .then((img) => {
-              targetPage.drawImage(img, {
-                x: tableX,
-                y: footerY,
-                width: 170,
-                height: 115,
-              });
-            })
-            .catch((err) => console.error('Cloudinary cell image draw error:', err));
+          const res = await fetch(anhTeBaoUrl);
+          const arrayBuf = await res.arrayBuffer();
+          imageBytes = Buffer.from(arrayBuf);
         } else {
           const base64Data = anhTeBaoUrl.replace(/^data:image\/\w+;base64,/, '');
           imageBytes = Buffer.from(base64Data, 'base64');
-          const embedPromise = anhTeBaoUrl.includes('image/png')
-            ? pdfDoc.embedPng(imageBytes)
-            : pdfDoc.embedJpg(imageBytes);
-          embedPromise.then((img) => {
-            targetPage.drawImage(img, {
-              x: tableX,
-              y: footerY,
-              width: 170,
-              height: 115,
-            });
-          }).catch((err) => console.error('Image draw error:', err));
+        }
+
+        let img;
+        if (anhTeBaoUrl.includes('.png') || anhTeBaoUrl.includes('image/png')) {
+          img = await pdfDoc.embedPng(imageBytes);
+        } else {
+          img = await pdfDoc.embedJpg(imageBytes);
+        }
+
+        if (img) {
+          targetPage.drawImage(img, {
+            x: tableX,
+            y: footerY,
+            width: 170,
+            height: 115,
+          });
         }
       } catch (err) {
         console.error('Failed to embed cell image:', err);
@@ -1090,7 +1099,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     drawDoctorSignatureBlock(targetPage, data.ngayXetNghiem, footerY + 115);
   };
 
-  drawFooterBlock(page1);
+  await drawFooterBlock(page1);
 
   let page2: any = null;
   if (requiresPage2) {
@@ -1148,7 +1157,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       });
     }
 
-    drawFooterBlock(page2);
+    await drawFooterBlock(page2);
 
     drawTextOnPage(page1, 'Trang 1 / 2', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));
     drawTextOnPage(page2, 'Trang 2 / 2', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));

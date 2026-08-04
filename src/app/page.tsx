@@ -577,7 +577,7 @@ function DashboardContent() {
                           </td>
                           <td style={{ textAlign: 'right' }}>
                             <div className="flex gap-2 justify-end items-center relative">
-                              {(userRole === 'doctor' || userRole === 'admin') &&
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') &&
                                 item.trangThai === 'nhap_thong_tin' && (
                                   <button
                                     onClick={() => handleAcceptClick(item._id, item.maSo)}
@@ -588,10 +588,21 @@ function DashboardContent() {
                                   </button>
                                 )}
 
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') &&
+                                item.trangThai === 'chay_ket_qua' && (
+                                  <Link
+                                    href={`/results/${item._id}`}
+                                    className="btn btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1.5 shrink-0"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>Nhập kết quả</span>
+                                  </Link>
+                                )}
+
                               {/* 3-Dots Action Menu Trigger */}
                               <button
                                 onClick={() => setActiveMenuId(activeMenuId === item._id ? null : item._id)}
-                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 shadow-xs"
+                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 shadow-xs shrink-0"
                                 title="Thao tác khác"
                               >
                                 <MoreVertical className="w-4 h-4" />
@@ -611,12 +622,7 @@ function DashboardContent() {
                                     className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors"
                                   >
                                     <Eye className="w-4 h-4 text-sky-600" />
-                                    <span>
-                                      {item.trangThai === 'chay_ket_qua' &&
-                                        (userRole === 'doctor' || userRole === 'admin')
-                                        ? 'Nhập kết quả'
-                                        : 'Xem chi tiết'}
-                                    </span>
+                                    <span>Xem chi tiết</span>
                                   </button>
 
                                   {(userRole === 'staff' || userRole === 'admin') && item.trangThai === 'nhap_thong_tin' && (

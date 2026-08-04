@@ -592,7 +592,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               onChange={() => handleArrayCheckbox('bienDoiViSinh', opt.value)}
                               disabled={isCompleted}
                             />
-                            <span className="text-xs">{opt.label}</span>
+                            <span className="text-xs italic font-medium">{opt.label}</span>
                           </label>
                         ))}
                       </div>
@@ -656,6 +656,18 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           </label>
                         ))}
                       </div>
+                    </div>
+
+                    {/* Upload ảnh tế bào học / ThinPrep */}
+                    <div className="mb-6">
+                      <FileUpload
+                        accept="image/*"
+                        label="Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)"
+                        value={formData.anhTeBao}
+                        isImage={true}
+                        disabled={isCompleted}
+                        onChange={(base64) => setFormData({ ...formData, anhTeBao: base64 })}
+                      />
                     </div>
 
                     {/* Kết luận & Khuyên nghị */}
