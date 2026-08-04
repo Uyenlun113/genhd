@@ -832,7 +832,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     y: sec2CheckY,
     width: tableW,
     height: 24,
-    color: whiteColor,
+    color: lightBlueBg,
     borderColor: borderGray,
     borderWidth: 1,
   });
@@ -850,13 +850,13 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   });
 
   drawCheckboxSymbolOnPage(page1, !!data.khongTonThuong, 42, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Không tổn thương trong biểu mô hay ung thư', 55, sec2CheckY + 7, 8.5);
+  drawTextOnPage(page1, 'Không tổn thương trong biểu mô hay ung thư', 55, sec2CheckY + 7, 8.5, false, primaryBlue);
 
   drawCheckboxSymbolOnPage(page1, !!data.batThuongKhac, 232, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Bất thường khác', 245, sec2CheckY + 7, 8.5);
+  drawTextOnPage(page1, 'Bất thường khác', 245, sec2CheckY + 7, 8.5, false, primaryBlue);
 
   drawCheckboxSymbolOnPage(page1, !!data.teBaoNoiMac, 352, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Tế bào nội mạc tử cung', 365, sec2CheckY + 7, 8.5);
+  drawTextOnPage(page1, 'Tế bào nội mạc tử cung', 365, sec2CheckY + 7, 8.5, false, primaryBlue);
 
   // Section: BIẾN ĐỔI TẾ BÀO DO VI SINH vs BIẾN ĐỔI TẾ BÀO KHÁC
   const sec3HeaderY = 500;
@@ -877,7 +877,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     y: sec3HeaderY - sec3TableH,
     width: tableW,
     height: sec3TableH,
-    color: whiteColor,
+    color: lightBlueBg,
     borderColor: borderGray,
     borderWidth: 1,
   });
@@ -901,7 +901,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const isChecked = (data.bienDoiViSinh || []).includes(item.key);
     const itemY = sec3HeaderY - 15 - idx * 15;
     drawCheckboxSymbolOnPage(page1, isChecked, 42, itemY);
-    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, isChecked ? primaryBlue : blackColor, true);
+    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, primaryBlue, true);
   });
 
   const bienDoiKhacList = [
@@ -915,7 +915,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const isChecked = (data.bienDoiKhac || []).includes(item.key);
     const itemY = sec3HeaderY - 15 - idx * 15;
     drawCheckboxSymbolOnPage(page1, isChecked, 303, itemY);
-    drawTextOnPage(page1, item.label, 316, itemY, 8.5, false, isChecked ? primaryBlue : blackColor);
+    drawTextOnPage(page1, item.label, 316, itemY, 8.5, false, primaryBlue);
   });
 
   // Section: BẤT THƯỜNG TẾ BÀO BIỂU MÔ
@@ -949,7 +949,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     y: sec4HeaderY - sec4TableH,
     width: tableW,
     height: sec4TableH,
-    color: whiteColor,
+    color: lightBlueBg,
     borderColor: borderGray,
     borderWidth: 1,
   });
@@ -974,7 +974,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const isChecked = (data.batThuongVay || []).includes(item.key);
     const itemY = sec4HeaderY - 14 - idx * 14;
     drawCheckboxSymbolOnPage(page1, isChecked, 42, itemY);
-    drawTextOnPage(page1, item.label, 55, itemY, 7.5, false, isChecked ? primaryBlue : blackColor);
+    drawTextOnPage(page1, item.label, 55, itemY, 7.5, false, isChecked ? redColor : primaryBlue);
   });
 
   const tuyenList = [
@@ -992,7 +992,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const isChecked = (data.batThuongTuyen || []).includes(item.key);
     const itemY = sec4HeaderY - 14 - idx * 14;
     drawCheckboxSymbolOnPage(page1, isChecked, 303, itemY);
-    drawTextOnPage(page1, item.label, 316, itemY, 7.5, false, isChecked ? primaryBlue : blackColor);
+    drawTextOnPage(page1, item.label, 316, itemY, 7.5, false, isChecked ? redColor : primaryBlue);
   });
 
   // Multi-page Pagination Logic for KẾT LUẬN & KHUYẾN NGHỊ
@@ -1085,7 +1085,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
 
         if (img) {
           targetPage.drawImage(img, {
-            x: tableX,
+            x: tableX + 20,
             y: footerY,
             width: 170,
             height: 115,
