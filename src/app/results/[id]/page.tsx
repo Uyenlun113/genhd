@@ -16,6 +16,7 @@ import {
   FileCheck,
   Dna,
   Lock,
+  Clock,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -408,7 +409,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
               {userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin' ? (
                 <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 inline-flex items-center gap-1.5">
-                    🔒 Thông tin hành chính bệnh nhân được khóa cố định đối với Bác sĩ / Admin phòng Lab / Phiếu đã nhận mẫu.
+                    <Lock className='inline-block w-4 h-4' /> Thông tin hành chính bệnh nhân được khóa cố định đối với Bác sĩ / Admin phòng Lab / Phiếu đã nhận mẫu.
                   </span>
                 </div>
               ) : (
@@ -438,7 +439,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 font-bold text-sm">
-                        ⏰
+                        <Clock className='inline-block w-5 h-5' />
                       </div>
                       <div>
                         <h4 className="font-bold text-amber-900 text-sm">Đang chờ bác sĩ xử lý & trả kết quả</h4>

@@ -27,6 +27,7 @@ import {
   Download,
   Calendar,
   User,
+  Clock,
 } from 'lucide-react';
 
 interface TestResultItem {
@@ -495,7 +496,7 @@ function DashboardContent() {
                             ? (item.nguoiNhap as any).username
                             : 'Hệ thống';
 
-                      // SLA Calculations (72 hours from Doctor Acceptance)
+                      // SLA Calculations (strictly calculated from ngayNhanMau when sample is accepted)
                       const now = new Date().getTime();
                       const acceptedTime = item.ngayNhanMau ? new Date(item.ngayNhanMau).getTime() : null;
                       let elapsedHours = 0;
@@ -510,14 +511,14 @@ function DashboardContent() {
                       if (isOverdue72h) {
                         rowBgClass = 'bg-red-50/90 text-red-950 font-semibold hover:bg-red-100/90 border-l-4 border-l-red-500';
                       } else if (isWarning48h) {
-                        rowBgClass = 'bg-amber-50/90 text-amber-950 font-semibold hover:bg-amber-100/90 border-l-4 border-l-amber-500';
+                        rowBgClass = 'bg-amber-100/70 text-amber-950 font-semibold hover:bg-amber-100/90 border-l-4 border-l-amber-500';
                       }
 
                       // Expected Completion Date
                       const duKienDate = item.ngayDuKienTra
                         ? new Date(item.ngayDuKienTra)
-                        : item.ngayNhanMau
-                          ? new Date(new Date(item.ngayNhanMau).getTime() + 3 * 24 * 60 * 60 * 1000)
+                        : acceptedTime
+                          ? new Date(acceptedTime + 3 * 24 * 60 * 60 * 1000)
                           : null;
 
                       return (
@@ -560,11 +561,11 @@ function DashboardContent() {
                                 {item.trangThai === 'da_tra_ket_qua' ? (
                                   <span className="text-[10px] text-emerald-600 font-bold">✓ Đã trả kết quả</span>
                                 ) : isOverdue72h ? (
-                                  <span className="text-[10px] text-red-600 font-bold animate-pulse">⚠️ Quá hạn 72h!</span>
+                                  <span className="text-[10px] text-red-600 font-bold animate-pulse"><Clock className='inline-block w-3 h-3' /> Quá hạn 72h!</span>
                                 ) : isWarning48h ? (
-                                  <span className="text-[10px] text-amber-600 font-bold">⏰ Cảnh báo &gt;48h</span>
+                                  <span className="text-[10px] text-amber-700 font-bold"> <Clock className='inline-block w-3 h-3' /> Cảnh báo &gt;48h</span>
                                 ) : (
-                                  <span className="text-[10px] text-sky-600 font-bold">Trong thời hạn</span>
+                                  <span className="text-[10px] text-sky-600 font-bold"> <Clock className='inline-block w-3 h-3' /> Trong thời hạn</span>
                                 )}
                               </div>
                             ) : (
