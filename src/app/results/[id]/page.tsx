@@ -592,7 +592,9 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               onChange={() => handleArrayCheckbox('bienDoiViSinh', opt.value)}
                               disabled={isCompleted}
                             />
-                            <span className="text-xs italic font-medium">{opt.label}</span>
+                            <span className={`text-xs font-medium ${opt.value === 'hpv' || opt.value === 'tapKhuan' ? '' : 'italic'}`}>
+                              {opt.label}
+                            </span>
                           </label>
                         ))}
                       </div>

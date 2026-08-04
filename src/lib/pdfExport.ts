@@ -837,26 +837,26 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     borderWidth: 1,
   });
   page1.drawLine({
-    start: { x: 225, y: sec2CheckY },
-    end: { x: 225, y: sec2CheckY + 24 },
+    start: { x: 265, y: sec2CheckY },
+    end: { x: 265, y: sec2CheckY + 24 },
     thickness: 1,
     color: borderGray,
   });
   page1.drawLine({
-    start: { x: 345, y: sec2CheckY },
-    end: { x: 345, y: sec2CheckY + 24 },
+    start: { x: 380, y: sec2CheckY },
+    end: { x: 380, y: sec2CheckY + 24 },
     thickness: 1,
     color: borderGray,
   });
 
   drawCheckboxSymbolOnPage(page1, !!data.khongTonThuong, 42, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Không tổn thương trong biểu mô hay ung thư', 55, sec2CheckY + 7, 8.5, false, primaryBlue);
+  drawTextOnPage(page1, 'Không tổn thương trong biểu mô hay ung thư', 55, sec2CheckY + 7, 8, false, primaryBlue);
 
-  drawCheckboxSymbolOnPage(page1, !!data.batThuongKhac, 232, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Bất thường khác', 245, sec2CheckY + 7, 8.5, false, primaryBlue);
+  drawCheckboxSymbolOnPage(page1, !!data.batThuongKhac, 272, sec2CheckY + 7);
+  drawTextOnPage(page1, 'Bất thường khác', 285, sec2CheckY + 7, 8, false, primaryBlue);
 
-  drawCheckboxSymbolOnPage(page1, !!data.teBaoNoiMac, 352, sec2CheckY + 7);
-  drawTextOnPage(page1, 'Tế bào nội mạc tử cung', 365, sec2CheckY + 7, 8.5, false, primaryBlue);
+  drawCheckboxSymbolOnPage(page1, !!data.teBaoNoiMac, 387, sec2CheckY + 7);
+  drawTextOnPage(page1, 'Tế bào nội mạc tử cung', 400, sec2CheckY + 7, 8, false, primaryBlue);
 
   // Section: BIẾN ĐỔI TẾ BÀO DO VI SINH vs BIẾN ĐỔI TẾ BÀO KHÁC
   const sec3HeaderY = 500;
@@ -889,19 +889,19 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   });
 
   const viSinhList = [
-    { key: 'trichomonas', label: 'Trichomonas vaginalis' },
-    { key: 'candida', label: 'Candida spp' },
-    { key: 'actinomyces', label: 'Actinomyces spp' },
-    { key: 'gardnerella', label: 'Gardnerella vaginalis' },
-    { key: 'hpv', label: 'HPV' },
-    { key: 'tapKhuan', label: 'Tạp khuẩn' },
+    { key: 'trichomonas', label: 'Trichomonas vaginalis', isItalic: true },
+    { key: 'candida', label: 'Candida spp', isItalic: true },
+    { key: 'actinomyces', label: 'Actinomyces spp', isItalic: true },
+    { key: 'gardnerella', label: 'Gardnerella vaginalis', isItalic: true },
+    { key: 'hpv', label: 'HPV', isItalic: false },
+    { key: 'tapKhuan', label: 'Tạp khuẩn', isItalic: false },
   ];
 
   viSinhList.forEach((item, idx) => {
     const isChecked = (data.bienDoiViSinh || []).includes(item.key);
     const itemY = sec3HeaderY - 15 - idx * 15;
     drawCheckboxSymbolOnPage(page1, isChecked, 42, itemY);
-    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, primaryBlue, true);
+    drawTextOnPage(page1, item.label, 55, itemY, 8.5, false, primaryBlue, item.isItalic);
   });
 
   const bienDoiKhacList = [
