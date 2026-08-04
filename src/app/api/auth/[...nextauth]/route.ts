@@ -29,28 +29,28 @@ export const authOptions: AuthOptions = {
               password: hashedPassword,
               fullName: 'Quản trị viên (Admin)',
               role: 'admin',
-              allowedCategories: ['cell', 'hpv40', 'hpv20'],
+              allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
             },
             {
               username: 'nhanvien',
               password: hashedPassword,
               fullName: 'Nhân viên GenHD',
               role: 'staff',
-              allowedCategories: ['cell', 'hpv40', 'hpv20'],
+              allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
             },
             {
               username: 'bcsihung',
               password: hashedPassword,
               fullName: 'BS CK1 PHẠM THẾ HÙNG',
               role: 'doctor',
-              allowedCategories: ['cell', 'hpv40', 'hpv20'],
+              allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
             },
             {
               username: 'bacsi',
               password: hashedPassword,
               fullName: 'TS. BS. Nguyễn Khánh Dương',
               role: 'doctor',
-              allowedCategories: ['cell', 'hpv40'],
+              allowedCategories: ['cell', 'thinprep', 'hpv40'],
             },
             {
               username: 'bcsidung',
@@ -79,7 +79,7 @@ export const authOptions: AuthOptions = {
           name: user.fullName,
           email: user.username,
           role: user.role,
-          allowedCategories: user.allowedCategories || ['cell', 'hpv40', 'hpv20'],
+          allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
         } as any;
       },
     }),
@@ -89,7 +89,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.role = (user as any).role;
         token.id = user.id;
-        token.allowedCategories = (user as any).allowedCategories || ['cell', 'hpv40', 'hpv20'];
+        token.allowedCategories = (user as any).allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
       }
       return token;
     },
@@ -97,7 +97,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         (session.user as any).role = token.role as string;
         (session.user as any).id = token.id as string;
-        (session.user as any).allowedCategories = (token.allowedCategories as string[]) || ['cell', 'hpv40', 'hpv20'];
+        (session.user as any).allowedCategories = (token.allowedCategories as string[]) || ['cell', 'thinprep', 'hpv40', 'hpv20'];
       }
       return session;
     },

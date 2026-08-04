@@ -19,6 +19,7 @@ import {
   ArrowRight,
   TrendingUp,
   Stethoscope,
+  FlaskConical,
 } from 'lucide-react';
 
 interface StatsData {
@@ -28,6 +29,7 @@ interface StatsData {
   allowedCategories?: string[];
   byCategory: {
     cell: number;
+    thinprep?: number;
     hpv40: number;
     hpv20: number;
   };
@@ -83,13 +85,15 @@ export default function DashboardPage() {
   });
 
   const isDoctor = stats?.userRole === 'doctor';
-  const allowedCats = stats?.allowedCategories || ['cell', 'hpv40', 'hpv20'];
+  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
   const canSeeCell = allowedCats.includes('cell');
+  const canSeeThinPrep = allowedCats.includes('thinprep');
   const canSeeHPV40 = allowedCats.includes('hpv40');
   const canSeeHPV20 = allowedCats.includes('hpv20');
 
   const total = stats?.totalCount || 0;
   const cellPct = total > 0 ? Math.round(((stats?.byCategory.cell || 0) / total) * 100) : 0;
+  const thinprepPct = total > 0 ? Math.round(((stats?.byCategory.thinprep || 0) / total) * 100) : 0;
   const hpv40Pct = total > 0 ? Math.round(((stats?.byCategory.hpv40 || 0) / total) * 100) : 0;
   const hpv20Pct = total > 0 ? Math.round(((stats?.byCategory.hpv20 || 0) / total) * 100) : 0;
 
@@ -128,23 +132,23 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-6">
               {/* Top Overview Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
                 {/* Total Card - Only show for Admin and Staff */}
                 {!isDoctor && (
-                  <div className="glass-card p-5 border-l-4 border-l-sky-500 flex items-center justify-between shadow-xs">
+                  <div className="glass-card p-4 sm:p-4.5 border-l-4 border-l-sky-500 flex items-center justify-between shadow-xs">
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
                         Tổng số phiếu
                       </span>
-                      <span className="text-3xl font-extrabold text-slate-900 mt-1 block">
+                      <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 mt-1 block">
                         {stats.totalCount}
                       </span>
                       <span className="text-[11px] text-sky-600 font-semibold mt-1 inline-flex items-center gap-1">
                         <TrendingUp className="w-3 h-3" /> Tất cả phân loại
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold">
-                      <FileText className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-sky-50 text-sky-600 flex items-center justify-center font-bold shrink-0">
+                      <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   </div>
                 )}
@@ -153,21 +157,44 @@ export default function DashboardPage() {
                 {canSeeCell && (
                   <Link
                     href={isDoctor ? `/?category=cell&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=cell'}
-                    className="glass-card p-5 border-l-4 border-l-sky-500 flex items-center justify-between hover:shadow-md transition-all group"
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-sky-500 flex items-center justify-between hover:shadow-md transition-all group"
                   >
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
                         Xét nghiệm CELL
                       </span>
-                      <span className="text-3xl font-extrabold text-sky-600 mt-1 block">
+                      <span className="text-2xl sm:text-3xl font-extrabold text-sky-600 mt-1 block">
                         {stats.byCategory.cell}
                       </span>
                       <span className="text-[11px] text-slate-500 font-medium mt-1 block">
                         Chiếm {cellPct}% tổng phiếu
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Activity className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-sky-100 text-sky-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                  </Link>
+                )}
+
+                {/* ThinPrep Card */}
+                {canSeeThinPrep && (
+                  <Link
+                    href={isDoctor ? `/?category=thinprep&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=thinprep'}
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-purple-500 flex items-center justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Xét nghiệm ThinPrep
+                      </span>
+                      <span className="text-2xl sm:text-3xl font-extrabold text-purple-600 mt-1 block">
+                        {stats.byCategory.thinprep || 0}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                        Chiếm {thinprepPct}% tổng phiếu
+                      </span>
+                    </div>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <FlaskConical className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   </Link>
                 )}
@@ -176,21 +203,21 @@ export default function DashboardPage() {
                 {canSeeHPV40 && (
                   <Link
                     href={isDoctor ? `/?category=hpv40&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=hpv40'}
-                    className="glass-card p-5 border-l-4 border-l-indigo-500 flex items-center justify-between hover:shadow-md transition-all group"
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-indigo-500 flex items-center justify-between hover:shadow-md transition-all group"
                   >
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
                         Xét nghiệm HPV 40
                       </span>
-                      <span className="text-3xl font-extrabold text-indigo-600 mt-1 block">
+                      <span className="text-2xl sm:text-3xl font-extrabold text-indigo-600 mt-1 block">
                         {stats.byCategory.hpv40}
                       </span>
                       <span className="text-[11px] text-slate-500 font-medium mt-1 block">
                         Chiếm {hpv40Pct}% tổng phiếu
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <Dna className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <Dna className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   </Link>
                 )}
@@ -199,21 +226,21 @@ export default function DashboardPage() {
                 {canSeeHPV20 && (
                   <Link
                     href={isDoctor ? `/?category=hpv20&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=hpv20'}
-                    className="glass-card p-5 border-l-4 border-l-teal-500 flex items-center justify-between hover:shadow-md transition-all group"
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-teal-500 flex items-center justify-between hover:shadow-md transition-all group"
                   >
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
                         Xét nghiệm HPV 20
                       </span>
-                      <span className="text-3xl font-extrabold text-teal-600 mt-1 block">
+                      <span className="text-2xl sm:text-3xl font-extrabold text-teal-600 mt-1 block">
                         {stats.byCategory.hpv20}
                       </span>
                       <span className="text-[11px] text-slate-500 font-medium mt-1 block">
                         Chiếm {hpv20Pct}% tổng phiếu
                       </span>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <TestTube className="w-6 h-6" />
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <TestTube className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   </Link>
                 )}
@@ -285,6 +312,21 @@ export default function DashboardPage() {
                         <div
                           className="h-full bg-sky-500 rounded-full transition-all duration-500"
                           style={{ width: `${cellPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {canSeeThinPrep && (
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1 text-slate-700">
+                        <span>ThinPrep (Tế bào học ThinPrep)</span>
+                        <span>{stats.byCategory.thinprep || 0} phiếu ({thinprepPct}%)</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-500 rounded-full transition-all duration-500"
+                          style={{ width: `${thinprepPct}%` }}
                         />
                       </div>
                     </div>

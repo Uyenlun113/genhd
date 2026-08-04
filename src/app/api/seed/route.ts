@@ -17,7 +17,7 @@ export async function GET() {
         password: hashedPassword,
         fullName: 'BS CK1 PHẠM THẾ HÙNG',
         role: 'doctor',
-        allowedCategories: ['cell', 'hpv40', 'hpv20'],
+        allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
       });
     }
 
@@ -30,21 +30,21 @@ export async function GET() {
           password: hashedPassword,
           fullName: 'Quản trị viên (Admin)',
           role: 'admin',
-          allowedCategories: ['cell', 'hpv40', 'hpv20'],
+          allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
         },
         {
           username: 'nhanvien',
           password: hashedPassword,
           fullName: 'Nhân viên GenHD',
           role: 'staff',
-          allowedCategories: ['cell', 'hpv40', 'hpv20'],
+          allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
         },
         {
           username: 'bacsi',
           password: hashedPassword,
           fullName: 'TS . BS Nguyễn Khánh Dương',
           role: 'doctor',
-          allowedCategories: ['cell', 'hpv40', 'hpv20'],
+          allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
         },
         {
           username: 'bcsidung',

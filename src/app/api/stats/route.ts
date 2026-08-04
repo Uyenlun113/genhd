@@ -16,7 +16,7 @@ export async function GET() {
     const userRole = (session.user as { role?: string })?.role;
     const userName = session.user?.name;
 
-    let allowedCategories: string[] = ['cell', 'hpv40', 'hpv20'];
+    let allowedCategories: string[] = ['cell', 'thinprep', 'hpv40', 'hpv20'];
 
     // Filter stats for Doctor role
     const filter: Record<string, unknown> = {};
@@ -34,6 +34,7 @@ export async function GET() {
 
     // Stats by category
     const cellCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'cell' });
+    const thinprepCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'thinprep' });
     const hpv40Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv40' });
     const hpv20Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv20' });
 
@@ -68,6 +69,7 @@ export async function GET() {
       allowedCategories,
       byCategory: {
         cell: cellCount,
+        thinprep: thinprepCount,
         hpv40: hpv40Count,
         hpv20: hpv20Count,
       },

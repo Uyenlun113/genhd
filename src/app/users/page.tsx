@@ -403,7 +403,7 @@ export default function UserManagementPage() {
                     </div>
                   )}
 
-                  {formData.role === 'doctor' && (
+                  {(formData.role === 'doctor' || formData.role === 'staff' || formData.role === 'lab_admin') && (
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                       <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider">
                         Phân quyền xem/xử lý danh mục xét nghiệm:
