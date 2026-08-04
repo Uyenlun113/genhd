@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import TestResult from '@/models/TestResult';
 import User from '@/models/User';
@@ -13,12 +14,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = (session.user as { role?: string })?.role;
+    const userRole = (session.user as { role?: string; id?: string })?.role;
     const userName = session.user?.name;
+    const userId = (session.user as { role?: string; id?: string })?.id;
 
     let allowedCategories: string[] = ['cell', 'thinprep', 'hpv40', 'hpv20'];
 
-    // Filter stats for Doctor role
+    // Filter stats for Doctor or Staff role
     const filter: Record<string, unknown> = {};
     if (userRole === 'doctor' && userName) {
       filter.bacSiDoc = userName;
@@ -27,6 +29,14 @@ export async function GET() {
       const docUser = await User.findOne({ fullName: userName }).lean();
       if (docUser && docUser.allowedCategories && docUser.allowedCategories.length > 0) {
         allowedCategories = docUser.allowedCategories;
+      }
+    } else if (userRole === 'staff' && userId) {
+      filter.nguoiNhap = userId;
+
+      // Get staff's allowed categories from DB
+      const staffUser = await User.findById(userId).lean();
+      if (staffUser && staffUser.allowedCategories && staffUser.allowedCategories.length > 0) {
+        allowedCategories = staffUser.allowedCategories;
       }
     }
 
@@ -44,7 +54,12 @@ export async function GET() {
     const daTraKetQuaCount = await TestResult.countDocuments({ ...filter, trangThai: 'da_tra_ket_qua' });
 
     // Stats by doctor
-    const matchStage = userRole === 'doctor' && userName ? [{ $match: { bacSiDoc: userName } }] : [];
+    let matchStage: any[] = [];
+    if (userRole === 'doctor' && userName) {
+      matchStage = [{ $match: { bacSiDoc: userName } }];
+    } else if (userRole === 'staff' && userId) {
+      matchStage = [{ $match: { nguoiNhap: new mongoose.Types.ObjectId(userId) } }];
+    }
     const doctorStats = await TestResult.aggregate([
       ...matchStage,
       {

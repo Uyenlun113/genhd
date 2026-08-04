@@ -20,6 +20,7 @@ import {
   TrendingUp,
   Stethoscope,
   FlaskConical,
+  UserCheck,
 } from 'lucide-react';
 
 interface StatsData {
@@ -85,6 +86,7 @@ export default function DashboardPage() {
   });
 
   const isDoctor = stats?.userRole === 'doctor';
+  const isStaff = stats?.userRole === 'staff';
   const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
   const canSeeCell = allowedCats.includes('cell');
   const canSeeThinPrep = allowedCats.includes('thinprep');
@@ -104,26 +106,35 @@ export default function DashboardPage() {
       <div className="flex flex-1 w-full">
         <Sidebar />
 
-        <main className="flex-1 p-6 md:p-8 w-full">
+        <main className="flex-1 p-5 md:p-6 w-full overflow-y-auto max-h-[calc(100vh-61px)]">
           <Header
             title={
               isDoctor
                 ? `Thống kê phiếu của Bác sĩ: ${stats?.userName || ''}`
+                : isStaff
+                ? `Thống kê phiếu của Phòng khám: ${stats?.userName || ''}`
                 : 'Thống kê & Báo cáo hệ thống'
             }
             subtitle={
               isDoctor
                 ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được phân công cho ${stats?.userName || ''}`
+                : isStaff
+                ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
                 : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
             }
           />
 
-          {isDoctor && (
+          {isDoctor ? (
             <div className="mb-6 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-sky-50 text-sky-700 text-xs font-bold border border-sky-200 shadow-xs">
               <Stethoscope className="w-4 h-4 text-sky-600" />
               <span>Chế độ xem Bác sĩ: Dữ liệu bên dưới đã tự động lọc duy nhất cho <b>{stats?.userName}</b></span>
             </div>
-          )}
+          ) : isStaff ? (
+            <div className="mb-6 inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200 shadow-xs">
+              <UserCheck className="w-4 h-4 text-emerald-600" />
+              <span>Chế độ xem Nhân viên / Phòng khám: Dữ liệu bên dưới đã tự động lọc các phiếu tạo bởi <b>{stats?.userName}</b></span>
+            </div>
+          ) : null}
 
           {loading ? (
             <div className="py-20 text-center text-slate-400">Đang tải dữ liệu thống kê...</div>
