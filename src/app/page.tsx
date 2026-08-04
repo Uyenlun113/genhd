@@ -462,7 +462,7 @@ function DashboardContent() {
                     <th>Mã số</th>
                     <th>Họ và tên</th>
                     <th>Năm sinh</th>
-                    {userRole === 'admin' && <th>Nguồn (Người tạo)</th>}
+                    {userRole === 'admin' && <th>Nguồn</th>}
                     <th>BS Đọc KQ</th>
                     <th>Trạng thái</th>
                     <th>Dự kiến trả</th>
