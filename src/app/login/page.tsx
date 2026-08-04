@@ -33,7 +33,7 @@ export default function LoginPage() {
         toast.error('Đăng nhập thất bại. Vui lòng kiểm tra lại!');
       } else {
         toast.success('Đăng nhập thành công!');
-        router.push('/');
+        router.push('/dashboard');
         router.refresh();
       }
     } catch {
@@ -141,7 +141,7 @@ export default function LoginPage() {
             disabled={loading}
             style={{ width: '100%', padding: '12px', borderRadius: '12px', fontWeight: '700' }}
           >
-            {loading ? 'Đang đăng nhập...' : '🔑 Đăng nhập'}
+            {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>
       </div>
