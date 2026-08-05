@@ -64,7 +64,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     _id: '',
     maSo: '',
-    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi',
+    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh',
     hoTen: '',
     namSinh: 1990,
     gioiTinh: 'Nữ',
@@ -73,6 +73,11 @@ export default function TestResultDetailPage({ params }: PageProps) {
     loaiMau: 'Dịch phết',
     donVi: '',
     bacSiChiDinh: '',
+
+    // Giải Phẫu Bệnh fields
+    viTriBenhPham: '',
+    daiThe: '',
+    viThe: '',
 
     // Cell fields
     tinhChatBenhPham: 'dat',
@@ -344,7 +349,21 @@ export default function TestResultDetailPage({ params }: PageProps) {
         <main className="flex-1 p-6 md:p-8 w-full">
           <Header
             title={`Phiếu xét nghiệm: ${formData.maSo}`}
-            subtitle={`Bệnh nhân: ${formData.hoTen} (${formData.loaiXetNghiem === 'cell' ? 'Mẫu CELL' : formData.loaiXetNghiem === 'thinprep' ? 'Mẫu ThinPrep' : isHPV40 ? 'Mẫu HPV 40' : 'Mẫu HPV 20'})`}
+            subtitle={`Bệnh nhân: ${formData.hoTen} (${
+              formData.loaiXetNghiem === 'cell'
+                ? 'Mẫu CELL'
+                : formData.loaiXetNghiem === 'thinprep'
+                ? 'Mẫu ThinPrep'
+                : formData.loaiXetNghiem === 'hpv40'
+                ? 'Mẫu HPV 40'
+                : formData.loaiXetNghiem === 'hpv20'
+                ? 'Mẫu HPV 20'
+                : formData.loaiXetNghiem === 'soituoi'
+                ? 'Mẫu Soi tươi'
+                : formData.loaiXetNghiem === 'giaiphaubenh'
+                ? 'Mẫu Giải Phẫu Bệnh'
+                : 'Phiếu xét nghiệm'
+            })`}
             action={
               <div className="flex items-center gap-3">
                 <StatusBadge status={formData.trangThai} />
@@ -567,7 +586,102 @@ export default function TestResultDetailPage({ params }: PageProps) {
               </div>
             ) : (
               <>
-                {formData.loaiXetNghiem === 'soituoi' ? (
+                {formData.loaiXetNghiem === 'giaiphaubenh' ? (
+                  /* GIẢI PHẪU BỆNH Form */
+                  <div className="glass-card p-6">
+                    <h3 className="flex items-center justify-between text-base font-bold text-amber-700 mb-5 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <FileText className="w-5 h-5 text-amber-600" />
+                        <span>KẾT QUẢ XÉT NGHIỆM GIẢI PHẪU BỆNH</span>
+                      </div>
+                      {isCompleted && (
+                        <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200 flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>ĐÃ TRẢ KẾT QUẢ (ĐÃ KHÓA)</span>
+                        </span>
+                      )}
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="form-group mb-0">
+                        <label className="font-bold text-slate-700 text-xs">Chẩn đoán lâm sàng</label>
+                        <input
+                          type="text"
+                          name="chanDoanLamSang"
+                          className="form-input text-xs disabled:bg-slate-100"
+                          placeholder="Nhập chẩn đoán lâm sàng..."
+                          value={formData.chanDoanLamSang || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+
+                      <div className="form-group mb-0">
+                        <label className="font-bold text-slate-700 text-xs">Vị trí bệnh phẩm</label>
+                        <input
+                          type="text"
+                          name="viTriBenhPham"
+                          className="form-input text-xs disabled:bg-slate-100"
+                          placeholder="Nhập vị trí bệnh phẩm..."
+                          value={formData.viTriBenhPham || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-5">
+                      <div className="form-group">
+                        <label className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span>Mô tả Đại thể (ĐẠI THỂ)</span>
+                        </label>
+                        <textarea
+                          name="daiThe"
+                          rows={4}
+                          className="form-textarea font-medium text-slate-800 bg-slate-50/50 border-slate-200 disabled:bg-slate-100"
+                          placeholder="Nhập mô tả đại thể..."
+                          value={formData.daiThe || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="font-bold text-slate-800 text-xs uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-500"></span>
+                          <span>Mô tả Vi thể (VI THỂ)</span>
+                        </label>
+                        <textarea
+                          name="viThe"
+                          rows={5}
+                          className="form-textarea font-medium text-slate-800 bg-slate-50/50 border-slate-200 disabled:bg-slate-100"
+                          placeholder="Nhập mô tả vi thể..."
+                          value={formData.viThe || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="font-bold text-amber-800 text-xs uppercase tracking-wide flex items-center gap-1.5 mb-1.5">
+                          <span className="w-2 h-2 rounded-full bg-amber-600"></span>
+                          <span>KẾT LUẬN *</span>
+                        </label>
+                        <textarea
+                          name="ketLuan"
+                          rows={3}
+                          className="form-textarea font-bold text-amber-900 bg-amber-50/40 border-amber-200 disabled:bg-slate-100 disabled:text-slate-600"
+                          placeholder="Nhập kết luận giải phẫu bệnh..."
+                          value={formData.ketLuan}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : formData.loaiXetNghiem === 'soituoi' ? (
                   /* SOI TƯƠI Form */
                   <div className="glass-card p-6">
                     <h3 className="flex items-center justify-between text-base font-bold text-emerald-700 mb-5 pb-3 border-b border-slate-100">
@@ -795,7 +909,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       </div>
                     </div>
                   </div>
-                ) : !isHPV ? (
+                ) : formData.loaiXetNghiem === 'cell' || formData.loaiXetNghiem === 'thinprep' ? (
                   /* CELL / Bethesda 2014 Form */
                   <div className="glass-card p-6">
                     <h3 className="flex items-center justify-between text-base font-bold text-sky-700 mb-5 pb-3 border-b border-slate-100">
