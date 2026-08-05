@@ -146,6 +146,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
             ? new Date(data.ngayXetNghiem).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0],
         });
+
+        if (data.daKy || data.trangThai === 'da_tra_ket_qua') {
+          setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`);
+        }
       }
     } catch (err) {
       console.error('Error loading result detail:', err);
@@ -375,6 +379,16 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   </button>
                 )}
 
+                {(formData.daKy || isCompleted) && (
+                  <button
+                    onClick={() => setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`)}
+                    className="btn btn-secondary flex items-center gap-1.5"
+                  >
+                    <Eye className="w-4 h-4 text-sky-600" />
+                    <span>Xem trước PDF</span>
+                  </button>
+                )}
+
                 {formData.trangThai === 'da_tra_ket_qua' && (
                   <button onClick={handleExportPDF} className="btn btn-primary">
                     <Download className="w-4 h-4" />
@@ -573,14 +587,24 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleExportPDF}
-                      className="btn btn-primary text-xs flex items-center gap-2"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>Tải kết quả PDF</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`)}
+                        className="btn btn-secondary text-xs flex items-center gap-1.5"
+                      >
+                        <Eye className="w-4 h-4 text-sky-600" />
+                        <span>Xem trước PDF</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleExportPDF}
+                        className="btn btn-primary text-xs flex items-center gap-2"
+                      >
+                        <Download className="w-4 h-4" />
+                        <span>Tải kết quả PDF</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -1312,39 +1336,6 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   </div>
                 </div>
 
-                {/* Preview PDF inline */}
-                {pdfPreviewUrl && (
-                  <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="flex items-center gap-2 text-base font-bold text-sky-700">
-                        <Eye className="w-5 h-5 text-sky-600" />
-                        <span>Xem trước PDF kết quả</span>
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => window.open(`/api/test-results/${id}/export-pdf`, '_blank')}
-                          className="btn btn-primary text-xs"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span>Tải PDF</span>
-                        </button>
-                        <button
-                          onClick={() => setPdfPreviewUrl('')}
-                          className="btn btn-secondary text-xs"
-                        >
-                          <span>Đóng</span>
-                        </button>
-                      </div>
-                    </div>
-                    <iframe
-                      src={pdfPreviewUrl}
-                      className="w-full rounded-xl border border-slate-200"
-                      style={{ height: '800px' }}
-                      title="PDF Preview"
-                    />
-                  </div>
-                )}
-
                 {/* Section 3: Ảnh xét nghiệm & Trả kết quả */}
                 {((userRole === 'admin' || userRole === 'lab_admin') || (formData.anhTeBao && isCompleted)) && (
                   <div className="glass-card p-6">
@@ -1379,6 +1370,39 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   </div>
                 )}
               </>
+            )}
+
+            {/* Preview PDF inline (Available for ALL ROLES including Staff) */}
+            {pdfPreviewUrl && (
+              <div className="glass-card p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="flex items-center gap-2 text-base font-bold text-sky-700">
+                    <Eye className="w-5 h-5 text-sky-600" />
+                    <span>Xem trước PDF kết quả</span>
+                  </h3>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => window.open(`/api/test-results/${id}/export-pdf`, '_blank')}
+                      className="btn btn-primary text-xs"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Tải PDF</span>
+                    </button>
+                    <button
+                      onClick={() => setPdfPreviewUrl('')}
+                      className="btn btn-secondary text-xs"
+                    >
+                      <span>Đóng</span>
+                    </button>
+                  </div>
+                </div>
+                <iframe
+                  src={pdfPreviewUrl}
+                  className="w-full rounded-xl border border-slate-200"
+                  style={{ height: '800px' }}
+                  title="PDF Preview"
+                />
+              </div>
             )}
 
             {/* Section 4: Lịch sử chỉnh sửa & Nhật ký hệ thống (Chỉ Admin thấy) */}
