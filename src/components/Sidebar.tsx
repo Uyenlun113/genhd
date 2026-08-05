@@ -12,6 +12,7 @@ import {
   TestTube,
   BarChart3,
   FlaskConical,
+  FileText,
 } from 'lucide-react';
 
 function SidebarContent() {
@@ -30,6 +31,7 @@ function SidebarContent() {
   const canSeeHPV40 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv40');
   const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
   const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('soituoi') || userRole === 'staff' || userRole === 'doctor';
+  const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('giaiphaubenh') || userRole === 'staff' || userRole === 'doctor';
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {
@@ -99,6 +101,16 @@ function SidebarContent() {
       show: canSeeSoiTuoi,
       activeColor: 'text-emerald-600 bg-emerald-50/80 font-bold',
       iconActive: 'text-emerald-600',
+    },
+    {
+      id: 'giaiphaubenh',
+      label: 'Giải Phẫu Bệnh',
+      href: getCategoryHref('giaiphaubenh'),
+      icon: FileText,
+      isActive: pathname === '/' && selectedCategory === 'giaiphaubenh',
+      show: canSeeGiaiPhauBenh,
+      activeColor: 'text-amber-600 bg-amber-50/80 font-bold',
+      iconActive: 'text-amber-600',
     },
   ];
 

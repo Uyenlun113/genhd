@@ -34,6 +34,7 @@ interface StatsData {
     hpv40: number;
     hpv20: number;
     soituoi?: number;
+    giaiphaubenh?: number;
   };
   byStatus: {
     nhap_thong_tin: number;
@@ -88,12 +89,13 @@ export default function DashboardPage() {
 
   const isDoctor = stats?.userRole === 'doctor';
   const isStaff = stats?.userRole === 'staff';
-  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi'];
+  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
   const canSeeCell = allowedCats.includes('cell');
   const canSeeThinPrep = allowedCats.includes('thinprep');
   const canSeeHPV40 = allowedCats.includes('hpv40');
   const canSeeHPV20 = allowedCats.includes('hpv20');
   const canSeeSoiTuoi = allowedCats.includes('soituoi') || isDoctor || isStaff || stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
+  const canSeeGiaiPhauBenh = allowedCats.includes('giaiphaubenh') || isDoctor || isStaff || stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
 
   const total = stats?.totalCount || 0;
   const cellPct = total > 0 ? Math.round(((stats?.byCategory.cell || 0) / total) * 100) : 0;
@@ -101,6 +103,7 @@ export default function DashboardPage() {
   const hpv40Pct = total > 0 ? Math.round(((stats?.byCategory.hpv40 || 0) / total) * 100) : 0;
   const hpv20Pct = total > 0 ? Math.round(((stats?.byCategory.hpv20 || 0) / total) * 100) : 0;
   const soituoiPct = total > 0 ? Math.round(((stats?.byCategory.soituoi || 0) / total) * 100) : 0;
+  const giaiphaubenhPct = total > 0 ? Math.round(((stats?.byCategory.giaiphaubenh || 0) / total) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -146,7 +149,7 @@ export default function DashboardPage() {
           ) : (
             <div className="space-y-6">
               {/* Top Overview Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3.5">
                 {/* Total Card - Only show for Admin and Staff */}
                 {!isDoctor && (
                   <div className="glass-card p-4 sm:p-4.5 border-l-4 border-l-sky-500 flex items-center justify-between shadow-xs">
@@ -281,6 +284,29 @@ export default function DashboardPage() {
                     </div>
                   </Link>
                 )}
+
+                {/* Giải Phẫu Bệnh Card */}
+                {canSeeGiaiPhauBenh && (
+                  <Link
+                    href={isDoctor ? `/?category=giaiphaubenh&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=giaiphaubenh'}
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-amber-500 flex items-center justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Giải Phẫu Bệnh
+                      </span>
+                      <span className="text-2xl sm:text-3xl font-extrabold text-amber-600 mt-1 block">
+                        {stats.byCategory.giaiphaubenh || 0}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                        Chiếm {giaiphaubenhPct}% tổng phiếu
+                      </span>
+                    </div>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <FileText className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                  </Link>
+                )}
               </div>
 
               {/* Status Workflow Progress Cards */}
@@ -394,6 +420,36 @@ export default function DashboardPage() {
                         <div
                           className="h-full bg-teal-500 rounded-full transition-all duration-500"
                           style={{ width: `${hpv20Pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {canSeeSoiTuoi && (
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1 text-slate-700">
+                        <span>Soi tươi dịch</span>
+                        <span>{stats.byCategory.soituoi || 0} phiếu ({soituoiPct}%)</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                          style={{ width: `${soituoiPct}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {canSeeGiaiPhauBenh && (
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1 text-slate-700">
+                        <span>Giải Phẫu Bệnh</span>
+                        <span>{stats.byCategory.giaiphaubenh || 0} phiếu ({giaiphaubenhPct}%)</span>
+                      </div>
+                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-amber-500 rounded-full transition-all duration-500"
+                          style={{ width: `${giaiphaubenhPct}%` }}
                         />
                       </div>
                     </div>

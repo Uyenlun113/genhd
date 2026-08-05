@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -17,9 +17,12 @@ export interface ITestResultData {
   ngayNhanMau?: string | Date;
   ngayTraKetQua?: string | Date;
 
-  // Dành cho Soi tươi & thông tin thêm
+  // Dành cho Soi tươi & Giải Phẫu Bệnh
   chanDoanLamSang?: string;
+  viTriBenhPham?: string;
   nhanXetDaiThe?: string;
+  daiThe?: string;
+  viThe?: string;
 
   soiTuoiBachCau?: string;
   soiTuoiNam?: string;
@@ -396,12 +399,169 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       titleText,
       rightXStart,
       rightXEnd,
-      yStart - 135,
+      yStart - 134,
       8.5,
       false,
       rgb(0.35, 0.35, 0.35)
     );
   };
+
+  // -------------------------------------------------------------
+  // BRANCH 4: GIẢI PHẪU BỆNH
+  // -------------------------------------------------------------
+  if (loaiXetNghiem === 'giaiphaubenh') {
+    drawCenteredText(page1, 'PHIẾU XÉT NGHIỆM GIẢI PHẪU BỆNH', 35, 560, 735, 14, true, primaryBlue);
+
+    // Administrative Table Grid with 8 Rows
+    const tableX = 35;
+    const tableY = 715;
+    const tableW = 525;
+    const rowH = 18;
+    const tableH = rowH * 8;
+
+    page1.drawRectangle({
+      x: tableX,
+      y: tableY - tableH,
+      width: tableW,
+      height: tableH,
+      borderColor: borderGray,
+      borderWidth: 1,
+      color: whiteColor,
+    });
+
+    const drawHorizDivider = (rowIndex: number) => {
+      page1.drawLine({
+        start: { x: tableX, y: tableY - rowIndex * rowH },
+        end: { x: tableX + tableW, y: tableY - rowIndex * rowH },
+        thickness: 1,
+        color: borderGray,
+      });
+    };
+
+    for (let i = 1; i < 8; i++) {
+      drawHorizDivider(i);
+    }
+
+    page1.drawLine({
+      start: { x: 295, y: tableY },
+      end: { x: 295, y: tableY - tableH },
+      thickness: 1,
+      color: borderGray,
+    });
+
+    const drawRowText = (rIdx: number, label1: string, val1: string, label2?: string, val2?: string) => {
+      const lineY = tableY - rIdx * rowH - 12;
+      drawTextOnPage(page1, label1, tableX + 8, lineY, 9, true, rgb(0.2, 0.2, 0.2));
+      drawTextOnPage(page1, val1 || '', tableX + 115, lineY, 9.5, false, blackColor);
+
+      if (label2) {
+        drawTextOnPage(page1, label2, 303, lineY, 9, true, rgb(0.2, 0.2, 0.2));
+        drawTextOnPage(page1, val2 || '', 400, lineY, 9.5, false, blackColor);
+      }
+    };
+
+    drawRowText(0, 'Mã bệnh nhân:', data.maSo, 'Họ và tên:', data.hoTen);
+    drawRowText(1, 'Năm sinh:', String(data.namSinh || ''), 'Giới tính:', data.gioiTinh);
+    drawRowText(2, 'Địa chỉ:', data.diaChi);
+    drawRowText(3, 'Điện thoại:', data.soDienThoai, 'Bác sĩ chỉ định:', data.bacSiChiDinh);
+    drawRowText(4, 'Đơn vị gửi mẫu:', data.donVi);
+    drawRowText(5, 'Chẩn đoán lâm sàng:', data.chanDoanLamSang || '');
+    drawRowText(6, 'Vị trí bệnh phẩm:', data.viTriBenhPham || '');
+    drawRowText(7, 'Ngày nhận mẫu:', formatDateStr(data.ngayNhanMau), 'Ngày trả kết quả:', formatDateStr(data.ngayTraKetQua));
+
+    // Section Bar: KẾT QUẢ GIẢI PHẪU BỆNH
+    const secY = 540;
+    page1.drawRectangle({
+      x: tableX,
+      y: secY,
+      width: tableW,
+      height: 24,
+      color: lightBlueBg,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    drawCenteredText(page1, 'KẾT QUẢ GIẢI PHẪU BỆNH', tableX, tableX + tableW, secY + 6, 11, true, primaryBlue);
+
+    // Section 1: ĐẠI THỂ
+    const daiTheY = 505;
+    const daiTheH = 65;
+    page1.drawRectangle({
+      x: tableX,
+      y: daiTheY - daiTheH,
+      width: tableW,
+      height: daiTheH,
+      color: whiteColor,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    page1.drawRectangle({
+      x: tableX,
+      y: daiTheY - 20,
+      width: tableW,
+      height: 20,
+      color: primaryBlue,
+    });
+    drawCenteredText(page1, 'ĐẠI THỂ', tableX, tableX + tableW, daiTheY - 14, 10, true, whiteColor);
+
+    const dtLines = wrapTextLines(data.daiThe || '', 85);
+    dtLines.forEach((lineText, lIdx) => {
+      drawTextOnPage(page1, lineText, tableX + 8, daiTheY - 33 - lIdx * 13, 9, false, blackColor);
+    });
+
+    // Section 2: VI THỂ
+    const viTheY = 430;
+    const viTheH = 95;
+    page1.drawRectangle({
+      x: tableX,
+      y: viTheY - viTheH,
+      width: tableW,
+      height: viTheH,
+      color: whiteColor,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    page1.drawRectangle({
+      x: tableX,
+      y: viTheY - 20,
+      width: tableW,
+      height: 20,
+      color: primaryBlue,
+    });
+    drawCenteredText(page1, 'VI THỂ', tableX, tableX + tableW, viTheY - 14, 10, true, whiteColor);
+
+    const vtLines = wrapTextLines(data.viThe || '', 85);
+    vtLines.forEach((lineText, lIdx) => {
+      drawTextOnPage(page1, lineText, tableX + 8, viTheY - 33 - lIdx * 13, 9, false, blackColor);
+    });
+
+    // Section 3: KẾT LUẬN
+    const ketLuanBoxY = 280;
+    const ketLuanBoxH = 45;
+    page1.drawRectangle({
+      x: tableX,
+      y: ketLuanBoxY,
+      width: tableW,
+      height: ketLuanBoxH,
+      color: lightBlueBg,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+
+    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY + ketLuanBoxH - 16, 9.5, true, primaryBlue);
+    const klLines = wrapTextLines(data.ketLuan || '', 75);
+    klLines.forEach((lText, lIdx) => {
+      drawTextOnPage(page1, lText, tableX + 85, ketLuanBoxY + ketLuanBoxH - 16 - lIdx * 13, 9.5, true, blackColor);
+    });
+
+    // Doctor Signature
+    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, 220);
+
+    drawWatermarkOverlay(page1);
+    drawTextOnPage(page1, 'Trang 1 / 1', 515, 8, 7.5, false, rgb(0.5, 0.5, 0.5));
+
+    const modifiedPdfBytes = await pdfDoc.save();
+    return modifiedPdfBytes;
+  }
 
   // -------------------------------------------------------------
   // BRANCH 3: SOI TƯƠI DỊCH

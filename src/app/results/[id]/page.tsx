@@ -182,6 +182,12 @@ export default function TestResultDetailPage({ params }: PageProps) {
   };
 
   const handleSave = async () => {
+    const yearNum = Number(formData.namSinh);
+    const currentYear = new Date().getFullYear();
+    if (!formData.namSinh || isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear) {
+      toast.error(`Năm sinh không hợp lệ. Vui lòng nhập năm sinh từ 1900 đến ${currentYear}`);
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/test-results/${id}`, {
@@ -389,6 +395,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.namSinh}
                     onChange={handleInputChange}
+                    min={1900}
+                    max={new Date().getFullYear()}
                     disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
                   />
                 </div>

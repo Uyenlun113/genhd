@@ -27,6 +27,7 @@ const SERVICE_OPTIONS: ServiceOption[] = [
   { id: 'hpv40', label: 'HPV 40', isCombo: false, types: ['hpv40'] },
   { id: 'hpv20', label: 'HPV 20', isCombo: false, types: ['hpv20'] },
   { id: 'soituoi', label: 'Soi tươi', isCombo: false, types: ['soituoi'] },
+  { id: 'giaiphaubenh', label: 'Giải Phẫu Bệnh', isCombo: false, types: ['giaiphaubenh'] },
   { id: 'combo_hpv20_cell', label: '🔥 Gói Combo: HPV 20 + Cell', isCombo: true, types: ['hpv20', 'cell'] },
   { id: 'combo_hpv40_cell', label: '🔥 Gói Combo: HPV 40 + Cell', isCombo: true, types: ['hpv40', 'cell'] },
   { id: 'combo_hpv20_thinprep', label: '🔥 Gói Combo: HPV 20 + ThinPrep', isCombo: true, types: ['hpv20', 'thinprep'] },
@@ -60,6 +61,7 @@ function NewResultFormContent() {
     bacSiChiDinh: '',
     chanDoanLamSang: '',
     nhanXetDaiThe: '',
+    viTriBenhPham: '',
   });
 
   const selectedServiceObj = SERVICE_OPTIONS.find((s) => s.id === serviceChoice) || SERVICE_OPTIONS[0];
@@ -120,8 +122,10 @@ function NewResultFormContent() {
       toast.error('Vui lòng nhập họ và tên bệnh nhân');
       return;
     }
-    if (!formData.namSinh) {
-      toast.error('Vui lòng nhập năm sinh');
+    const yearNum = Number(formData.namSinh);
+    const currentYear = new Date().getFullYear();
+    if (!formData.namSinh || isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear) {
+      toast.error(`Năm sinh không hợp lệ. Vui lòng nhập năm sinh từ 1900 đến ${currentYear}`);
       return;
     }
     if ((userRole === 'admin' || userRole === 'lab_admin') && !bacSiDoc1) {
@@ -311,6 +315,8 @@ function NewResultFormContent() {
                     value={formData.namSinh}
                     onChange={handleChange}
                     placeholder="1994"
+                    min={1900}
+                    max={new Date().getFullYear()}
                     required
                   />
                 </div>
@@ -411,6 +417,35 @@ function NewResultFormContent() {
                         value={formData.nhanXetDaiThe || ''}
                         onChange={handleChange}
                         placeholder="Nhận xét đại thể..."
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* ROW 4 - Chỉ dành riêng cho Xét nghiệm Giải Phẫu Bệnh */}
+                {selectedServiceObj.types.includes('giaiphaubenh') && (
+                  <>
+                    <div className="form-group mb-0">
+                      <label className="text-[11px] font-bold text-amber-700">Chẩn đoán lâm sàng</label>
+                      <input
+                        type="text"
+                        name="chanDoanLamSang"
+                        className="form-input py-1.5 px-3 text-xs border-amber-200 bg-amber-50/30"
+                        value={formData.chanDoanLamSang || ''}
+                        onChange={handleChange}
+                        placeholder="Chẩn đoán lâm sàng..."
+                      />
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label className="text-[11px] font-bold text-amber-700">Vị trí bệnh phẩm</label>
+                      <input
+                        type="text"
+                        name="viTriBenhPham"
+                        className="form-input py-1.5 px-3 text-xs border-amber-200 bg-amber-50/30"
+                        value={formData.viTriBenhPham || ''}
+                        onChange={handleChange}
+                        placeholder="Vị trí bệnh phẩm..."
                       />
                     </div>
                   </>

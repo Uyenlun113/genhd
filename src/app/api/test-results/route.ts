@@ -129,6 +129,15 @@ export async function POST(request: NextRequest) {
     const loaiXetNghiem = body.loaiXetNghiem || 'cell';
     const creatorName = session.user?.name || 'Nhân viên';
 
+    const currentYear = new Date().getFullYear();
+    const yearNum = Number(body.namSinh);
+    if (!body.namSinh || isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear) {
+      return NextResponse.json(
+        { error: `Năm sinh không hợp lệ. Vui lòng nhập năm sinh từ 1900 đến ${currentYear}` },
+        { status: 400 }
+      );
+    }
+
     let testResult;
     let attempts = 0;
     const maxAttempts = 5;

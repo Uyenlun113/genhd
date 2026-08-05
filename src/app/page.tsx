@@ -324,7 +324,9 @@ function DashboardContent() {
             subtitle={
               doctorFilter
                 ? `Danh sách các phiếu xét nghiệm phụ trách bởi ${doctorFilter}`
-                : categoryFilter === 'soituoi'
+                : categoryFilter === 'giaiphaubenh'
+                  ? 'Quản lý workflow xét nghiệm Giải Phẫu Bệnh GenHD'
+                  : categoryFilter === 'soituoi'
                   ? 'Quản lý workflow xét nghiệm Soi tươi dịch GenHD'
                   : categoryFilter === 'thinprep'
                     ? 'Quản lý workflow xét nghiệm Tế bào học ThinPrep GenHD'

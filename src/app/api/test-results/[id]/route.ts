@@ -52,6 +52,17 @@ export async function PUT(request: NextRequest, { params }: Params) {
     delete body.createdAt;
     delete body.updatedAt;
 
+    if (body.namSinh !== undefined) {
+      const currentYear = new Date().getFullYear();
+      const yearNum = Number(body.namSinh);
+      if (isNaN(yearNum) || yearNum < 1900 || yearNum > currentYear) {
+        return NextResponse.json(
+          { error: `Năm sinh không hợp lệ. Vui lòng nhập năm sinh từ 1900 đến ${currentYear}` },
+          { status: 400 }
+        );
+      }
+    }
+
     const editorName = session.user?.name || 'Người dùng';
     let actionDesc = 'Cập nhật thông tin phiếu xét nghiệm';
 

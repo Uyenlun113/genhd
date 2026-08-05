@@ -82,9 +82,12 @@ export async function GET(request: NextRequest, { params }: Params) {
       hpvLowRiskResult: testResult.hpvLowRiskResult,
       hpvOtherTypesResult: testResult.hpvOtherTypesResult,
 
-      // Soi Tươi
+      // Soi Tươi & Giải Phẫu Bệnh
       chanDoanLamSang: testResult.chanDoanLamSang,
+      viTriBenhPham: testResult.viTriBenhPham,
       nhanXetDaiThe: testResult.nhanXetDaiThe,
+      daiThe: testResult.daiThe,
+      viThe: testResult.viThe,
       soiTuoiBachCau: testResult.soiTuoiBachCau,
       soiTuoiNam: testResult.soiTuoiNam,
       soiTuoiTapKhuan: testResult.soiTuoiTapKhuan,

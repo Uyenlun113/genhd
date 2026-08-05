@@ -25,7 +25,7 @@ interface UserItem {
   username: string;
   fullName: string;
   role: 'admin' | 'doctor' | 'staff' | 'lab_admin';
-  allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20'>;
+  allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh'>;
   title?: string;
   createdAt: string;
 }
@@ -58,7 +58,7 @@ export default function UserManagementPage() {
     password: '',
     fullName: '',
     role: 'doctor' as 'admin' | 'doctor' | 'staff' | 'lab_admin',
-    allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'] as string[],
+    allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'] as string[],
     title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
   });
 
@@ -93,7 +93,7 @@ export default function UserManagementPage() {
       password: '',
       fullName: '',
       role: 'doctor',
-      allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'],
       title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
     setShowModal(true);
@@ -106,7 +106,7 @@ export default function UserManagementPage() {
       password: '',
       fullName: user.fullName,
       role: user.role,
-      allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'],
       title: user.title || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
     setShowModal(true);
@@ -292,7 +292,11 @@ export default function UserManagementPage() {
                                       ? 'bg-purple-100 text-purple-700'
                                       : cat === 'hpv40'
                                       ? 'bg-indigo-100 text-indigo-700'
-                                      : 'bg-teal-100 text-teal-700'
+                                      : cat === 'hpv20'
+                                      ? 'bg-teal-100 text-teal-700'
+                                      : cat === 'soituoi'
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-amber-100 text-amber-700'
                                   }`}
                                 >
                                   {cat}
@@ -440,6 +444,22 @@ export default function UserManagementPage() {
                             onChange={() => handleCategoryToggle('hpv20')}
                           />
                           <span className="text-xs">XÉT NGHIỆM HPV 20 TYPES</span>
+                        </label>
+                        <label className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('soituoi')}
+                            onChange={() => handleCategoryToggle('soituoi')}
+                          />
+                          <span className="text-xs">XÉT NGHIỆM SOI TƯƠI</span>
+                        </label>
+                        <label className="checkbox-item">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('giaiphaubenh')}
+                            onChange={() => handleCategoryToggle('giaiphaubenh')}
+                          />
+                          <span className="text-xs">GIẢI PHẪU BỆNH</span>
                         </label>
                       </div>
                     </div>

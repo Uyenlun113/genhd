@@ -15,7 +15,7 @@ export {
 
 export interface ITestResult extends Document {
   maSo: string;
-  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi';
+  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh';
 
   // Thông tin bệnh nhân
   hoTen: string;
@@ -27,9 +27,12 @@ export interface ITestResult extends Document {
   donVi: string;
   bacSiChiDinh: string;
 
-  // Dành cho Soi tươi & thông tin thêm
+  // Dành cho Soi tươi & Giải Phẫu Bệnh
   chanDoanLamSang?: string;
+  viTriBenhPham?: string;
   nhanXetDaiThe?: string;
+  daiThe?: string;
+  viThe?: string;
 
   soiTuoiBachCau?: string;
   soiTuoiNam?: string;
@@ -102,7 +105,7 @@ const TestResultSchema = new Schema<ITestResult>(
     maSo: { type: String, unique: true, required: true },
     loaiXetNghiem: {
       type: String,
-      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'],
       default: 'cell',
     },
 
@@ -115,6 +118,11 @@ const TestResultSchema = new Schema<ITestResult>(
     loaiMau: { type: String, default: 'Dịch phết' },
     donVi: { type: String, default: '' },
     bacSiChiDinh: { type: String, default: '' },
+
+    chanDoanLamSang: { type: String, default: '' },
+    viTriBenhPham: { type: String, default: '' },
+    daiThe: { type: String, default: '' },
+    viThe: { type: String, default: '' },
 
     ngayNhanMau: { type: Date },
     ngayDuKienTra: { type: Date },
@@ -181,6 +189,7 @@ export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
   else if (loaiXetNghiem === 'hpv40') prefix = 'GTHD-40HP';
   else if (loaiXetNghiem === 'hpv20') prefix = 'GTHD-20HP';
   else if (loaiXetNghiem === 'soituoi') prefix = 'GTHD-ST';
+  else if (loaiXetNghiem === 'giaiphaubenh') prefix = 'GTHD-GP';
 
   let uniqueMaSo = '';
   let isUnique = false;
