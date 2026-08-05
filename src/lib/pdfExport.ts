@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -16,6 +16,22 @@ export interface ITestResultData {
   bacSiChiDinh: string;
   ngayNhanMau?: string | Date;
   ngayTraKetQua?: string | Date;
+
+  // Dành cho Soi tươi & thông tin thêm
+  chanDoanLamSang?: string;
+  nhanXetDaiThe?: string;
+
+  soiTuoiBachCau?: string;
+  soiTuoiNam?: string;
+  soiTuoiTapKhuan?: string;
+  soiTuoiTeBaoBieuMo?: string;
+  soiTuoiTrichomonas?: string;
+
+  soiTuoiGhiChuBachCau?: string;
+  soiTuoiGhiChuNam?: string;
+  soiTuoiGhiChuTapKhuan?: string;
+  soiTuoiGhiChuTeBaoBieuMo?: string;
+  soiTuoiGhiChuTrichomonas?: string;
 
   // Dành cho loại 'cell'
   tinhChatBenhPham?: 'dat' | 'khongDat';
@@ -267,7 +283,17 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   // Embed Signature Image if provided
   let signatureImg: any = null;
   if (data.signatureImage) {
-    const sigPath = path.join(process.cwd(), 'public', data.signatureImage);
+    let sigPath = path.join(process.cwd(), 'public', data.signatureImage);
+    if (!fs.existsSync(sigPath)) {
+      const altName1 = data.signatureImage.replace('.jpg', '.png').replace('chu_ky_', 'chu_ki_');
+      const altName2 = data.signatureImage.replace('.png', '.jpg').replace('chu_ki_', 'chu_ky_');
+      if (fs.existsSync(path.join(process.cwd(), 'public', altName1))) {
+        sigPath = path.join(process.cwd(), 'public', altName1);
+      } else if (fs.existsSync(path.join(process.cwd(), 'public', altName2))) {
+        sigPath = path.join(process.cwd(), 'public', altName2);
+      }
+    }
+
     if (fs.existsSync(sigPath)) {
       try {
         const sigBytes = fs.readFileSync(sigPath);
@@ -342,13 +368,14 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     // 3. Doctor Name dynamically using assigned / logged-in doctor
     const docName = data.bacSiDoc || 'BS CK1 PHẠM THẾ HÙNG';
 
-    // 3.5. Embed Signature Image (between title and name)
+    // 3.5. Embed Signature Image (top is 5px below "BÁC SĨ ĐỌC KẾT QUẢ" text)
     if (signatureImg) {
       try {
-        const sigWidth = 100;
-        const sigHeight = 45;
+        const sigWidth = 190;
+        const sigHeight = 85;
         const sigX = rightXStart + (rightXEnd - rightXStart - sigWidth) / 2;
-        const sigY = yStart - 72;
+        // Text baseline is yStart - 16, bottom is yStart - 18. Top of img at yStart - 23 (5px gap).
+        const sigY = yStart - 108;
         targetPage.drawImage(signatureImg, {
           x: sigX,
           y: sigY,
@@ -360,7 +387,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       }
     }
 
-    drawCenteredText(targetPage, docName, rightXStart, rightXEnd, yStart - 90, 11, true, blackColor);
+    drawCenteredText(targetPage, docName, rightXStart, rightXEnd, yStart - 122, 11, true, blackColor);
 
     // 4. Subtitle centered
     const titleText = data.bacSiTitle || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)';
@@ -369,12 +396,200 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       titleText,
       rightXStart,
       rightXEnd,
-      yStart - 105,
+      yStart - 135,
       8.5,
       false,
       rgb(0.35, 0.35, 0.35)
     );
   };
+
+  // -------------------------------------------------------------
+  // BRANCH 3: SOI TƯƠI DỊCH
+  // -------------------------------------------------------------
+  if (loaiXetNghiem === 'soituoi') {
+    drawCenteredText(page1, 'PHIẾU KẾT QUẢ XÉT NGHIỆM SOI TƯƠI', 35, 560, 735, 14, true, primaryBlue);
+
+    // Administrative Table Grid with 8 Rows
+    const tableX = 35;
+    const tableY = 715;
+    const tableW = 525;
+    const rowH = 18;
+    const tableH = rowH * 8;
+
+    page1.drawRectangle({
+      x: tableX,
+      y: tableY - tableH,
+      width: tableW,
+      height: tableH,
+      borderColor: borderGray,
+      borderWidth: 1,
+      color: whiteColor,
+    });
+
+    const drawHorizDivider = (rowIndex: number) => {
+      page1.drawLine({
+        start: { x: tableX, y: tableY - rowIndex * rowH },
+        end: { x: tableX + tableW, y: tableY - rowIndex * rowH },
+        thickness: 1,
+        color: borderGray,
+      });
+    };
+
+    for (let i = 1; i < 8; i++) {
+      drawHorizDivider(i);
+    }
+
+    page1.drawLine({
+      start: { x: 295, y: tableY },
+      end: { x: 295, y: tableY - tableH },
+      thickness: 1,
+      color: borderGray,
+    });
+
+    const drawRowText = (rIdx: number, label1: string, val1: string, label2?: string, val2?: string) => {
+      const lineY = tableY - rIdx * rowH - 12;
+      drawTextOnPage(page1, label1, tableX + 8, lineY, 9, true, rgb(0.2, 0.2, 0.2));
+      drawTextOnPage(page1, val1 || '', tableX + 115, lineY, 9.5, false, blackColor);
+
+      if (label2) {
+        drawTextOnPage(page1, label2, 303, lineY, 9, true, rgb(0.2, 0.2, 0.2));
+        drawTextOnPage(page1, val2 || '', 400, lineY, 9.5, false, blackColor);
+      }
+    };
+
+    drawRowText(0, 'Mã bệnh nhân:', data.maSo, 'Họ và tên:', data.hoTen);
+    drawRowText(1, 'Năm sinh:', String(data.namSinh || ''), 'Giới tính:', data.gioiTinh);
+    drawRowText(2, 'Địa chỉ:', data.diaChi);
+    drawRowText(3, 'Điện thoại:', data.soDienThoai, 'Bác sĩ chỉ định:', data.bacSiChiDinh);
+    drawRowText(4, 'Đơn vị gửi mẫu:', data.donVi);
+    drawRowText(5, 'Chẩn đoán lâm sàng:', data.chanDoanLamSang || '');
+    drawRowText(6, 'Nhận xét đại thể:', data.nhanXetDaiThe || '');
+    drawRowText(7, 'Ngày nhận mẫu:', formatDateStr(data.ngayNhanMau), 'Ngày trả kết quả:', formatDateStr(data.ngayTraKetQua));
+
+    // Section Bar: KẾT QUẢ XÉT NGHIỆM SOI TƯƠI
+    const secY = 540;
+    page1.drawRectangle({
+      x: tableX,
+      y: secY,
+      width: tableW,
+      height: 24,
+      color: lightBlueBg,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+    drawCenteredText(page1, 'KẾT QUẢ XÉT NGHIỆM SOI TƯƠI', tableX, tableX + tableW, secY + 6, 11, true, primaryBlue);
+
+    // Results Table
+    const resTableY = 505;
+    const resTableH = 150;
+    page1.drawRectangle({
+      x: tableX,
+      y: resTableY - resTableH,
+      width: tableW,
+      height: resTableH,
+      color: whiteColor,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+
+    // Table Header Bar (Dark Blue)
+    page1.drawRectangle({
+      x: tableX,
+      y: resTableY - 25,
+      width: tableW,
+      height: 25,
+      color: primaryBlue,
+    });
+
+    const colX = [35, 70, 175, 260, 420, 560];
+
+    drawCenteredText(page1, 'STT', colX[0], colX[1], resTableY - 17, 9.5, true, whiteColor);
+    drawCenteredText(page1, 'SOI TƯƠI', colX[1], colX[2], resTableY - 17, 9.5, true, whiteColor);
+    drawCenteredText(page1, 'KẾT QUẢ', colX[2], colX[3], resTableY - 17, 9.5, true, whiteColor);
+    drawCenteredText(page1, 'Ý NGHĨA', colX[3], colX[4], resTableY - 17, 9.5, true, whiteColor);
+    drawCenteredText(page1, 'GHI CHÚ', colX[4], colX[5], resTableY - 17, 9.5, true, whiteColor);
+
+    const rowsData = [
+      { stt: '1', name: 'Bạch cầu', res: data.soiTuoiBachCau || '', mean: 'Đánh giá mức độ viêm nhiễm', note: data.soiTuoiGhiChuBachCau || '' },
+      { stt: '2', name: 'Nấm', res: data.soiTuoiNam || '', mean: 'Đánh giá sự xuất hiện của nấm', note: data.soiTuoiGhiChuNam || '' },
+      { stt: '3', name: 'Tạp khuẩn', res: data.soiTuoiTapKhuan || '', mean: 'Viêm do vi khuẩn', note: data.soiTuoiGhiChuTapKhuan || '' },
+      { stt: '4', name: 'Tế bào biểu mô', res: data.soiTuoiTeBaoBieuMo || '', mean: 'Đánh giá chất lượng mẫu', note: data.soiTuoiGhiChuTeBaoBieuMo || '' },
+      { stt: '5', name: 'Trichomonas vaginalis', isItalic: true, res: data.soiTuoiTrichomonas || '', mean: '', note: data.soiTuoiGhiChuTrichomonas || '' },
+    ];
+
+    rowsData.forEach((row, idx) => {
+      const rY = resTableY - 25 - (idx + 1) * 25;
+
+      page1.drawLine({
+        start: { x: tableX, y: rY + 25 },
+        end: { x: tableX + tableW, y: rY + 25 },
+        thickness: 1,
+        color: borderGray,
+      });
+
+      if (idx % 2 === 1) {
+        page1.drawRectangle({
+          x: tableX + 1,
+          y: rY + 1,
+          width: tableW - 2,
+          height: 23,
+          color: lightBlueBg,
+        });
+      }
+
+      drawCenteredText(page1, row.stt, colX[0], colX[1], rY + 8, 9, false, blackColor);
+      drawTextOnPage(page1, row.name, colX[1] + 8, rY + 8, 9, false, blackColor, row.isItalic);
+      drawCenteredText(page1, row.res, colX[2], colX[3], rY + 8, 9.5, true, primaryBlue);
+      drawTextOnPage(page1, row.mean, colX[3] + 8, rY + 8, 8.5, false, rgb(0.2, 0.2, 0.2));
+      drawTextOnPage(page1, row.note, colX[4] + 8, rY + 8, 8.5, false, blackColor);
+    });
+
+    // Draw vertical column dividers ON TOP of all backgrounds to ensure high visibility
+    for (let c = 1; c < colX.length - 1; c++) {
+      page1.drawLine({
+        start: { x: colX[c], y: resTableY - 25 },
+        end: { x: colX[c], y: resTableY - resTableH },
+        thickness: 1,
+        color: borderGray,
+      });
+
+      // White vertical dividers inside dark blue header
+      page1.drawLine({
+        start: { x: colX[c], y: resTableY },
+        end: { x: colX[c], y: resTableY - 25 },
+        thickness: 1,
+        color: whiteColor,
+      });
+    }
+
+    // Conclusion Box (KẾT LUẬN)
+    const ketLuanBoxY = 280;
+    const ketLuanBoxH = 65;
+    page1.drawRectangle({
+      x: tableX,
+      y: ketLuanBoxY,
+      width: tableW,
+      height: ketLuanBoxH,
+      color: lightBlueBg,
+      borderColor: borderGray,
+      borderWidth: 1,
+    });
+
+    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY + ketLuanBoxH - 18, 9.5, true, primaryBlue);
+    const klLines = wrapTextLines(data.ketLuan || 'BÌNH THƯỜNG', 68);
+    klLines.forEach((lText, lIdx) => {
+      drawTextOnPage(page1, lText, tableX + 90, ketLuanBoxY + ketLuanBoxH - 18 - lIdx * 14, 9.5, true, blackColor);
+    });
+
+    // Doctor Signature
+    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, 220);
+
+    drawWatermarkOverlay(page1);
+    drawTextOnPage(page1, 'Trang 1 / 1', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));
+
+    const modifiedPdfBytes = await pdfDoc.save();
+    return modifiedPdfBytes;
+  }
 
   // -------------------------------------------------------------
   // BRANCH 1 & 2: HPV 40 TYPES / HPV 20 TYPES

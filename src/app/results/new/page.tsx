@@ -26,6 +26,7 @@ const SERVICE_OPTIONS: ServiceOption[] = [
   { id: 'thinprep', label: 'ThinPrep', isCombo: false, types: ['thinprep'] },
   { id: 'hpv40', label: 'HPV 40', isCombo: false, types: ['hpv40'] },
   { id: 'hpv20', label: 'HPV 20', isCombo: false, types: ['hpv20'] },
+  { id: 'soituoi', label: 'Soi tươi', isCombo: false, types: ['soituoi'] },
   { id: 'combo_hpv20_cell', label: '🔥 Gói Combo: HPV 20 + Cell', isCombo: true, types: ['hpv20', 'cell'] },
   { id: 'combo_hpv40_cell', label: '🔥 Gói Combo: HPV 40 + Cell', isCombo: true, types: ['hpv40', 'cell'] },
   { id: 'combo_hpv20_thinprep', label: '🔥 Gói Combo: HPV 20 + ThinPrep', isCombo: true, types: ['hpv20', 'thinprep'] },
@@ -57,6 +58,8 @@ function NewResultFormContent() {
     loaiMau: 'Dịch phết',
     donVi: '',
     bacSiChiDinh: '',
+    chanDoanLamSang: '',
+    nhanXetDaiThe: '',
   });
 
   const selectedServiceObj = SERVICE_OPTIONS.find((s) => s.id === serviceChoice) || SERVICE_OPTIONS[0];
@@ -383,6 +386,35 @@ function NewResultFormContent() {
                     onChange={handleChange}
                   />
                 </div>
+
+                {/* ROW 4 - Chỉ dành riêng cho Xét nghiệm Soi tươi */}
+                {selectedServiceObj.types.includes('soituoi') && (
+                  <>
+                    <div className="form-group mb-0">
+                      <label className="text-[11px] font-bold text-emerald-700">Chẩn đoán lâm sàng</label>
+                      <input
+                        type="text"
+                        name="chanDoanLamSang"
+                        className="form-input py-1.5 px-3 text-xs border-emerald-200 bg-emerald-50/30"
+                        value={formData.chanDoanLamSang || ''}
+                        onChange={handleChange}
+                        placeholder="Chẩn đoán lâm sàng..."
+                      />
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label className="text-[11px] font-bold text-emerald-700">Nhận xét đại thể</label>
+                      <input
+                        type="text"
+                        name="nhanXetDaiThe"
+                        className="form-input py-1.5 px-3 text-xs border-emerald-200 bg-emerald-50/30"
+                        value={formData.nhanXetDaiThe || ''}
+                        onChange={handleChange}
+                        placeholder="Nhận xét đại thể..."
+                      />
+                    </div>
+                  </>
+                )}
 
                 {/* DOCTOR SELECTION FIELDS */}
                 {userRole === 'admin' || userRole === 'lab_admin' ? (

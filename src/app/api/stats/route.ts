@@ -47,6 +47,7 @@ export async function GET() {
     const thinprepCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'thinprep' });
     const hpv40Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv40' });
     const hpv20Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv20' });
+    const soituoiCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'soituoi' });
 
     // Stats by status
     const nhapThongTinCount = await TestResult.countDocuments({ ...filter, trangThai: 'nhap_thong_tin' });
@@ -87,6 +88,7 @@ export async function GET() {
         thinprep: thinprepCount,
         hpv40: hpv40Count,
         hpv20: hpv20Count,
+        soituoi: soituoiCount,
       },
       byStatus: {
         nhap_thong_tin: nhapThongTinCount,

@@ -29,6 +29,7 @@ function SidebarContent() {
   const canSeeThinPrep = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('thinprep');
   const canSeeHPV40 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv40');
   const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
+  const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('soituoi') || userRole === 'staff' || userRole === 'doctor';
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {
@@ -88,6 +89,16 @@ function SidebarContent() {
       show: canSeeHPV20,
       activeColor: 'text-teal-600 bg-teal-50/80 font-bold',
       iconActive: 'text-teal-600',
+    },
+    {
+      id: 'soituoi',
+      label: 'Xét nghiệm Soi tươi',
+      href: getCategoryHref('soituoi'),
+      icon: Activity,
+      isActive: pathname === '/' && selectedCategory === 'soituoi',
+      show: canSeeSoiTuoi,
+      activeColor: 'text-emerald-600 bg-emerald-50/80 font-bold',
+      iconActive: 'text-emerald-600',
     },
   ];
 

@@ -79,7 +79,7 @@ export const authOptions: AuthOptions = {
           name: user.fullName,
           email: user.username,
           role: user.role,
-          allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
+          allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi'],
         } as any;
       },
     }),

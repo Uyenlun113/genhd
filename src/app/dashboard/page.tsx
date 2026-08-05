@@ -33,6 +33,7 @@ interface StatsData {
     thinprep?: number;
     hpv40: number;
     hpv20: number;
+    soituoi?: number;
   };
   byStatus: {
     nhap_thong_tin: number;
@@ -87,17 +88,19 @@ export default function DashboardPage() {
 
   const isDoctor = stats?.userRole === 'doctor';
   const isStaff = stats?.userRole === 'staff';
-  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
+  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi'];
   const canSeeCell = allowedCats.includes('cell');
   const canSeeThinPrep = allowedCats.includes('thinprep');
   const canSeeHPV40 = allowedCats.includes('hpv40');
   const canSeeHPV20 = allowedCats.includes('hpv20');
+  const canSeeSoiTuoi = allowedCats.includes('soituoi') || isDoctor || isStaff || stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
 
   const total = stats?.totalCount || 0;
   const cellPct = total > 0 ? Math.round(((stats?.byCategory.cell || 0) / total) * 100) : 0;
   const thinprepPct = total > 0 ? Math.round(((stats?.byCategory.thinprep || 0) / total) * 100) : 0;
   const hpv40Pct = total > 0 ? Math.round(((stats?.byCategory.hpv40 || 0) / total) * 100) : 0;
   const hpv20Pct = total > 0 ? Math.round(((stats?.byCategory.hpv20 || 0) / total) * 100) : 0;
+  const soituoiPct = total > 0 ? Math.round(((stats?.byCategory.soituoi || 0) / total) * 100) : 0;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -252,6 +255,29 @@ export default function DashboardPage() {
                     </div>
                     <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-teal-100 text-teal-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
                       <TestTube className="w-5 h-5 sm:w-6 sm:h-6" />
+                    </div>
+                  </Link>
+                )}
+
+                {/* Soi Tươi Card */}
+                {canSeeSoiTuoi && (
+                  <Link
+                    href={isDoctor ? `/?category=soituoi&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=soituoi'}
+                    className="glass-card p-4 sm:p-4.5 border-l-4 border-l-emerald-500 flex items-center justify-between hover:shadow-md transition-all group"
+                  >
+                    <div>
+                      <span className="text-[11px] sm:text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                        Xét nghiệm Soi tươi
+                      </span>
+                      <span className="text-2xl sm:text-3xl font-extrabold text-emerald-600 mt-1 block">
+                        {stats.byCategory.soituoi || 0}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-medium mt-1 block">
+                        Chiếm {soituoiPct}% tổng phiếu
+                      </span>
+                    </div>
+                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+                      <Activity className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                   </Link>
                 )}

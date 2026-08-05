@@ -20,8 +20,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     }
 
     const userRole = (session.user as any)?.role;
-    if (userRole !== 'doctor' && userRole !== 'admin') {
-      return NextResponse.json({ error: 'Chỉ bác sĩ hoặc admin mới có quyền ký kết quả' }, { status: 403 });
+    if (userRole !== 'doctor' && userRole !== 'admin' && userRole !== 'lab_admin') {
+      return NextResponse.json({ error: 'Chỉ Bác sĩ, Admin Lab hoặc Admin mới có quyền ký kết quả' }, { status: 403 });
     }
 
     const { id } = await params;

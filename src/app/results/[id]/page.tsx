@@ -20,6 +20,7 @@ import {
   PenLine,
   Send,
   Eye,
+  Activity,
   Image as ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -62,7 +63,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     _id: '',
     maSo: '',
-    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20',
+    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi',
     hoTen: '',
     namSinh: 1990,
     gioiTinh: 'Nữ',
@@ -88,6 +89,20 @@ export default function TestResultDetailPage({ params }: PageProps) {
     hpvHighRiskOtherResult: 'Âm tính',
     hpvLowRiskResult: 'Âm tính',
     hpvOtherTypesResult: 'Âm tính',
+
+    // Soi tươi fields
+    chanDoanLamSang: '',
+    nhanXetDaiThe: '',
+    soiTuoiBachCau: 'Âm tính',
+    soiTuoiNam: 'Âm tính',
+    soiTuoiTapKhuan: 'Âm tính',
+    soiTuoiTeBaoBieuMo: 'Ít',
+    soiTuoiTrichomonas: 'Âm tính',
+    soiTuoiGhiChuBachCau: '',
+    soiTuoiGhiChuNam: '',
+    soiTuoiGhiChuTapKhuan: '',
+    soiTuoiGhiChuTeBaoBieuMo: '',
+    soiTuoiGhiChuTrichomonas: '',
 
     // Common fields
     ketLuan: 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ',
@@ -117,7 +132,9 @@ export default function TestResultDetailPage({ params }: PageProps) {
             bacSiDoc: assignedDoctor,
             ketLuan:
               data.ketLuan ||
-              (testType === 'cell'
+              (testType === 'soituoi'
+                ? 'BÌNH THƯỜNG'
+                : testType === 'cell' || testType === 'thinprep'
                 ? 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ'
                 : 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
             ngayXetNghiem: data.ngayXetNghiem
@@ -534,7 +551,235 @@ export default function TestResultDetailPage({ params }: PageProps) {
               </div>
             ) : (
               <>
-                {!isHPV ? (
+                {formData.loaiXetNghiem === 'soituoi' ? (
+                  /* SOI TƯƠI Form */
+                  <div className="glass-card p-6">
+                    <h3 className="flex items-center justify-between text-base font-bold text-emerald-700 mb-5 pb-3 border-b border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-emerald-600" />
+                        <span>KẾT QUẢ XÉT NGHIỆM SOI TƯƠI DỊCH</span>
+                      </div>
+                      {isCompleted && (
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>ĐÃ TRẢ KẾT QUẢ (ĐÃ KHÓA)</span>
+                        </span>
+                      )}
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      <div className="form-group mb-0">
+                        <label className="font-bold text-slate-700 text-xs">Chẩn đoán lâm sàng</label>
+                        <input
+                          type="text"
+                          name="chanDoanLamSang"
+                          className="form-input text-xs disabled:bg-slate-100"
+                          placeholder="Nhập chẩn đoán lâm sàng..."
+                          value={formData.chanDoanLamSang || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+
+                      <div className="form-group mb-0">
+                        <label className="font-bold text-slate-700 text-xs">Nhận xét đại thể</label>
+                        <input
+                          type="text"
+                          name="nhanXetDaiThe"
+                          className="form-input text-xs disabled:bg-slate-100"
+                          placeholder="Nhập nhận xét đại thể..."
+                          value={formData.nhanXetDaiThe || ''}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Table of 5 Soi Tươi items */}
+                    <div className="overflow-x-auto mb-6">
+                      <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                        <thead>
+                          <tr className="bg-sky-800 text-white font-bold text-center divide-x divide-sky-700">
+                            <th className="py-2.5 px-3 w-12">STT</th>
+                            <th className="py-2.5 px-3 w-1/4">SOI TƯƠI</th>
+                            <th className="py-2.5 px-3 w-1/4">KẾT QUẢ</th>
+                            <th className="py-2.5 px-3 w-1/4">Ý NGHĨA</th>
+                            <th className="py-2.5 px-3 w-1/4">GHI CHÚ</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-200 font-medium">
+                          {/* Row 1: Bạch cầu */}
+                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                            <td className="py-2 px-3 text-center font-bold text-slate-500">1</td>
+                            <td className="py-2 px-3 font-bold text-slate-800">Bạch cầu</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiBachCau"
+                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiBachCau || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                                placeholder="Âm tính / + / ++..."
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">Đánh giá mức độ viêm nhiễm</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiGhiChuBachCau"
+                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiGhiChuBachCau || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Row 2: Nấm */}
+                          <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
+                            <td className="py-2 px-3 text-center font-bold text-slate-500">2</td>
+                            <td className="py-2 px-3 font-bold text-slate-800">Nấm</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiNam"
+                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiNam || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                                placeholder="Âm tính / Dương tính..."
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">Đánh giá sự xuất hiện của nấm</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiGhiChuNam"
+                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiGhiChuNam || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Row 3: Tạp khuẩn */}
+                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                            <td className="py-2 px-3 text-center font-bold text-slate-500">3</td>
+                            <td className="py-2 px-3 font-bold text-slate-800">Tạp khuẩn</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiTapKhuan"
+                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiTapKhuan || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                                placeholder="Âm tính / + / ++..."
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">Viêm do vi khuẩn</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiGhiChuTapKhuan"
+                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiGhiChuTapKhuan || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Row 4: Tế bào biểu mô */}
+                          <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
+                            <td className="py-2 px-3 text-center font-bold text-slate-500">4</td>
+                            <td className="py-2 px-3 font-bold text-slate-800">Tế bào biểu mô</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiTeBaoBieuMo"
+                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiTeBaoBieuMo || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                                placeholder="Ít / Vừa / Nhiều..."
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">Đánh giá chất lượng mẫu</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiGhiChuTeBaoBieuMo"
+                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiGhiChuTeBaoBieuMo || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                              />
+                            </td>
+                          </tr>
+
+                          {/* Row 5: Trichomonas vaginalis */}
+                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                            <td className="py-2 px-3 text-center font-bold text-slate-500">5</td>
+                            <td className="py-2 px-3 font-bold italic text-slate-800">Trichomonas vaginalis</td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiTrichomonas"
+                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiTrichomonas || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                                placeholder="Âm tính / Dương tính..."
+                              />
+                            </td>
+                            <td className="py-2 px-3 text-slate-600"></td>
+                            <td className="py-2 px-3">
+                              <input
+                                type="text"
+                                name="soiTuoiGhiChuTrichomonas"
+                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                value={formData.soiTuoiGhiChuTrichomonas || ''}
+                                onChange={handleInputChange}
+                                disabled={isCompleted}
+                              />
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {/* Kết luận & Khuyến nghị */}
+                    <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
+                      <div className="form-group">
+                        <label className="font-bold text-emerald-800">KẾT LUẬN *</label>
+                        <textarea
+                          name="ketLuan"
+                          rows={3}
+                          className="form-textarea font-bold text-emerald-900 bg-emerald-50/30 border-emerald-200 disabled:bg-slate-100 disabled:text-slate-600"
+                          value={formData.ketLuan}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                          required
+                        />
+                      </div>
+
+                      <div className="form-group">
+                        <label className="font-bold text-slate-700">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
+                        <textarea
+                          name="khuyenNghi"
+                          rows={2}
+                          className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
+                          value={formData.khuyenNghi}
+                          onChange={handleInputChange}
+                          disabled={isCompleted}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : !isHPV ? (
                   /* CELL / Bethesda 2014 Form */
                   <div className="glass-card p-6">
                     <h3 className="flex items-center justify-between text-base font-bold text-sky-700 mb-5 pb-3 border-b border-slate-100">
@@ -903,7 +1148,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         )}
                       </div>
 
-                      {(userRole === 'doctor' || userRole === 'admin') && !isCompleted && (
+                      {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
                         formData.daKy ? (
                           <div className="flex items-center gap-2">
                             <button

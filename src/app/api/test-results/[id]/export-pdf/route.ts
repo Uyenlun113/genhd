@@ -38,14 +38,14 @@ export async function GET(request: NextRequest, { params }: Params) {
     if (testResult.daKy) {
       const docName = (testResult.bacSiDoc || '').toUpperCase();
       if (docName.includes('HÙNG') || docName.includes('HUNG')) {
-        signatureImage = 'chu_ky_hung.jpg';
+        signatureImage = 'chu_ki_hung.png';
       } else if (docName.includes('DƯƠNG') || docName.includes('DUONG')) {
-        signatureImage = 'chu_ky_duong.jpg';
+        signatureImage = 'chu_ki_duong.png';
       } else if (docName.includes('DŨNG') || docName.includes('DUNG')) {
-        signatureImage = 'chu_ky_dung.jpg';
+        signatureImage = 'chu_ki_dung.png';
       } else {
         // Mặc định nếu là Admin hoặc chưa map tên cụ thể
-        signatureImage = 'chu_ky_hung.jpg';
+        signatureImage = 'chu_ki_hung.png';
       }
     }
 
@@ -79,6 +79,20 @@ export async function GET(request: NextRequest, { params }: Params) {
       hpvHighRiskOtherResult: testResult.hpvHighRiskOtherResult,
       hpvLowRiskResult: testResult.hpvLowRiskResult,
       hpvOtherTypesResult: testResult.hpvOtherTypesResult,
+
+      // Soi Tươi
+      chanDoanLamSang: testResult.chanDoanLamSang,
+      nhanXetDaiThe: testResult.nhanXetDaiThe,
+      soiTuoiBachCau: testResult.soiTuoiBachCau,
+      soiTuoiNam: testResult.soiTuoiNam,
+      soiTuoiTapKhuan: testResult.soiTuoiTapKhuan,
+      soiTuoiTeBaoBieuMo: testResult.soiTuoiTeBaoBieuMo,
+      soiTuoiTrichomonas: testResult.soiTuoiTrichomonas,
+      soiTuoiGhiChuBachCau: testResult.soiTuoiGhiChuBachCau,
+      soiTuoiGhiChuNam: testResult.soiTuoiGhiChuNam,
+      soiTuoiGhiChuTapKhuan: testResult.soiTuoiGhiChuTapKhuan,
+      soiTuoiGhiChuTeBaoBieuMo: testResult.soiTuoiGhiChuTeBaoBieuMo,
+      soiTuoiGhiChuTrichomonas: testResult.soiTuoiGhiChuTrichomonas,
 
       ketLuan: testResult.ketLuan,
       khuyenNghi: testResult.khuyenNghi || '',
