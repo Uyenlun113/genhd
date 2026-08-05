@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import TestResult from '@/models/TestResult';
+import User from '@/models/User';
+import Notification from '@/models/Notification';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
 import { broadcastEvent } from '@/lib/socketServer';
 
 interface Params {
@@ -54,6 +55,29 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (!result) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
+    }
+
+    // Notify staff, creator AND admin users when result is delivered
+    try {
+      const staffUsers = await User.find({ role: 'staff' });
+      const adminUsers = await User.find({ role: 'admin' });
+      const targetUserIds = new Set<string>();
+      if (result.nguoiNhap) {
+        targetUserIds.add(result.nguoiNhap.toString());
+      }
+      staffUsers.forEach((u) => targetUserIds.add(u._id.toString()));
+      adminUsers.forEach((u) => targetUserIds.add(u._id.toString()));
+
+      for (const tId of targetUserIds) {
+        await Notification.create({
+          userId: tId,
+          testResultId: result._id,
+          title: `Đã trả kết quả: ${result.maSo}`,
+          message: `Phiếu xét nghiệm ${result.maSo} của bệnh nhân ${result.hoTen} đã được hoàn tất và trả kết quả.`,
+        });
+      }
+    } catch (notifErr) {
+      console.error('Create deliver notifications error:', notifErr);
     }
 
     broadcastEvent({ type: 'REFRESH_TEST_RESULTS' });

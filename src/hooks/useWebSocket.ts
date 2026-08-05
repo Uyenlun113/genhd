@@ -17,41 +17,38 @@ export function useWebSocket(onEvent: EventCallback) {
     let retryTimer: NodeJS.Timeout;
 
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const isLocalhost = host === 'localhost' || host === '127.0.0.1';
+    const protocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const socketUrl = `${protocol}//${host}:3001`;
 
-    if (isLocalhost) {
-      const socketUrl = `ws://${host}:3001`;
+    function connect() {
+      try {
+        ws = new WebSocket(socketUrl);
+        wsRef.current = ws;
 
-      function connect() {
-        try {
-          ws = new WebSocket(socketUrl);
-          wsRef.current = ws;
-
-          ws.onmessage = (event) => {
-            try {
-              const data = JSON.parse(event.data);
-              if (callbackRef.current) {
-                callbackRef.current(data);
-              }
-            } catch (err) {
-              console.error('WS client parse error:', err);
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (callbackRef.current) {
+              callbackRef.current(data);
             }
-          };
+          } catch (err) {
+            console.error('WS client parse error:', err);
+          }
+        };
 
-          ws.onclose = () => {
-            retryTimer = setTimeout(connect, 5000);
-          };
-
-          ws.onerror = () => {
-            ws?.close();
-          };
-        } catch {
+        ws.onclose = () => {
           retryTimer = setTimeout(connect, 5000);
-        }
-      }
+        };
 
-      connect();
+        ws.onerror = () => {
+          ws?.close();
+        };
+      } catch {
+        retryTimer = setTimeout(connect, 5000);
+      }
     }
+
+    connect();
 
     return () => {
       clearTimeout(retryTimer);

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -24,6 +24,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import {
   BIEN_DOI_VI_SINH_OPTIONS,
   BIEN_DOI_KHAC_OPTIONS,
@@ -116,40 +117,47 @@ export default function TestResultDetailPage({ params }: PageProps) {
     lichSuChinhSua: [] as Array<{ nguoiSua: string; thoiGian: string; noiDung: string }>,
   });
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        const res = await fetch(`/api/test-results/${id}`);
-        if (res.ok) {
-          const data = await res.json();
-          const testType = data.loaiXetNghiem || 'cell';
-          const currentDoctorName = (session?.user as any)?.name;
-          const assignedDoctor = data.bacSiDoc || currentDoctorName || 'BS CK1 PHẠM THẾ HÙNG';
+  const loadData = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/test-results/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const testType = data.loaiXetNghiem || 'cell';
+        const currentDoctorName = (session?.user as any)?.name;
+        const assignedDoctor = data.bacSiDoc || currentDoctorName || 'BS CK1 PHẠM THẾ HÙNG';
 
-          setFormData({
-            ...data,
-            loaiXetNghiem: testType,
-            bacSiDoc: assignedDoctor,
-            ketLuan:
-              data.ketLuan ||
-              (testType === 'soituoi'
-                ? 'BÌNH THƯỜNG'
-                : testType === 'cell' || testType === 'thinprep'
-                ? 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ'
-                : 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
-            ngayXetNghiem: data.ngayXetNghiem
-              ? new Date(data.ngayXetNghiem).toISOString().split('T')[0]
-              : new Date().toISOString().split('T')[0],
-          });
-        }
-      } catch (err) {
-        console.error('Error loading result detail:', err);
-      } finally {
-        setLoading(false);
+        setFormData({
+          ...data,
+          loaiXetNghiem: testType,
+          bacSiDoc: assignedDoctor,
+          ketLuan:
+            data.ketLuan ||
+            (testType === 'soituoi'
+              ? 'BÌNH THƯỜNG'
+              : testType === 'cell' || testType === 'thinprep'
+              ? 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ'
+              : 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
+          ngayXetNghiem: data.ngayXetNghiem
+            ? new Date(data.ngayXetNghiem).toISOString().split('T')[0]
+            : new Date().toISOString().split('T')[0],
+        });
       }
+    } catch (err) {
+      console.error('Error loading result detail:', err);
+    } finally {
+      setLoading(false);
     }
+  }, [id, session?.user]);
+
+  useEffect(() => {
     loadData();
-  }, [id]);
+  }, [loadData]);
+
+  useWebSocket((event) => {
+    if (event.type === 'REFRESH_TEST_RESULTS') {
+      loadData();
+    }
+  });
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
@@ -1215,15 +1223,15 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                {/* Admin/Lab Admin: Upload ảnh + Trả kết quả */}
-                {(userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                {/* Section 3: Ảnh xét nghiệm & Trả kết quả */}
+                {((userRole === 'admin' || userRole === 'lab_admin') || (formData.anhTeBao && isCompleted)) && (
                   <div className="glass-card p-6">
                     <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
                       <ImageIcon className="w-5 h-5 text-sky-600" />
-                      <span>Tải ảnh xét nghiệm & Trả kết quả</span>
+                      <span>{isCompleted ? 'Ảnh xét nghiệm đã đính kèm' : 'Tải ảnh xét nghiệm & Trả kết quả'}</span>
                     </h3>
 
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <FileUpload
                         accept="image/*"
                         label={isHPV ? 'Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR' : 'Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)'}
@@ -1234,16 +1242,18 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       />
                     </div>
 
-                    <div className="flex justify-center mt-4">
-                      <button
-                        onClick={handleDeliver}
-                        disabled={saving}
-                        className="btn btn-success px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
-                      >
-                        <Send className="w-4 h-4" />
-                        <span>{saving ? 'Đang xử lý...' : 'Trả kết quả'}</span>
-                      </button>
-                    </div>
+                    {!isCompleted && (userRole === 'admin' || userRole === 'lab_admin') && (
+                      <div className="flex justify-center mt-4">
+                        <button
+                          onClick={handleDeliver}
+                          disabled={saving}
+                          className="btn btn-success px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                        >
+                          <Send className="w-4 h-4" />
+                          <span>{saving ? 'Đang xử lý...' : 'Trả kết quả'}</span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </>

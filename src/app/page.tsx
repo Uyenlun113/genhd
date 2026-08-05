@@ -28,6 +28,8 @@ import {
   Calendar,
   User,
   Clock,
+  CheckCircle,
+  PenLine,
 } from 'lucide-react';
 
 interface TestResultItem {
@@ -47,6 +49,7 @@ interface TestResultItem {
   createdAt: string;
   bacSiDoc?: string;
   nguoiNhap?: any;
+  daKy?: boolean;
 }
 
 interface DoctorUser {
@@ -123,6 +126,13 @@ function DashboardContent() {
   const [creatorFilter, setCreatorFilter] = useState('');
   const [allUsers, setAllUsers] = useState<Array<{ _id: string; fullName: string; username: string; role: string }>>([]);
 
+  const [statusCounts, setStatusCounts] = useState({
+    all: 0,
+    nhap_thong_tin: 0,
+    chay_ket_qua: 0,
+    da_tra_ket_qua: 0,
+  });
+
   const fetchResults = useCallback(async () => {
     setLoading(true);
     try {
@@ -149,6 +159,9 @@ function DashboardContent() {
       if (res.ok) {
         const data = await res.json();
         setResults(data.results || []);
+        if (data.statusCounts) {
+          setStatusCounts(data.statusCounts);
+        }
         setTotalPages(data.pagination?.totalPages || 1);
       }
     } catch (err) {
@@ -346,10 +359,10 @@ function DashboardContent() {
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
                 {[
-                  { id: 'all', label: 'Tất cả' },
-                  { id: 'nhap_thong_tin', label: 'Nhập thông tin' },
-                  { id: 'chay_ket_qua', label: 'Chạy kết quả' },
-                  { id: 'da_tra_ket_qua', label: 'Đã trả kết quả' },
+                  { id: 'all', label: 'Tất cả', count: statusCounts.all },
+                  { id: 'nhap_thong_tin', label: 'Nhập thông tin', count: statusCounts.nhap_thong_tin },
+                  { id: 'chay_ket_qua', label: 'Chạy kết quả', count: statusCounts.chay_ket_qua },
+                  { id: 'da_tra_ket_qua', label: 'Đã trả kết quả', count: statusCounts.da_tra_ket_qua },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -357,12 +370,22 @@ function DashboardContent() {
                       setActiveTab(tab.id);
                       setPage(1);
                     }}
-                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${activeTab === tab.id
-                      ? 'bg-sky-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
+                    className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1.5 ${
+                      activeTab === tab.id
+                        ? 'bg-sky-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${
+                        activeTab === tab.id
+                          ? 'bg-white/25 text-white'
+                          : 'bg-slate-200 text-slate-700'
+                      }`}
+                    >
+                      {tab.count}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -546,11 +569,27 @@ function DashboardContent() {
                                 Chưa phân loại
                               </span>
                             ) : (
-                              item.bacSiDoc || '---'
+                              <div>
+                                <span className="font-semibold text-slate-800 block">{item.bacSiDoc || '---'}</span>
+                                {item.daKy && userRole !== 'staff' && (
+                                  <span className="mt-1 inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300 shadow-2xs">
+                                    <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span>Bác sĩ đã đọc</span>
+                                  </span>
+                                )}
+                              </div>
                             )}
                           </td>
                           <td>
-                            <StatusBadge status={item.trangThai} />
+                            <div className="flex flex-col items-start gap-1">
+                              <StatusBadge status={item.trangThai} />
+                              {item.daKy && item.trangThai !== 'da_tra_ket_qua' && userRole !== 'staff' && (
+                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300">
+                                  <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  <span>Bác sĩ đã đọc & ký</span>
+                                </span>
+                              )}
+                            </div>
                           </td>
                           <td>
                             {duKienDate ? (

@@ -77,6 +77,15 @@ export async function GET(request: NextRequest) {
       ];
     }
 
+    // Calculate status counts for current filters
+    const queryBase = { ...query };
+    delete queryBase.trangThai;
+
+    const totalCount = await TestResult.countDocuments(queryBase);
+    const nhapThongTinCount = await TestResult.countDocuments({ ...queryBase, trangThai: 'nhap_thong_tin' });
+    const chayKetQuaCount = await TestResult.countDocuments({ ...queryBase, trangThai: 'chay_ket_qua' });
+    const daTraKetQuaCount = await TestResult.countDocuments({ ...queryBase, trangThai: 'da_tra_ket_qua' });
+
     const total = await TestResult.countDocuments(query);
     const results = await TestResult.find(query)
       .sort({ createdAt: -1 })
@@ -88,6 +97,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       results,
+      statusCounts: {
+        all: totalCount,
+        nhap_thong_tin: nhapThongTinCount,
+        chay_ket_qua: chayKetQuaCount,
+        da_tra_ket_qua: daTraKetQuaCount,
+      },
       pagination: {
         total,
         page,
@@ -149,23 +164,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Lỗi tạo mã số phiếu' }, { status: 500 });
     }
 
-    // Send notification to doctor if bacSiDoc is specified
-    if (body.bacSiDoc) {
-      const doctorUser = await User.findOne({
-        $or: [
-          { fullName: { $regex: body.bacSiDoc, $options: 'i' } },
-          { role: 'doctor' },
-        ],
-      });
+    // Send notifications to Admin Tổng & Admin Lab when a new test result is created
+    try {
+      const targetUserIds = new Set<string>();
 
-      if (doctorUser) {
+      // Admin and Admin Lab users get notified
+      const adminAndLabAdmins = await User.find({ role: { $in: ['admin', 'lab_admin'] } });
+      adminAndLabAdmins.forEach((u) => targetUserIds.add(u._id.toString()));
+
+      for (const tId of targetUserIds) {
         await Notification.create({
-          userId: doctorUser._id,
+          userId: tId,
           testResultId: testResult._id,
-          title: `Phiếu mới: ${testResult.maSo}`,
+          title: `Phiếu mới tạo: ${testResult.maSo}`,
           message: `${creatorName} đã tạo phiếu mới cho bệnh nhân ${testResult.hoTen}`,
         });
       }
+    } catch (notifErr) {
+      console.error('Create test result notifications error:', notifErr);
     }
 
     // Broadcast WebSocket real-time event

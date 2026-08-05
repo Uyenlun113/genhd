@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import TestResult from '@/models/TestResult';
+import User from '@/models/User';
+import Notification from '@/models/Notification';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-
 import { broadcastEvent } from '@/lib/socketServer';
 
 interface Params {
@@ -57,6 +58,36 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (!result) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
+    }
+
+    // Send notifications to doctor and all admin users
+    try {
+      const targetUserIds = new Set<string>();
+
+      // Admin users always get notified
+      const adminUsers = await User.find({ role: 'admin' });
+      adminUsers.forEach((u) => targetUserIds.add(u._id.toString()));
+
+      // Assigned doctor
+      if (result.bacSiDoc && result.bacSiDoc !== 'Chưa phân loại') {
+        const doctorUser = await User.findOne({
+          fullName: { $regex: result.bacSiDoc.trim(), $options: 'i' },
+        });
+        if (doctorUser) {
+          targetUserIds.add(doctorUser._id.toString());
+        }
+      }
+
+      for (const tId of targetUserIds) {
+        await Notification.create({
+          userId: tId,
+          testResultId: result._id,
+          title: `Đã nhận mẫu & phân công: ${result.maSo}`,
+          message: `${userName} đã nhận mẫu phiếu ${result.maSo} (${result.hoTen}). Bác sĩ đọc: ${result.bacSiDoc || 'Chưa phân loại'}`,
+        });
+      }
+    } catch (notifErr) {
+      console.error('Create accept notifications error:', notifErr);
     }
 
     broadcastEvent({ type: 'REFRESH_TEST_RESULTS' });
