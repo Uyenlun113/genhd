@@ -33,6 +33,22 @@ export async function GET(request: NextRequest, { params }: Params) {
       }
     }
 
+    // Map bác sĩ đọc kết quả → file chữ ký (Linh hoạt theo tên hoặc từ khóa)
+    let signatureImage = '';
+    if (testResult.daKy) {
+      const docName = (testResult.bacSiDoc || '').toUpperCase();
+      if (docName.includes('HÙNG') || docName.includes('HUNG')) {
+        signatureImage = 'chu_ky_hung.jpg';
+      } else if (docName.includes('DƯƠNG') || docName.includes('DUONG')) {
+        signatureImage = 'chu_ky_duong.jpg';
+      } else if (docName.includes('DŨNG') || docName.includes('DUNG')) {
+        signatureImage = 'chu_ky_dung.jpg';
+      } else {
+        // Mặc định nếu là Admin hoặc chưa map tên cụ thể
+        signatureImage = 'chu_ky_hung.jpg';
+      }
+    }
+
     const pdfBuffer = await generatePDF({
       maSo: testResult.maSo,
       loaiXetNghiem: testResult.loaiXetNghiem || 'cell',
@@ -70,14 +86,20 @@ export async function GET(request: NextRequest, { params }: Params) {
       bacSiDoc: testResult.bacSiDoc || 'BS CK1 PHẠM THẾ HÙNG',
       bacSiTitle,
       anhTeBao: testResult.anhTeBao,
+      signatureImage,
     });
 
     const filename = `${testResult.maSo} ${testResult.hoTen}.pdf`;
 
+    // Support inline preview mode via ?mode=preview
+    const { searchParams } = new URL(request.url);
+    const mode = searchParams.get('mode');
+    const disposition = mode === 'preview' ? 'inline' : `attachment; filename="${encodeURIComponent(filename)}"`;
+
     return new NextResponse(Buffer.from(pdfBuffer), {
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(filename)}"`,
+        'Content-Disposition': disposition,
       },
     });
   } catch (error) {

@@ -121,11 +121,11 @@ function NewResultFormContent() {
       toast.error('Vui lòng nhập năm sinh');
       return;
     }
-    if (!bacSiDoc1) {
+    if ((userRole === 'admin' || userRole === 'lab_admin') && !bacSiDoc1) {
       toast.error('Vui lòng chọn Bác sĩ đọc kết quả');
       return;
     }
-    if (selectedServiceObj.isCombo && !bacSiDoc2) {
+    if ((userRole === 'admin' || userRole === 'lab_admin') && selectedServiceObj.isCombo && !bacSiDoc2) {
       toast.error('Vui lòng chọn Bác sĩ đọc kết quả thứ 2 cho gói Combo');
       return;
     }
@@ -385,43 +385,59 @@ function NewResultFormContent() {
                 </div>
 
                 {/* DOCTOR SELECTION FIELDS */}
-                <div className={selectedServiceObj.isCombo ? 'form-group mb-0 lg:col-span-1' : 'form-group mb-0 lg:col-span-2'}>
-                  <label className="text-[11px] font-bold text-sky-700 truncate block">
-                    {getDoc1Label()}
-                  </label>
-                  <select
-                    value={bacSiDoc1}
-                    onChange={(e) => setBacSiDoc1(e.target.value)}
-                    className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
-                    required
-                  >
-                    <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
-                    {doctors.map((doc) => (
-                      <option key={doc._id} value={doc.fullName}>
-                        {doc.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {userRole === 'admin' || userRole === 'lab_admin' ? (
+                  <>
+                    <div className={selectedServiceObj.isCombo ? 'form-group mb-0 lg:col-span-1' : 'form-group mb-0 lg:col-span-2'}>
+                      <label className="text-[11px] font-bold text-sky-700 truncate block">
+                        {getDoc1Label()}
+                      </label>
+                      <select
+                        value={bacSiDoc1}
+                        onChange={(e) => setBacSiDoc1(e.target.value)}
+                        className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
+                        required
+                      >
+                        <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
+                        {doctors.map((doc) => (
+                          <option key={doc._id} value={doc.fullName}>
+                            {doc.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
-                {selectedServiceObj.isCombo && (
-                  <div className="form-group mb-0 lg:col-span-1">
-                    <label className="text-[11px] font-bold text-purple-700 truncate block">
-                      {getDoc2Label()}
+                    {selectedServiceObj.isCombo && (
+                      <div className="form-group mb-0 lg:col-span-1">
+                        <label className="text-[11px] font-bold text-purple-700 truncate block">
+                          {getDoc2Label()}
+                        </label>
+                        <select
+                          value={bacSiDoc2}
+                          onChange={(e) => setBacSiDoc2(e.target.value)}
+                          className="form-select font-semibold border-purple-300 bg-purple-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
+                          required
+                        >
+                          <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
+                          {doctors.map((doc) => (
+                            <option key={doc._id} value={doc.fullName}>
+                              {doc.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="form-group mb-0 lg:col-span-2">
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1">
+                      Bác sĩ đọc kết quả
                     </label>
-                    <select
-                      value={bacSiDoc2}
-                      onChange={(e) => setBacSiDoc2(e.target.value)}
-                      className="form-select font-semibold border-purple-300 bg-purple-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
-                      required
-                    >
-                      <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
-                      {doctors.map((doc) => (
-                        <option key={doc._id} value={doc.fullName}>
-                          {doc.fullName}
-                        </option>
-                      ))}
-                    </select>
+                    <div className="p-2.5 bg-slate-100/80 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 flex items-center justify-between">
+                      <span>Chưa phân loại</span>
+                      <span className="text-[11px] font-normal text-slate-400 italic">
+                        (Admin Lab sẽ phân công bác sĩ khi tiếp nhận mẫu)
+                      </span>
+                    </div>
                   </div>
                 )}
               </div>

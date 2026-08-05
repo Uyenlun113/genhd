@@ -17,6 +17,10 @@ import {
   Dna,
   Lock,
   Clock,
+  PenLine,
+  Send,
+  Eye,
+  Image as ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -37,7 +41,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [signedPdfBase64, setSignedPdfBase64] = useState('');
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState('');
   const [doctors, setDoctors] = useState<Array<{ _id: string; fullName: string }>>([]);
 
   useEffect(() => {
@@ -91,6 +95,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
     ngayXetNghiem: new Date().toISOString().split('T')[0],
     bacSiDoc: 'BS CK1 PHẠM THẾ HÙNG',
     trangThai: 'nhap_thong_tin',
+    daKy: false,
     anhTeBao: '',
     pdfDaKy: '',
     lichSuChinhSua: [] as Array<{ nguoiSua: string; thoiGian: string; noiDung: string }>,
@@ -171,31 +176,42 @@ export default function TestResultDetailPage({ params }: PageProps) {
     }
   };
 
-  const handleAccept = async () => {
-    try {
-      const currentDoc = session?.user?.name;
-      const updatedData = { ...formData, bacSiDoc: currentDoc || formData.bacSiDoc };
+  const [showAcceptModal, setShowAcceptModal] = useState(false);
+  const [selectedDoctorForAccept, setSelectedDoctorForAccept] = useState('');
 
-      const res = await fetch(`/api/test-results/${id}/accept`, { method: 'POST' });
+  const handleOpenAcceptModal = () => {
+    setSelectedDoctorForAccept(doctors[0]?.fullName || formData.bacSiDoc || '');
+    setShowAcceptModal(true);
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!selectedDoctorForAccept) {
+      toast.error('Vui lòng chọn bác sĩ đọc kết quả');
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/test-results/${id}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bacSiDoc: selectedDoctorForAccept }),
+      });
       if (res.ok) {
         const updated = await res.json();
         setFormData((prev) => ({
           ...prev,
           trangThai: updated.trangThai,
-          bacSiDoc: currentDoc || prev.bacSiDoc,
+          bacSiDoc: selectedDoctorForAccept,
         }));
-        // Also save bacSiDoc to DB
-        await fetch(`/api/test-results/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData),
-        });
-        toast.success(`Đã nhận xử lý phiếu! Bác sĩ phụ trách: ${currentDoc || formData.bacSiDoc}`);
+        toast.success(`Đã nhận mẫu! Bác sĩ đọc kết quả: ${selectedDoctorForAccept}`);
+        setShowAcceptModal(false);
       } else {
         toast.error('Lỗi nhận phiếu!');
       }
     } catch {
-      toast.error('Lỗi nhận phiếu!');
+      toast.error('Lỗi kết nối!');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -203,29 +219,69 @@ export default function TestResultDetailPage({ params }: PageProps) {
     window.open(`/api/test-results/${id}/export-pdf`, '_blank');
   };
 
-  const handleUploadSignedPDF = async () => {
-    if (!signedPdfBase64) {
-      toast.error('Vui lòng chọn file PDF đã ký!');
-      return;
-    }
+  const handleSign = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/test-results/${id}/upload-signed`, {
+      const res = await fetch(`/api/test-results/${id}/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pdfBase64: signedPdfBase64 }),
+        body: JSON.stringify(formData),
       });
       if (res.ok) {
         const updated = await res.json();
-        setFormData((prev) => ({ ...prev, trangThai: updated.trangThai, pdfDaKy: signedPdfBase64 }));
-        toast.success('Đã upload PDF đã ký! Trạng thái: ĐÃ TRẢ KẾT QUẢ');
+        setFormData((prev) => ({ ...prev, daKy: true, ...updated }));
+        toast.success('Đã lưu kết quả và ký thành công!');
+        // Preview PDF inline
+        setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`);
       } else {
-        toast.error('Lỗi upload file!');
+        const err = await res.json();
+        toast.error(err.error || 'Lỗi ký kết quả!');
       }
     } catch {
       toast.error('Lỗi kết nối!');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDeliver = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/test-results/${id}/deliver`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ anhTeBao: formData.anhTeBao }),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setFormData((prev) => ({ ...prev, trangThai: updated.trangThai }));
+        toast.success('Đã trả kết quả xét nghiệm thành công!');
+      } else {
+        const err = await res.json();
+        toast.error(err.error || 'Lỗi trả kết quả!');
+      }
+    } catch {
+      toast.error('Lỗi kết nối!');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (base64OrUrl: string) => {
+    setFormData((prev) => ({ ...prev, anhTeBao: base64OrUrl }));
+    try {
+      const updatedData = { ...formData, anhTeBao: base64OrUrl };
+      const res = await fetch(`/api/test-results/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedData),
+      });
+      if (res.ok) {
+        toast.success(base64OrUrl ? 'Đã tải và lưu ảnh xét nghiệm thành công!' : 'Đã xóa ảnh!');
+        setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`);
+      }
+    } catch (err) {
+      console.error('Lỗi lưu ảnh:', err);
     }
   };
 
@@ -262,8 +318,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
               <div className="flex items-center gap-3">
                 <StatusBadge status={formData.trangThai} />
 
-                {(userRole === 'doctor' || userRole === 'admin') && formData.trangThai === 'nhap_thong_tin' && (
-                  <button onClick={handleAccept} className="btn btn-success">
+                {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && formData.trangThai === 'nhap_thong_tin' && (
+                  <button onClick={handleOpenAcceptModal} className="btn btn-success">
                     <FileCheck className="w-4 h-4" />
                     <span>Nhận mẫu</span>
                   </button>
@@ -660,17 +716,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       </div>
                     </div>
 
-                    {/* Upload ảnh tế bào học / ThinPrep */}
-                    <div className="mb-6">
-                      <FileUpload
-                        accept="image/*"
-                        label="Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)"
-                        value={formData.anhTeBao}
-                        isImage={true}
-                        disabled={isCompleted}
-                        onChange={(base64) => setFormData({ ...formData, anhTeBao: base64 })}
-                      />
-                    </div>
+
 
                     {/* Kết luận & Khuyên nghị */}
                     <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
@@ -798,17 +844,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       )}
                     </div>
 
-                    {/* Biểu đồ Real-time PCR upload */}
-                    <div className="mb-6">
-                      <FileUpload
-                        accept="image/*"
-                        label="Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR (Tùy chọn)"
-                        value={formData.anhTeBao}
-                        isImage={true}
-                        disabled={isCompleted}
-                        onChange={(base64) => setFormData({ ...formData, anhTeBao: base64 })}
-                      />
-                    </div>
+
 
                     {/* Kết luận & Khuyến nghị */}
                     <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
@@ -840,7 +876,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                   </div>
                 )}
 
-                {/* Doctor & Date Footer Card */}
+                {/* Bác sĩ: Ngày XN + Lưu & Ký */}
                 <div className="glass-card p-6">
                   <div className="flex flex-wrap items-center justify-between gap-4">
                     <div className="form-group mb-0 w-full sm:w-64">
@@ -859,62 +895,112 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       <div className="text-right">
                         <span className="text-xs text-slate-500 block font-medium">Bác sĩ đọc kết quả:</span>
                         <span className="text-sm font-bold text-sky-700">{formData.bacSiDoc || 'Chưa gán'}</span>
+                        {formData.daKy && (
+                          <span className="ml-2 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200 inline-flex items-center gap-1">
+                            <PenLine className="w-3 h-3" />
+                            <span>ĐÃ KÝ</span>
+                          </span>
+                        )}
                       </div>
 
-                      {!isCompleted && (
-                        <button
-                          onClick={handleSave}
-                          disabled={saving}
-                          className="btn btn-primary"
-                        >
-                          <Save className="w-4 h-4" />
-                          <span>{saving ? 'Đang lưu...' : 'Lưu kết quả'}</span>
-                        </button>
+                      {(userRole === 'doctor' || userRole === 'admin') && !isCompleted && (
+                        formData.daKy ? (
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={handleSave}
+                              disabled={saving}
+                              className="btn btn-primary"
+                            >
+                              <Save className="w-4 h-4" />
+                              <span>{saving ? 'Đang lưu...' : 'Lưu cập nhật'}</span>
+                            </button>
+                            <button
+                              onClick={() => setPdfPreviewUrl(`/api/test-results/${id}/export-pdf?mode=preview&t=${Date.now()}`)}
+                              className="btn btn-secondary"
+                            >
+                              <Eye className="w-4 h-4" />
+                              <span>Xem lại PDF</span>
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={handleSign}
+                            disabled={saving}
+                            className="btn btn-success"
+                          >
+                            <PenLine className="w-4 h-4" />
+                            <span>{saving ? 'Đang xử lý...' : 'Lưu kết quả và ký'}</span>
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
                 </div>
 
-                {/* Section 3: PDF Signing Workflow */}
-                <div className="glass-card p-6">
-                  <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-3">
-                    <CheckCircle className="w-5 h-5 text-sky-600" />
-                    <span>Hoàn tất phiếu & Upload PDF đã ký</span>
-                  </h3>
-
-                  <p className="text-xs text-slate-500 mb-4">
-                    Quy trình: 1. Lưu kết quả ➔ 2. Download PDF phôi ➔ 3. Bác sĩ ký tay / đóng dấu ➔ 4. Upload lại PDF đã ký.
-                  </p>
-
-                  <div className="mb-4">
-                    <button onClick={handleExportPDF} className="btn btn-secondary">
-                      <Download className="w-4 h-4" />
-                      <span>1. Download file PDF phôi</span>
-                    </button>
+                {/* Preview PDF inline */}
+                {pdfPreviewUrl && (
+                  <div className="glass-card p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="flex items-center gap-2 text-base font-bold text-sky-700">
+                        <Eye className="w-5 h-5 text-sky-600" />
+                        <span>Xem trước PDF kết quả</span>
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => window.open(`/api/test-results/${id}/export-pdf`, '_blank')}
+                          className="btn btn-primary text-xs"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>Tải PDF</span>
+                        </button>
+                        <button
+                          onClick={() => setPdfPreviewUrl('')}
+                          className="btn btn-secondary text-xs"
+                        >
+                          <span>Đóng</span>
+                        </button>
+                      </div>
+                    </div>
+                    <iframe
+                      src={pdfPreviewUrl}
+                      className="w-full rounded-xl border border-slate-200"
+                      style={{ height: '800px' }}
+                      title="PDF Preview"
+                    />
                   </div>
+                )}
 
-                  <FileUpload
-                    accept="application/pdf"
-                    label="2. Upload bản PDF bác sĩ đã ký"
-                    value={signedPdfBase64 || formData.pdfDaKy}
-                    isImage={false}
-                    disabled={isCompleted}
-                    onChange={(base64) => setSignedPdfBase64(base64)}
-                  />
+                {/* Admin/Lab Admin: Upload ảnh + Trả kết quả */}
+                {(userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                  <div className="glass-card p-6">
+                    <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
+                      <ImageIcon className="w-5 h-5 text-sky-600" />
+                      <span>Tải ảnh xét nghiệm & Trả kết quả</span>
+                    </h3>
 
-                  {signedPdfBase64 && !isCompleted && (
-                    <div className="mt-3 flex justify-end">
+                    <div className="mb-6">
+                      <FileUpload
+                        accept="image/*"
+                        label={isHPV ? 'Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR' : 'Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)'}
+                        value={formData.anhTeBao}
+                        isImage={true}
+                        disabled={isCompleted}
+                        onChange={handleImageUpload}
+                      />
+                    </div>
+
+                    <div className="flex justify-center mt-4">
                       <button
-                        onClick={handleUploadSignedPDF}
+                        onClick={handleDeliver}
                         disabled={saving}
-                        className="btn btn-success"
+                        className="btn btn-success px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
                       >
-                        <CheckCircle className="w-4 h-4" />
-                        <span>{saving ? 'Đang tải lên...' : 'Xác nhận upload & Trả kết quả'}</span>
+                        <Send className="w-4 h-4" />
+                        <span>{saving ? 'Đang xử lý...' : 'Trả kết quả'}</span>
                       </button>
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
               </>
             )}
 
@@ -967,6 +1053,57 @@ export default function TestResultDetailPage({ params }: PageProps) {
           </div>
         </main>
       </div>
+
+      {/* MODAL PHÂN CÔNG BÁC SĨ KHI NHẬN MẪU */}
+      {showAcceptModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4">
+            <h3 className="text-base font-bold text-sky-800 flex items-center gap-2 pb-3 border-b border-slate-100">
+              <FileCheck className="w-5 h-5 text-sky-600" />
+              <span>Tiếp nhận mẫu & Phân công Bác sĩ</span>
+            </h3>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Vui lòng chọn Bác sĩ sẽ phụ trách đọc và ký kết quả cho phiếu xét nghiệm <strong className="text-sky-700">{formData.maSo}</strong> ({formData.hoTen}):
+            </p>
+
+            <div className="form-group">
+              <label className="block text-xs font-bold text-sky-800 mb-1.5">
+                Bác sĩ đọc kết quả *
+              </label>
+              <select
+                value={selectedDoctorForAccept}
+                onChange={(e) => setSelectedDoctorForAccept(e.target.value)}
+                className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 text-xs w-full py-2"
+              >
+                <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
+                {doctors.map((doc) => (
+                  <option key={doc._id} value={doc.fullName}>
+                    {doc.fullName}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowAcceptModal(false)}
+                className="btn btn-secondary text-xs"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmAccept}
+                disabled={saving || !selectedDoctorForAccept}
+                className="btn btn-success text-xs"
+              >
+                {saving ? 'Đang xử lý...' : 'Xác nhận nhận mẫu'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,6 +41,7 @@ export interface ITestResultData {
   bacSiDoc?: string;
   bacSiTitle?: string;
   anhTeBao?: string;
+  signatureImage?: string; // tên file ảnh chữ ký trong public/ (vd: chu_ky_hung.jpg)
 }
 
 export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
@@ -263,6 +264,30 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     }
   };
 
+  // Embed Signature Image if provided
+  let signatureImg: any = null;
+  if (data.signatureImage) {
+    const sigPath = path.join(process.cwd(), 'public', data.signatureImage);
+    if (fs.existsSync(sigPath)) {
+      try {
+        const sigBytes = fs.readFileSync(sigPath);
+        try {
+          signatureImg = await pdfDoc.embedPng(sigBytes);
+        } catch {
+          try {
+            signatureImg = await pdfDoc.embedJpg(sigBytes);
+          } catch {
+            const sharp = require('sharp');
+            const cleanPngBytes = await sharp(sigBytes).png().toBuffer();
+            signatureImg = await pdfDoc.embedPng(cleanPngBytes);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to embed signature image:', err);
+      }
+    }
+  }
+
   // Common Top Header: Logo + Company Info + Red Stamp overlay
   if (logoImage) {
     page1.drawImage(logoImage, {
@@ -316,6 +341,25 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
 
     // 3. Doctor Name dynamically using assigned / logged-in doctor
     const docName = data.bacSiDoc || 'BS CK1 PHẠM THẾ HÙNG';
+
+    // 3.5. Embed Signature Image (between title and name)
+    if (signatureImg) {
+      try {
+        const sigWidth = 100;
+        const sigHeight = 45;
+        const sigX = rightXStart + (rightXEnd - rightXStart - sigWidth) / 2;
+        const sigY = yStart - 72;
+        targetPage.drawImage(signatureImg, {
+          x: sigX,
+          y: sigY,
+          width: sigWidth,
+          height: sigHeight,
+        });
+      } catch (err) {
+        console.error('Failed to draw signature image on PDF:', err);
+      }
+    }
+
     drawCenteredText(targetPage, docName, rightXStart, rightXEnd, yStart - 90, 11, true, blackColor);
 
     // 4. Subtitle centered
@@ -1076,11 +1120,17 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
           imageBytes = Buffer.from(base64Data, 'base64');
         }
 
-        let img;
-        if (anhTeBaoUrl.includes('.png') || anhTeBaoUrl.includes('image/png')) {
+        let img: any = null;
+        try {
           img = await pdfDoc.embedPng(imageBytes);
-        } else {
-          img = await pdfDoc.embedJpg(imageBytes);
+        } catch {
+          try {
+            img = await pdfDoc.embedJpg(imageBytes);
+          } catch {
+            const sharp = require('sharp');
+            const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
+            img = await pdfDoc.embedPng(cleanPngBytes);
+          }
         }
 
         if (img) {

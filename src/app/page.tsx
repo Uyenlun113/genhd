@@ -238,29 +238,33 @@ function DashboardContent() {
     }
   };
 
-  const handleAcceptClick = (id: string, maSo: string) => {
+  const [acceptItem, setAcceptItem] = useState<{ id: string; maSo: string; bacSiDoc?: string } | null>(null);
+  const [selectedDoctorForAccept, setSelectedDoctorForAccept] = useState('');
+
+  const handleAcceptClick = (item: { _id: string; maSo: string; bacSiDoc?: string }) => {
     setActiveMenuId(null);
-    setModalConfig({
-      isOpen: true,
-      title: 'Nhận xử lý phiếu xét nghiệm',
-      message: `Bạn có muốn nhận xử lý phiếu ${maSo} không? Trạng thái sẽ chuyển thành CHẠY KẾT QUẢ.`,
-      confirmText: 'Nhận mẫu',
-      type: 'info',
-      onConfirm: async () => {
-        setModalConfig((prev) => ({ ...prev, isOpen: false }));
-        try {
-          const res = await fetch(`/api/test-results/${id}/accept`, { method: 'POST' });
-          if (res.ok) {
-            toast.success('Đã nhận xử lý phiếu thành công!');
-            fetchResults();
-          } else {
-            toast.error('Lỗi nhận phiếu!');
-          }
-        } catch {
-          toast.error('Lỗi nhận phiếu!');
-        }
-      },
-    });
+    setAcceptItem({ id: item._id, maSo: item.maSo, bacSiDoc: item.bacSiDoc });
+    setSelectedDoctorForAccept(item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : doctors[0]?.fullName || '');
+  };
+
+  const handleConfirmAccept = async () => {
+    if (!acceptItem || !selectedDoctorForAccept) return;
+    try {
+      const res = await fetch(`/api/test-results/${acceptItem.id}/accept`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bacSiDoc: selectedDoctorForAccept }),
+      });
+      if (res.ok) {
+        toast.success(`Đã nhận mẫu ${acceptItem.maSo}! Bác sĩ phân công: ${selectedDoctorForAccept}`);
+        setAcceptItem(null);
+        fetchResults();
+      } else {
+        toast.error('Lỗi nhận phiếu!');
+      }
+    } catch {
+      toast.error('Lỗi kết nối!');
+    }
   };
 
   const handleDeleteClick = (id: string, maSo: string, hoTen: string) => {
@@ -580,7 +584,7 @@ function DashboardContent() {
                               {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') &&
                                 item.trangThai === 'nhap_thong_tin' && (
                                   <button
-                                    onClick={() => handleAcceptClick(item._id, item.maSo)}
+                                    onClick={() => handleAcceptClick(item)}
                                     className="btn btn-success text-xs py-1 px-2.5"
                                   >
                                     <FileCheck className="w-3.5 h-3.5" />
@@ -858,6 +862,57 @@ function DashboardContent() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL PHÂN CÔNG BÁC SĨ KHI NHẬN MẪU */}
+        {acceptItem && (
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-150">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4 text-left">
+              <h3 className="text-base font-bold text-sky-800 flex items-center gap-2 pb-3 border-b border-slate-100">
+                <FileCheck className="w-5 h-5 text-sky-600" />
+                <span>Tiếp nhận mẫu & Phân công Bác sĩ</span>
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Vui lòng chọn Bác sĩ sẽ phụ trách đọc và ký kết quả cho phiếu xét nghiệm <strong className="text-sky-700">{acceptItem.maSo}</strong>:
+              </p>
+
+              <div className="form-group">
+                <label className="block text-xs font-bold text-sky-800 mb-1.5">
+                  Bác sĩ đọc kết quả *
+                </label>
+                <select
+                  value={selectedDoctorForAccept}
+                  onChange={(e) => setSelectedDoctorForAccept(e.target.value)}
+                  className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 text-xs w-full py-2"
+                >
+                  <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
+                  {doctors.map((doc) => (
+                    <option key={doc._id} value={doc.fullName}>
+                      {doc.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAcceptItem(null)}
+                  className="btn btn-secondary text-xs"
+                >
+                  Hủy
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmAccept}
+                  disabled={!selectedDoctorForAccept}
+                  className="btn btn-success text-xs"
+                >
+                  Xác nhận nhận mẫu
+                </button>
+              </div>
             </div>
           </div>
         )}

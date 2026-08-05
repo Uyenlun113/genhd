@@ -62,6 +62,7 @@ export interface ITestResult extends Document {
 
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
 
+  daKy: boolean;
   anhTeBao: string; // Ảnh soi tế bào hoặc biểu đồ PCR
   pdfDaKy: string;
 
@@ -141,6 +142,7 @@ const TestResultSchema = new Schema<ITestResult>(
       default: 'nhap_thong_tin',
     },
 
+    daKy: { type: Boolean, default: false },
     anhTeBao: { type: String, default: '' },
     pdfDaKy: { type: String, default: '' },
 

@@ -10,7 +10,7 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-// POST: Doctor accepts test result -> status 'chay_ket_qua'
+// POST: Doctor signs (ký) test result — saves results + marks daKy=true
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     await dbConnect();
@@ -19,41 +19,35 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const userRole = (session.user as any)?.role;
+    if (userRole !== 'doctor' && userRole !== 'admin') {
+      return NextResponse.json({ error: 'Chỉ bác sĩ hoặc admin mới có quyền ký kết quả' }, { status: 403 });
+    }
+
     const { id } = await params;
-    const userId = (session.user as { id: string }).id;
-
+    const body = await request.json();
     const userName = session.user?.name || 'Bác sĩ';
-    const now = new Date();
-    const duKienTra = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Exactly +3 days (72 hours)
 
-    const body = await request.json().catch(() => ({}));
-    const { bacSiDoc } = body;
+    // Remove read-only fields
+    delete body.maSo;
+    delete body.lichSuChinhSua;
+    delete body._id;
+    delete body.createdAt;
+    delete body.updatedAt;
 
-    const updateFields: any = {
-      trangThai: 'chay_ket_qua',
-      bacSiXuLy: userId,
-      ngayNhanMau: now,
-      ngayDuKienTra: duKienTra,
+    const updatePayload: any = {
+      ...body,
+      daKy: true,
       $push: {
         lichSuChinhSua: {
           nguoiSua: userName,
-          thoiGian: now,
-          noiDung: bacSiDoc
-            ? `Nhận mẫu & phân công bác sĩ đọc kết quả: ${bacSiDoc}`
-            : 'Nhận mẫu & tiếp nhận phiếu xét nghiệm',
+          thoiGian: new Date(),
+          noiDung: 'Bác sĩ lưu kết quả và ký xét nghiệm',
         },
       },
     };
 
-    if (bacSiDoc) {
-      updateFields.bacSiDoc = bacSiDoc;
-    }
-
-    const result = await TestResult.findByIdAndUpdate(
-      id,
-      updateFields,
-      { new: true }
-    ).lean();
+    const result = await TestResult.findByIdAndUpdate(id, updatePayload, { new: true }).lean();
 
     if (!result) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
@@ -64,7 +58,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('POST accept test-result error:', error);
-    return NextResponse.json({ error: 'Lỗi xử lý' }, { status: 500 });
+    console.error('POST sign test-result error:', error);
+    return NextResponse.json({ error: 'Lỗi ký kết quả' }, { status: 500 });
   }
 }

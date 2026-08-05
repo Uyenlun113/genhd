@@ -10,7 +10,7 @@ interface Params {
   params: Promise<{ id: string }>;
 }
 
-// POST: Doctor accepts test result -> status 'chay_ket_qua'
+// POST: Admin Lab delivers (trả) test result -> status 'da_tra_ket_qua'
 export async function POST(request: NextRequest, { params }: Params) {
   try {
     await dbConnect();
@@ -19,34 +19,31 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { id } = await params;
-    const userId = (session.user as { id: string }).id;
+    const userRole = (session.user as any)?.role;
+    if (userRole !== 'admin' && userRole !== 'lab_admin') {
+      return NextResponse.json({ error: 'Chỉ Admin hoặc Admin Lab mới có quyền trả kết quả' }, { status: 403 });
+    }
 
-    const userName = session.user?.name || 'Bác sĩ';
-    const now = new Date();
-    const duKienTra = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Exactly +3 days (72 hours)
+    const { id } = await params;
+    const userName = session.user?.name || 'Admin Lab';
 
     const body = await request.json().catch(() => ({}));
-    const { bacSiDoc } = body;
+    const { anhTeBao } = body;
 
     const updateFields: any = {
-      trangThai: 'chay_ket_qua',
-      bacSiXuLy: userId,
-      ngayNhanMau: now,
-      ngayDuKienTra: duKienTra,
+      trangThai: 'da_tra_ket_qua',
+      ngayTraKetQua: new Date(),
       $push: {
         lichSuChinhSua: {
           nguoiSua: userName,
-          thoiGian: now,
-          noiDung: bacSiDoc
-            ? `Nhận mẫu & phân công bác sĩ đọc kết quả: ${bacSiDoc}`
-            : 'Nhận mẫu & tiếp nhận phiếu xét nghiệm',
+          thoiGian: new Date(),
+          noiDung: 'Admin Lab trả kết quả xét nghiệm',
         },
       },
     };
 
-    if (bacSiDoc) {
-      updateFields.bacSiDoc = bacSiDoc;
+    if (typeof anhTeBao === 'string') {
+      updateFields.anhTeBao = anhTeBao;
     }
 
     const result = await TestResult.findByIdAndUpdate(
@@ -64,7 +61,7 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     return NextResponse.json(result);
   } catch (error) {
-    console.error('POST accept test-result error:', error);
-    return NextResponse.json({ error: 'Lỗi xử lý' }, { status: 500 });
+    console.error('POST deliver test-result error:', error);
+    return NextResponse.json({ error: 'Lỗi trả kết quả' }, { status: 500 });
   }
 }
