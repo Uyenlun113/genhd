@@ -37,7 +37,9 @@ export async function GET(request: NextRequest, { params }: Params) {
     let signatureImage = '';
     if (testResult.daKy) {
       const docName = (testResult.bacSiDoc || '').toUpperCase();
-      if (docName.includes('HÙNG') || docName.includes('HUNG')) {
+      if (docName.includes('TRỰC') || docName.includes('TRUC')) {
+        signatureImage = 'chu_ki_truc.png';
+      } else if (docName.includes('HÙNG') || docName.includes('HUNG')) {
         signatureImage = 'chu_ki_hung.png';
       } else if (docName.includes('DƯƠNG') || docName.includes('DUONG')) {
         signatureImage = 'chu_ki_duong.png';
