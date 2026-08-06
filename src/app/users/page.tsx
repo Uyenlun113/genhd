@@ -332,8 +332,8 @@ export default function UserManagementPage() {
           </div>
 
           {showModal && (
-            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 border border-slate-200">
+            <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-6 border border-slate-200">
                 <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
                   <h3 className="font-bold text-slate-800 text-lg flex items-center gap-2">
                     <Key className="w-5 h-5 text-sky-600" />
@@ -341,54 +341,70 @@ export default function UserManagementPage() {
                   </h3>
                   <button
                     onClick={() => setShowModal(false)}
-                    className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"
+                    className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="form-group">
-                    <label>Tên đăng nhập *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.username}
-                      onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-                      placeholder="bacsi_duong"
-                      required
-                    />
-                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="form-group mb-0">
+                      <label>Tên đăng nhập *</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={formData.username}
+                        onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+                        placeholder="bacsi_duong"
+                        required
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label>Họ và tên *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.fullName}
-                      onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                      placeholder="TS. BS. Nguyễn Khánh Dương"
-                      required
-                    />
-                  </div>
+                    <div className="form-group mb-0">
+                      <label>
+                        {editUser ? 'Mật khẩu mới (Để trống nếu giữ cũ)' : 'Mật khẩu *'}
+                      </label>
+                      <input
+                        type="password"
+                        className="form-input"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                        placeholder="••••••••"
+                        required={!editUser}
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label>Vai trò hệ thống *</label>
-                    <select
-                      className="form-select"
-                      value={formData.role}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          role: e.target.value as 'admin' | 'doctor' | 'staff' | 'lab_admin',
-                        })
-                      }
-                    >
-                      <option value="doctor">Bác sĩ đọc kết quả</option>
-                      <option value="staff">Phòng khám / Nhân viên nhập phiếu</option>
-                      <option value="lab_admin">Admin Phòng Lab (Xem tất cả phiếu các Bác sĩ)</option>
-                      <option value="admin">Quản trị viên (Admin Hệ Thống)</option>
-                    </select>
+                    <div className="form-group mb-0">
+                      <label>Họ và tên *</label>
+                      <input
+                        type="text"
+                        className="form-input"
+                        value={formData.fullName}
+                        onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+                        placeholder="TS. BS. Nguyễn Khánh Dương"
+                        required
+                      />
+                    </div>
+
+                    <div className="form-group mb-0">
+                      <label>Vai trò hệ thống *</label>
+                      <select
+                        className="form-select"
+                        value={formData.role}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            role: e.target.value as 'admin' | 'doctor' | 'staff' | 'lab_admin',
+                          })
+                        }
+                      >
+                        <option value="doctor">Bác sĩ đọc kết quả</option>
+                        <option value="staff">Phòng khám / Nhân viên nhập phiếu</option>
+                        <option value="lab_admin">Admin Phòng Lab (Xem tất cả phiếu các Bác sĩ)</option>
+                        <option value="admin">Quản trị viên (Admin Hệ Thống)</option>
+                      </select>
+                    </div>
                   </div>
 
                   {formData.role === 'doctor' && (
@@ -412,7 +428,7 @@ export default function UserManagementPage() {
                       <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider">
                         Phân quyền xem/xử lý danh mục xét nghiệm:
                       </label>
-                      <div className="space-y-1.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                         <label className="checkbox-item">
                           <input
                             type="checkbox"
@@ -465,31 +481,16 @@ export default function UserManagementPage() {
                     </div>
                   )}
 
-                  <div className="form-group">
-                    <label>
-                      {editUser ? 'Mật khẩu mới (Để trống nếu không đổi)' : 'Mật khẩu *'}
-                    </label>
-                    <input
-                      type="password"
-                      className="form-input"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      placeholder="••••••••"
-                      required={!editUser}
-                    />
-                  </div>
-
-                  <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
+                  <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setShowModal(false)}
-                      className="btn btn-secondary"
+                      className="btn btn-secondary text-xs"
                     >
                       Hủy
                     </button>
-                    <button type="submit" className="btn btn-primary">
-                      <Check className="w-4 h-4" />
-                      <span>{editUser ? 'Cập nhật' : 'Tạo mới'}</span>
+                    <button type="submit" className="btn btn-primary text-xs">
+                      {editUser ? 'Cập nhật' : 'Tạo mới'}
                     </button>
                   </div>
                 </form>

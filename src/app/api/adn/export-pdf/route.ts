@@ -77,20 +77,20 @@ export async function POST(request: NextRequest) {
     const darkColor = rgb(0.0, 0.0, 0.0);
     const redColor = rgb(0.85, 0.1, 0.1);
 
-    // 1. HEADER LOGO & COMPANY INFO (Company info right next to logo on left, as in Image 2)
+    // 1. HEADER LOGO & COMPANY INFO (Logo 58x58, company info shifted towards center)
     const logoPath = path.join(process.cwd(), 'public', 'Logo_Genetrust.png');
     if (fs.existsSync(logoPath)) {
       const logoBytes = fs.readFileSync(logoPath);
       const logoImg = await pdfDoc.embedPng(logoBytes);
       page.drawImage(logoImg, {
         x: margin + 10,
-        y: height - margin - 48,
-        width: 46,
-        height: 46,
+        y: height - margin - 58,
+        width: 58,
+        height: 58,
       });
     }
 
-    const headerX = margin + 64;
+    const headerX = margin + 82;
     let currentY = height - margin - 12;
 
     page.drawText(nfc('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'), {

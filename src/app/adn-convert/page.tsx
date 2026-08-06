@@ -1011,16 +1011,16 @@ export default function AdnConvertPage() {
                 className="w-full bg-white border border-slate-300 rounded-xl p-8 sm:p-10 shadow-2xl space-y-3 text-slate-900 text-[13px] leading-relaxed relative min-h-[980px]"
                 style={{ fontFamily: '"Times New Roman", Times, serif' }}
               >
-                {/* Header Logo & Company Info (Company info right next to logo on left, as in Image 2) */}
-                <div className="flex items-center gap-3 pb-1">
+                {/* Header Logo & Company Info (Logo 58px, company info shifted towards center) */}
+                <div className="flex items-center gap-5 pl-2 pb-1">
                   <div className="shrink-0 pt-0.5">
                     <img
                       src="/Logo_Genetrust.png"
                       alt="Genetrust Logo"
-                      className="h-12 w-12 object-contain"
+                      className="h-[58px] w-[58px] object-contain"
                     />
                   </div>
-                  <div className="text-left text-[#003399] leading-tight" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                  <div className="text-left text-[#003399] leading-tight pl-3" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
                     <h2 className="text-sm font-bold tracking-tight">{nfc('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM')}</h2>
                     <p className="text-[11.5px] italic mt-0.5">
                       {nfc('Địa chỉ: Số 15, Ngõ 5 Hoàng Quốc Việt, Phường Nghĩa Đô, TP Hà Nội')}
