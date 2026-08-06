@@ -103,7 +103,9 @@ export async function POST(request: NextRequest) {
 
     try {
       const scriptPath = path.join(process.cwd(), 'scripts', 'parse_adn_pdf.py');
-      const { stdout } = await execPromise(`python "${scriptPath}" "${tmpPath}"`);
+      // Auto-detect python executable: Linux usually has python3, Windows has python
+      const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+      const { stdout } = await execPromise(`${pythonCmd} "${scriptPath}" "${tmpPath}"`);
       const parsedData = JSON.parse(stdout);
 
       // Clean up tmp file

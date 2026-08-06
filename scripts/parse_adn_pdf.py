@@ -3,9 +3,17 @@ import json
 import re
 import os
 import subprocess
+import shutil
 import pypdf
 
-TESSERACT_EXE = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Auto-detect Tesseract path: Linux (/usr/bin/tesseract) or Windows
+_tess = shutil.which("tesseract")
+if _tess:
+    TESSERACT_EXE = _tess
+elif os.name == "nt":
+    TESSERACT_EXE = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+else:
+    TESSERACT_EXE = "/usr/bin/tesseract"
 
 def run_tesseract(img_bytes, psm="6", lang="vie+eng"):
     if not os.path.exists(TESSERACT_EXE):
