@@ -12,6 +12,7 @@ import { useSession } from 'next-auth/react';
 interface DoctorUser {
   _id: string;
   fullName: string;
+  allowedCategories?: string[];
 }
 
 interface ServiceOption {
@@ -65,6 +66,7 @@ function NewResultFormContent() {
   });
 
   const selectedServiceObj = SERVICE_OPTIONS.find((s) => s.id === serviceChoice) || SERVICE_OPTIONS[0];
+  const targetCategory = selectedServiceObj.types[0] || 'cell';
 
   useEffect(() => {
     if (searchParams.get('type')) {
@@ -76,7 +78,7 @@ function NewResultFormContent() {
   useEffect(() => {
     async function fetchDoctors() {
       try {
-        const res = await fetch('/api/users?role=doctor');
+        const res = await fetch(`/api/users?role=doctor&category=${targetCategory}`);
         if (res.ok) {
           const data = await res.json();
           const list: DoctorUser[] = data || [];
@@ -95,7 +97,7 @@ function NewResultFormContent() {
       }
     }
     fetchDoctors();
-  }, [userRole, userName]);
+  }, [userRole, userName, targetCategory]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>

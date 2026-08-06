@@ -30,8 +30,8 @@ function SidebarContent() {
   const canSeeThinPrep = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('thinprep');
   const canSeeHPV40 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv40');
   const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
-  const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('soituoi') || userRole === 'staff' || userRole === 'doctor';
-  const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('giaiphaubenh') || userRole === 'staff' || userRole === 'doctor';
+  const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('soituoi');
+  const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('giaiphaubenh');
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {

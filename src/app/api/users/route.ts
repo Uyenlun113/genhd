@@ -16,11 +16,15 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');
+    const categoryFilter = searchParams.get('category');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = {};
     if (roleFilter) {
       query.role = roleFilter;
+    }
+    if (categoryFilter) {
+      query.allowedCategories = categoryFilter;
     }
 
     const users = await User.find(query)

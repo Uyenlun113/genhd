@@ -57,6 +57,7 @@ interface TestResultItem {
 interface DoctorUser {
   _id: string;
   fullName: string;
+  allowedCategories?: string[];
 }
 
 function DashboardContent() {
@@ -343,14 +344,17 @@ function DashboardContent() {
               <div className="flex items-center gap-2.5">
                 <button
                   onClick={() => setIsExportModalOpen(true)}
-                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs hover:shadow-md hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98]"
+                  className="flex items-center justify-center gap-2 h-10 px-4 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-xs hover:shadow-md active:scale-[0.98]"
                 >
                   <FileSpreadsheet className="w-4 h-4 shrink-0 text-white" />
                   <span>Xuất Excel</span>
                 </button>
                 {(userRole === 'staff' || userRole === 'admin') && (
-                  <Link href={`/results/new?type=${categoryFilter}`} className="btn btn-primary">
-                    <Plus className="w-4 h-4" />
+                  <Link
+                    href={`/results/new?type=${categoryFilter}`}
+                    className="flex items-center justify-center gap-2 h-10 px-4 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-xs hover:shadow-md active:scale-[0.98]"
+                  >
+                    <Plus className="w-4 h-4 shrink-0 text-white" />
                     <span>Tạo phiếu mới</span>
                   </Link>
                 )}
@@ -894,11 +898,13 @@ function DashboardContent() {
                       required
                     >
                       <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
-                      {doctors.map((doc) => (
-                        <option key={doc._id} value={doc.fullName}>
-                          {doc.fullName}
-                        </option>
-                      ))}
+                      {doctors
+                        .filter((doc) => !doc.allowedCategories || doc.allowedCategories.includes(categoryFilter))
+                        .map((doc) => (
+                          <option key={doc._id} value={doc.fullName}>
+                            {doc.fullName}
+                          </option>
+                        ))}
                     </select>
                   </div>
                 </div>
@@ -943,11 +949,13 @@ function DashboardContent() {
                   className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 text-xs w-full py-2"
                 >
                   <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
-                  {doctors.map((doc) => (
-                    <option key={doc._id} value={doc.fullName}>
-                      {doc.fullName}
-                    </option>
-                  ))}
+                  {doctors
+                    .filter((doc) => !doc.allowedCategories || doc.allowedCategories.includes(categoryFilter))
+                    .map((doc) => (
+                      <option key={doc._id} value={doc.fullName}>
+                        {doc.fullName}
+                      </option>
+                    ))}
                 </select>
               </div>
 
