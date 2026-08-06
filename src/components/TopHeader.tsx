@@ -26,6 +26,7 @@ interface NotificationItem {
 }
 
 import { useWebSocket } from '@/hooks/useWebSocket';
+import ConfirmModal from '@/components/ConfirmModal';
 
 export default function TopHeader() {
   const { data: session } = useSession();
@@ -35,6 +36,7 @@ export default function TopHeader() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [showBellMenu, setShowBellMenu] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const fetchNotifications = async () => {
@@ -240,7 +242,7 @@ export default function TopHeader() {
           </div>
 
           <button
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={() => setShowLogoutModal(true)}
             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
             title="Đăng xuất"
           >
@@ -248,6 +250,18 @@ export default function TopHeader() {
           </button>
         </div>
       </div>
+
+      {/* Modal xác nhận đăng xuất */}
+      <ConfirmModal
+        isOpen={showLogoutModal}
+        title="Đăng xuất khỏi hệ thống"
+        message="Bạn có chắc chắn muốn đăng xuất tài khoản khỏi hệ thống GenHD?"
+        confirmText="Đăng xuất"
+        cancelText="Hủy bỏ"
+        type="danger"
+        onConfirm={() => signOut({ callbackUrl: '/login' })}
+        onCancel={() => setShowLogoutModal(false)}
+      />
     </header>
   );
 }
