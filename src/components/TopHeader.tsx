@@ -12,9 +12,11 @@ import {
   Users,
   CheckCircle2,
   ExternalLink,
+  Handshake,
 } from 'lucide-react';
 import Image from 'next/image';
 import logoImg from '../../public/logo.png';
+import logoGenetrust from '../../public/Logo_Genetrust.png';
 
 interface NotificationItem {
   _id: string;
@@ -108,24 +110,47 @@ export default function TopHeader() {
 
   return (
     <header className="w-full bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-40">
-      {/* Left: Brand Logo & App Name */}
-      <div className="flex items-center gap-4">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <Image
-            src={logoImg}
-            alt="Logo GEN HD"
-            width={40}
-            height={40}
-            style={{ objectFit: 'contain' }}
-            className="group-hover:scale-105 transition-transform"
-          />
-          <div>
-            <h1 className="text-lg font-extrabold text-sky-600 tracking-tight leading-none">
+      {/* Left: Brand Logos & Partnership Co-Branding */}
+      <div className="flex items-center gap-3">
+        <Link href="/" className="flex items-center gap-4 group">
+          {/* GEN HD Logo */}
+          <div className="flex items-center gap-2">
+            <Image
+              src={logoImg}
+              alt="Logo GEN HD"
+              width={40}
+              height={40}
+              style={{ objectFit: 'contain' }}
+              className="group-hover:scale-105 transition-transform"
+            />
+            <span className="text-xl font-extrabold text-sky-600 tracking-tight leading-none">
               GEN HD
-            </h1>
-            <p className="text-[11px] text-slate-500 font-semibold tracking-wide">
-              GIẢI PHÁP DI TRUYỀN Y HỌC
-            </p>
+            </span>
+          </div>
+
+          {/* Partnership Handshake Icon */}
+          <div className="flex items-center justify-center text-amber-600 bg-amber-50 p-2 rounded-full border border-amber-200/80 shadow-xs">
+            <Handshake className="w-5 h-5 text-amber-600 animate-pulse" />
+          </div>
+
+          {/* GENETRUST Co-Brand Logo */}
+          <div className="flex items-center gap-2.5">
+            <Image
+              src={logoGenetrust}
+              alt="Genetrust Logo"
+              width={40}
+              height={40}
+              style={{ objectFit: 'contain' }}
+              className="group-hover:scale-105 transition-transform"
+            />
+            <div className="leading-tight">
+              <span className="text-base font-extrabold text-[#003399] tracking-tight block">
+                GENETRUST
+              </span>
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+                Việt Nam
+              </span>
+            </div>
           </div>
         </Link>
       </div>

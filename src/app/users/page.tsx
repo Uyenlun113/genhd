@@ -477,6 +477,14 @@ export default function UserManagementPage() {
                           />
                           <span className="text-xs">GIẢI PHẪU BỆNH</span>
                         </label>
+                        <label className="checkbox-item bg-indigo-50/80 border-indigo-200">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('adn')}
+                            onChange={() => handleCategoryToggle('adn')}
+                          />
+                          <span className="text-xs font-bold text-indigo-700">CONVERT KẾT QUẢ ADN</span>
+                        </label>
                       </div>
                     </div>
                   )}

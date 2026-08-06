@@ -32,6 +32,7 @@ function SidebarContent() {
   const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
   const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('soituoi');
   const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('giaiphaubenh');
+  const canSeeAdnConvert = userRole === 'admin' || allowedCategories.includes('adn');
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {
@@ -118,7 +119,7 @@ function SidebarContent() {
       href: '/adn-convert',
       icon: Dna,
       isActive: pathname === '/adn-convert',
-      show: true,
+      show: canSeeAdnConvert,
       activeColor: 'text-indigo-600 bg-indigo-50/80 font-bold',
       iconActive: 'text-indigo-600',
     },

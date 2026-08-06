@@ -6,6 +6,9 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
 import logoImg from '../../../public/logo.png';
+import logoGenetrust from '../../../public/Logo_Genetrust.png';
+
+import { Handshake } from 'lucide-react';
 
 export default function LoginPage() {
   const [username, setUsername] = useState('');
@@ -59,7 +62,7 @@ export default function LoginPage() {
         className="glass-card"
         style={{
           width: '100%',
-          maxWidth: '420px',
+          maxWidth: '440px',
           padding: '40px 32px',
           textAlign: 'center',
           background: '#ffffff',
@@ -67,29 +70,34 @@ export default function LoginPage() {
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01)',
         }}
       >
-        <div style={{ marginBottom: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px' }}>
-            <Image
-              src={logoImg}
-              alt="Logo GEN HD"
-              width={72}
-              height={72}
-              style={{ objectFit: 'contain' }}
-              priority
-            />
+        <div className="mb-6 flex flex-col items-center justify-center">
+          <div className="flex items-center justify-center gap-5 mb-2">
+            <div className="w-[72px] h-[72px] flex items-center justify-center">
+              <Image
+                src={logoImg}
+                alt="Logo GEN HD"
+                width={72}
+                height={72}
+                style={{ objectFit: 'contain', width: '72px', height: '72px' }}
+                priority
+              />
+            </div>
+            <div className="flex items-center justify-center text-amber-600 bg-amber-50 p-2.5 rounded-full border border-amber-200/80 shadow-xs">
+              <Handshake className="w-6 h-6 text-amber-600 animate-pulse" />
+            </div>
+            <div className="w-[72px] h-[72px] flex items-center justify-center">
+              <Image
+                src={logoGenetrust}
+                alt="Logo Genetrust"
+                width={72}
+                height={72}
+                style={{ objectFit: 'contain', width: '72px', height: '72px' }}
+                priority
+              />
+            </div>
           </div>
-          <h1
-            style={{
-              fontSize: '1.8rem',
-              fontWeight: '800',
-              color: '#0284c7',
-              letterSpacing: '-0.025em',
-            }}
-          >
-            GEN HD
-          </h1>
-          <p style={{ fontSize: '0.85rem', color: '#64748b', marginTop: '4px', fontWeight: '500' }}>
-            Hệ thống quản lý phiếu xét nghiệm tế bào
+          <p className="text-xs text-slate-500 mt-1 font-semibold text-center">
+            Hệ thống Quản lý & Convert Kết quả Xét nghiệm
           </p>
         </div>
 
