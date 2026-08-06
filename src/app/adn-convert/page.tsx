@@ -241,16 +241,38 @@ export default function AdnConvertPage() {
     reader.readAsDataURL(file);
   };
 
-  // Image upload helpers
+  // Image upload helpers - compress to max 400px, quality 70%
+  const compressImage = (dataUrl: string, maxSize = 400, quality = 0.7): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let w = img.width;
+        let h = img.height;
+        if (w > maxSize || h > maxSize) {
+          if (w > h) { h = Math.round((h * maxSize) / w); w = maxSize; }
+          else { w = Math.round((w * maxSize) / h); h = maxSize; }
+        }
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d')!;
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.src = dataUrl;
+    });
+  };
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'm1' | 'm2') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result as string;
-      if (target === 'm1') setM1((prev) => ({ ...prev, photoUrl: result }));
-      else setM2((prev) => ({ ...prev, photoUrl: result }));
+    reader.onload = async () => {
+      const raw = reader.result as string;
+      const compressed = await compressImage(raw);
+      if (target === 'm1') setM1((prev) => ({ ...prev, photoUrl: compressed }));
+      else setM2((prev) => ({ ...prev, photoUrl: compressed }));
       toast.success(`Đã cập nhật ảnh chân dung ${target === 'm1' ? 'M1' : 'M2'}!`);
     };
     reader.readAsDataURL(file);
@@ -1062,88 +1084,69 @@ export default function AdnConvertPage() {
                   </p>
                 </div>
 
-                {/* Person 1 & Person 2 Layout (Stacked photos on left, details on right) */}
-                <div className="flex items-start gap-4 pt-1">
-                  {/* Left Photos Stack */}
-                  <div className="flex flex-col gap-3 shrink-0">
-                    <div className="w-28 h-32 bg-slate-100 border border-slate-400 rounded-sm overflow-hidden flex items-center justify-center">
-                      {m1.photoUrl ? (
-                        <img src={m1.photoUrl} alt="M1" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-[11px] text-slate-400 font-serif">Ảnh M1</span>
-                      )}
-                    </div>
-                    <div className="w-28 h-32 bg-slate-100 border border-slate-400 rounded-sm overflow-hidden flex items-center justify-center">
-                      {m2.photoUrl ? (
-                        <img src={m2.photoUrl} alt="M2" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-[11px] text-slate-400 font-serif">Ảnh M2</span>
-                      )}
-                    </div>
+                {/* Person 1 & Person 2 Layout (Each person: photo left + info right) */}
+                {/* Person 1 */}
+                <div className="flex items-start gap-3 pt-2 px-1" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                  <div className="w-24 h-28 bg-slate-100 border border-slate-400 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
+                    {m1.photoUrl ? (
+                      <img src={m1.photoUrl} alt="M1" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-serif">Ảnh M1</span>
+                    )}
                   </div>
+                  <div className="flex-1 space-y-0.5 text-[12.5px] leading-snug">
+                    <p>
+                      <strong>1. Họ tên:</strong>{' '}{nfc(m1.hoTen || '...........................')}{' '}
+                      <strong className="ml-3">Giới tính:</strong> {nfc(m1.gioiTinh || '......')} ;{' '}
+                      <strong className="ml-1">Ngày sinh:</strong> {nfc(m1.ngaySinh || '.......')} ;{' '}
+                      <strong className="ml-1">Quốc tịch:</strong> {nfc(m1.quocTich || '..........')}
+                    </p>
+                    <p>
+                      <strong>CCCD/Passport:</strong>{' '}{nfc(m1.cccd || '...................................................')}{' '}
+                      <strong className="ml-6">Ngày cấp:</strong> {nfc(m1.ngayCap || '....................')}
+                    </p>
+                    <p>
+                      <strong>Nơi cấp:</strong>{' '}{nfc(m1.noiCap || '...........................................................................................................')}
+                    </p>
+                    <p>
+                      <strong>Nơi thường trú:</strong>{' '}{nfc(m1.noiThuongTru || '...................................................................................................')}
+                    </p>
+                    <p>
+                      <strong>Ký hiệu mẫu:</strong>{' '}<span className="font-bold">{nfc(m1.kyHieuMau || 'M1')}</span> ;{' '}
+                      <strong className="ml-3">Loại mẫu:</strong> {nfc(m1.loaiMau || '................................................')}
+                    </p>
+                  </div>
+                </div>
 
-                  {/* Right Details (13pt font size) */}
-                  <div className="flex-1 space-y-3.5 text-[13px] leading-relaxed pt-0.5" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
-                    {/* Person 1 Details */}
-                    <div className="space-y-1">
-                      <p>
-                        <strong>1. Họ tên:</strong> {nfc(m1.hoTen || '...........................')}{' '}
-                        <span className="ml-2">
-                          <strong>Giới tính:</strong> {nfc(m1.gioiTinh || '......')}
-                        </span>{' '}
-                        <span className="ml-2">
-                          <strong>Ngày sinh:</strong> {nfc(m1.ngaySinh || '.......')}
-                        </span>{' '}
-                        <span className="ml-2">
-                          <strong>Quốc tịch:</strong> {nfc(m1.quocTich || '..........')}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>CCCD/Passport:</strong> {nfc(m1.cccd || '...................................................')}{' '}
-                        <span className="ml-2">
-                          <strong>Ngày cấp:</strong> {nfc(m1.ngayCap || '....................')}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>Nơi cấp:</strong> {nfc(m1.noiCap || '...........................................................................................................')}
-                      </p>
-                      <p>
-                        <strong>Nơi thường trú:</strong> {nfc(m1.noiThuongTru || '...................................................................................................')}
-                      </p>
-                      <p>
-                        <strong>Ký hiệu mẫu:</strong> <span className="font-bold">{nfc(m1.kyHieuMau || 'M1')}</span> ;{' '}
-                        <strong>Loại mẫu:</strong> {nfc(m1.loaiMau || '................................................')}
-                      </p>
-                    </div>
-
-                    {/* Person 2 Details */}
-                    <div className="space-y-1 pt-1">
-                      <p>
-                        <strong>2. Người có tên dự kiến:</strong> {nfc(m2.hoTen || '...................................................................................')}
-                      </p>
-                      <p>
-                        <strong>Giới tính:</strong> {nfc(m2.gioiTinh || '................ me.....')}{' '}
-                        <span className="ml-2">
-                          <strong>Ngày sinh:</strong> {nfc(m2.ngaySinh || '........................................')}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>Giấy chứng sinh số:</strong> {nfc(m2.giayChungSinhSo || '.....................')}{' '}
-                        <span className="ml-2">
-                          <strong>Quyền số:</strong> {nfc(m2.quyenSo || '.......................................')}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>Ngày cấp:</strong> {nfc(m2.ngayCap || '..................................')}{' '}
-                        <span className="ml-2">
-                          <strong>Nơi cấp:</strong> {nfc(m2.noiCap || '........................................')}
-                        </span>
-                      </p>
-                      <p>
-                        <strong>Ký hiệu mẫu:</strong> <span className="font-bold">{nfc(m2.kyHieuMau || 'M2')}</span> ;{' '}
-                        <strong>Loại mẫu:</strong> {nfc(m2.loaiMau || '................................................')}
-                      </p>
-                    </div>
+                {/* Person 2 */}
+                <div className="flex items-start gap-3 pt-1.5 px-1" style={{ fontFamily: '"Times New Roman", Times, serif' }}>
+                  <div className="w-24 h-28 bg-slate-100 border border-slate-400 rounded-sm overflow-hidden flex items-center justify-center shrink-0">
+                    {m2.photoUrl ? (
+                      <img src={m2.photoUrl} alt="M2" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-[11px] text-slate-400 font-serif">Ảnh M2</span>
+                    )}
+                  </div>
+                  <div className="flex-1 space-y-0.5 text-[12.5px] leading-snug">
+                    <p>
+                      <strong>2. Người có tên dự kiến:</strong>{' '}{nfc(m2.hoTen || '...................................................................................')}
+                    </p>
+                    <p>
+                      <strong>Giới tính:</strong> {nfc(m2.gioiTinh || '...............')}{' '}
+                      <strong className="ml-6">Ngày sinh:</strong> {nfc(m2.ngaySinh || '........................................')}
+                    </p>
+                    <p>
+                      <strong>Giấy chứng sinh số:</strong>{' '}{nfc(m2.giayChungSinhSo || '.....................')}{' '}
+                      <strong className="ml-6">Quyền số:</strong> {nfc(m2.quyenSo || '.......................................')}
+                    </p>
+                    <p>
+                      <strong>Ngày cấp:</strong>{' '}{nfc(m2.ngayCap || '..................................')}{' '}
+                      <strong className="ml-6">Nơi cấp:</strong> {nfc(m2.noiCap || '........................................')}
+                    </p>
+                    <p>
+                      <strong>Ký hiệu mẫu:</strong>{' '}<span className="font-bold">{nfc(m2.kyHieuMau || 'M2')}</span> ;{' '}
+                      <strong className="ml-3">Loại mẫu:</strong> {nfc(m2.loaiMau || '................................................')}
+                    </p>
                   </div>
                 </div>
 

@@ -4,6 +4,9 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 
+// Increase body size limit for this API route (photos can be large)
+export const maxDuration = 60;
+
 // Helper to normalize Unicode strings to NFC (eliminates floating/split Vietnamese combining accents)
 const nfc = (text: string) => (text || '').normalize('NFC');
 
@@ -223,23 +226,26 @@ export async function POST(request: NextRequest) {
       return null;
     };
 
-    const photoW = 75;
-    const photoH = 88;
-    const m1Y = currentY - 5;
+    const photoW = 70;
+    const photoH = 82;
+
+    // --- PERSON 1 BLOCK (photo left + info right) ---
+    const p1TopY = currentY - 5;
+    const infoX = margin + photoW + 20;
 
     // Embed M1 photo
     const m1Img = await embedImageSafely(m1.photoUrl);
     if (m1Img) {
       page.drawImage(m1Img, {
         x: margin + 10,
-        y: m1Y - photoH,
+        y: p1TopY - photoH,
         width: photoW,
         height: photoH,
       });
     } else {
       page.drawRectangle({
         x: margin + 10,
-        y: m1Y - photoH,
+        y: p1TopY - photoH,
         width: photoW,
         height: photoH,
         borderColor: rgb(0.6, 0.6, 0.6),
@@ -248,47 +254,15 @@ export async function POST(request: NextRequest) {
       });
       page.drawText(nfc('Ảnh M1'), {
         x: margin + 28,
-        y: m1Y - photoH / 2 - 4,
+        y: p1TopY - photoH / 2 - 4,
         size: 8.5,
         font: fontRegular,
         color: rgb(0.5, 0.5, 0.5),
       });
     }
 
-    // Embed M2 photo directly below M1 photo
-    const m2Y = m1Y - photoH - 6;
-    const m2Img = await embedImageSafely(m2.photoUrl);
-    if (m2Img) {
-      page.drawImage(m2Img, {
-        x: margin + 10,
-        y: m2Y - photoH,
-        width: photoW,
-        height: photoH,
-      });
-    } else {
-      page.drawRectangle({
-        x: margin + 10,
-        y: m2Y - photoH,
-        width: photoW,
-        height: photoH,
-        borderColor: rgb(0.6, 0.6, 0.6),
-        borderWidth: 0.8,
-        color: rgb(0.95, 0.95, 0.95),
-      });
-      page.drawText(nfc('Ảnh M2'), {
-        x: margin + 28,
-        y: m2Y - photoH / 2 - 4,
-        size: 8.5,
-        font: fontRegular,
-        color: rgb(0.5, 0.5, 0.5),
-      });
-    }
-
-    // Text info on right of photos
-    const infoX = margin + 95;
-
-    // Person 1 Info Text
-    let p1Y = m1Y - 10;
+    // Person 1 Info Text (5 lines on right of photo)
+    let p1Y = p1TopY - 10;
     page.drawText(nfc('1. Họ tên: '), { x: infoX, y: p1Y, size: 9, font: fontBold, color: darkColor });
     page.drawText(nfc(`${m1.hoTen || '............................'}   `), { x: infoX + 50, y: p1Y, size: 9, font: fontRegular, color: darkColor });
     page.drawText(nfc('Giới tính: '), { x: infoX + 160, y: p1Y, size: 9, font: fontBold, color: darkColor });
@@ -306,7 +280,7 @@ export async function POST(request: NextRequest) {
 
     p1Y -= 13;
     page.drawText(nfc('Nơi cấp: '), { x: infoX, y: p1Y, size: 9, font: fontBold, color: darkColor });
-    page.drawText(nfc(`${m1.noiCap || '........................................................................................................ me.....'}`), { x: infoX + 45, y: p1Y, size: 9, font: fontRegular, color: darkColor });
+    page.drawText(nfc(`${m1.noiCap || '.......................................................................................................................'}`), { x: infoX + 45, y: p1Y, size: 9, font: fontRegular, color: darkColor });
 
     p1Y -= 13;
     page.drawText(nfc('Nơi thường trú: '), { x: infoX, y: p1Y, size: 9, font: fontBold, color: darkColor });
@@ -318,8 +292,39 @@ export async function POST(request: NextRequest) {
     page.drawText(nfc('Loại mẫu:'), { x: infoX + 105, y: p1Y, size: 9, font: fontBold, color: darkColor });
     page.drawText(nfc(`${m1.loaiMau || '................................................'}`), { x: infoX + 150, y: p1Y, size: 9, font: fontRegular, color: darkColor });
 
-    // Person 2 Info Text
-    let p2Y = m2Y - 10;
+    // --- PERSON 2 BLOCK (photo left + info right) ---
+    const p2TopY = p1TopY - photoH - 8;
+
+    // Embed M2 photo
+    const m2Img = await embedImageSafely(m2.photoUrl);
+    if (m2Img) {
+      page.drawImage(m2Img, {
+        x: margin + 10,
+        y: p2TopY - photoH,
+        width: photoW,
+        height: photoH,
+      });
+    } else {
+      page.drawRectangle({
+        x: margin + 10,
+        y: p2TopY - photoH,
+        width: photoW,
+        height: photoH,
+        borderColor: rgb(0.6, 0.6, 0.6),
+        borderWidth: 0.8,
+        color: rgb(0.95, 0.95, 0.95),
+      });
+      page.drawText(nfc('Ảnh M2'), {
+        x: margin + 28,
+        y: p2TopY - photoH / 2 - 4,
+        size: 8.5,
+        font: fontRegular,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+    }
+
+    // Person 2 Info Text (5 lines on right of photo)
+    let p2Y = p2TopY - 10;
     page.drawText(nfc('2. Người có tên dự kiến: '), { x: infoX, y: p2Y, size: 9, font: fontBold, color: darkColor });
     page.drawText(nfc(`${m2.hoTen || '...................................................................................'}`).substring(0, 50), { x: infoX + 115, y: p2Y, size: 9, font: fontRegular, color: darkColor });
 
@@ -333,7 +338,7 @@ export async function POST(request: NextRequest) {
     page.drawText(nfc('Giấy chứng sinh số: '), { x: infoX, y: p2Y, size: 9, font: fontBold, color: darkColor });
     page.drawText(nfc(`${m2.giayChungSinhSo || '.....................'} `), { x: infoX + 90, y: p2Y, size: 9, font: fontRegular, color: darkColor });
     page.drawText(nfc('Quyền số: '), { x: infoX + 210, y: p2Y, size: 9, font: fontBold, color: darkColor });
-    page.drawText(nfc(`${m2.quyenSo || '........................ me.....'}`), { x: infoX + 255, y: p2Y, size: 9, font: fontRegular, color: darkColor });
+    page.drawText(nfc(`${m2.quyenSo || '...............................'}`), { x: infoX + 255, y: p2Y, size: 9, font: fontRegular, color: darkColor });
 
     p2Y -= 13;
     page.drawText(nfc('Ngày cấp: '), { x: infoX, y: p2Y, size: 9, font: fontBold, color: darkColor });
@@ -348,7 +353,7 @@ export async function POST(request: NextRequest) {
     page.drawText(nfc(`${m2.loaiMau || '................................................'}`), { x: infoX + 150, y: p2Y, size: 9, font: fontRegular, color: darkColor });
 
     // 5. BULLET NOTES (Kit name placed directly after bộ kit with no large gap)
-    currentY = m2Y - photoH - 12;
+    currentY = p2TopY - photoH - 12;
     page.drawText(nfc('-  Người thu mẫu: '), { x: margin + 10, y: currentY, size: 8.5, font: fontItalic, color: darkColor });
     page.drawText(nfc(nguoiThuMau || 'Hoàng Văn Luận'), { x: margin + 95, y: currentY, size: 8.5, font: fontItalic, color: redColor });
 
