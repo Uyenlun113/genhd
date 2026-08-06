@@ -30,7 +30,9 @@ import {
   Clock,
   CheckCircle,
   PenLine,
+  FileSpreadsheet,
 } from 'lucide-react';
+import ExportExcelModal from '@/components/ExportExcelModal';
 
 interface TestResultItem {
   _id: string;
@@ -71,6 +73,7 @@ function DashboardContent() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   // Doctors list for edit form select
   const [doctors, setDoctors] = useState<DoctorUser[]>([]);
@@ -337,12 +340,21 @@ function DashboardContent() {
                         : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
             }
             action={
-              (userRole === 'staff' || userRole === 'admin') ? (
-                <Link href={`/results/new?type=${categoryFilter}`} className="btn btn-primary">
-                  <Plus className="w-4 h-4" />
-                  <span>Tạo phiếu mới</span>
-                </Link>
-              ) : null
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-xs hover:shadow-md hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98]"
+                >
+                  <FileSpreadsheet className="w-4 h-4 shrink-0 text-white" />
+                  <span>Xuất Excel</span>
+                </button>
+                {(userRole === 'staff' || userRole === 'admin') && (
+                  <Link href={`/results/new?type=${categoryFilter}`} className="btn btn-primary">
+                    <Plus className="w-4 h-4" />
+                    <span>Tạo phiếu mới</span>
+                  </Link>
+                )}
+              </div>
             }
           />
 
@@ -959,6 +971,16 @@ function DashboardContent() {
             </div>
           </div>
         )}
+
+        {/* Export Excel Modal */}
+        <ExportExcelModal
+          isOpen={isExportModalOpen}
+          onClose={() => setIsExportModalOpen(false)}
+          initialCategory={categoryFilter}
+          initialStartDate={startDate}
+          initialEndDate={endDate}
+          initialStatus={activeTab}
+        />
 
         {/* Custom Confirmation Popup Modal */}
         <ConfirmModal

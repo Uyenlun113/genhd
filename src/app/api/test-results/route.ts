@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       query.trangThai = status;
     }
 
-    if (category) {
+    if (category && category !== 'all') {
       query.loaiXetNghiem = category;
     }
 

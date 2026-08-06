@@ -21,7 +21,9 @@ import {
   Stethoscope,
   FlaskConical,
   UserCheck,
+  FileSpreadsheet,
 } from 'lucide-react';
+import ExportExcelModal from '@/components/ExportExcelModal';
 
 interface StatsData {
   totalCount: number;
@@ -52,6 +54,7 @@ interface StatsData {
 export default function DashboardPage() {
   const [stats, setStats] = useState<StatsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   useEffect(() => {
     async function fetchStats() {
@@ -127,6 +130,15 @@ export default function DashboardPage() {
                 : isStaff
                 ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
                 : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
+            }
+            action={
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm hover:shadow-md hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98]"
+              >
+                <FileSpreadsheet className="w-4 h-4 shrink-0 text-white" />
+                <span>Xuất Excel Tất Cả Dịch Vụ</span>
+              </button>
             }
           />
 
@@ -518,6 +530,13 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+
+          {/* Export Excel Modal */}
+          <ExportExcelModal
+            isOpen={isExportModalOpen}
+            onClose={() => setIsExportModalOpen(false)}
+            initialCategory="all"
+          />
         </main>
       </div>
     </div>
