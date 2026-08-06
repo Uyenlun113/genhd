@@ -112,6 +112,16 @@ function SidebarContent() {
       activeColor: 'text-amber-600 bg-amber-50/80 font-bold',
       iconActive: 'text-amber-600',
     },
+    {
+      id: 'adn-convert',
+      label: 'Convert kết quả ADN',
+      href: '/adn-convert',
+      icon: Dna,
+      isActive: pathname === '/adn-convert',
+      show: true,
+      activeColor: 'text-indigo-600 bg-indigo-50/80 font-bold',
+      iconActive: 'text-indigo-600',
+    },
   ];
 
   return (
