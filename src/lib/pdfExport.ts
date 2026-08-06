@@ -639,9 +639,11 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     });
     drawCenteredText(page1, 'KẾT QUẢ XÉT NGHIỆM SOI TƯƠI', tableX, tableX + tableW, secY + 6, 11, true, primaryBlue);
 
-    // Results Table
-    const resTableY = 505;
-    const resTableH = 150;
+    // Results Table (taller rows for readability)
+    const resRowH = 30;
+    const resHeaderH = 26;
+    const resTableH = resHeaderH + resRowH * 5;
+    const resTableY = 528;
     page1.drawRectangle({
       x: tableX,
       y: resTableY - resTableH,
@@ -655,13 +657,13 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     // Table Header Bar (Dark Blue)
     page1.drawRectangle({
       x: tableX,
-      y: resTableY - 25,
+      y: resTableY - resHeaderH,
       width: tableW,
-      height: 25,
+      height: resHeaderH,
       color: primaryBlue,
     });
 
-    const colX = [35, 70, 175, 260, 420, 560];
+    const colX = [35, 70, 185, 270, 430, 560];
 
     drawCenteredText(page1, 'STT', colX[0], colX[1], resTableY - 17, 9.5, true, whiteColor);
     drawCenteredText(page1, 'SOI TƯƠI', colX[1], colX[2], resTableY - 17, 9.5, true, whiteColor);
@@ -674,15 +676,15 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       { stt: '2', name: 'Nấm', res: data.soiTuoiNam || '', mean: 'Đánh giá sự xuất hiện của nấm', note: data.soiTuoiGhiChuNam || '' },
       { stt: '3', name: 'Tạp khuẩn', res: data.soiTuoiTapKhuan || '', mean: 'Viêm do vi khuẩn', note: data.soiTuoiGhiChuTapKhuan || '' },
       { stt: '4', name: 'Tế bào biểu mô', res: data.soiTuoiTeBaoBieuMo || '', mean: 'Đánh giá chất lượng mẫu', note: data.soiTuoiGhiChuTeBaoBieuMo || '' },
-      { stt: '5', name: 'Trichomonas vaginalis', isItalic: true, res: data.soiTuoiTrichomonas || '', mean: '', note: data.soiTuoiGhiChuTrichomonas || '' },
+      { stt: '5', name: 'Trichomonas vaginalis', isItalic: true, res: data.soiTuoiTrichomonas || '', mean: 'Đánh giá sơ bộ sự xuất hiện\ncủa trùng roi', note: data.soiTuoiGhiChuTrichomonas || '' },
     ];
 
     rowsData.forEach((row, idx) => {
-      const rY = resTableY - 25 - (idx + 1) * 25;
+      const rY = resTableY - resHeaderH - (idx + 1) * resRowH;
 
       page1.drawLine({
-        start: { x: tableX, y: rY + 25 },
-        end: { x: tableX + tableW, y: rY + 25 },
+        start: { x: tableX, y: rY + resRowH },
+        end: { x: tableX + tableW, y: rY + resRowH },
         thickness: 1,
         color: borderGray,
       });
@@ -692,22 +694,29 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
           x: tableX + 1,
           y: rY + 1,
           width: tableW - 2,
-          height: 23,
+          height: resRowH - 2,
           color: lightBlueBg,
         });
       }
 
-      drawCenteredText(page1, row.stt, colX[0], colX[1], rY + 8, 9, false, blackColor);
-      drawTextOnPage(page1, row.name, colX[1] + 8, rY + 8, 9, false, blackColor, row.isItalic);
-      drawCenteredText(page1, row.res, colX[2], colX[3], rY + 8, 9.5, true, primaryBlue);
-      drawTextOnPage(page1, row.mean, colX[3] + 8, rY + 8, 8.5, false, rgb(0.2, 0.2, 0.2));
-      drawTextOnPage(page1, row.note, colX[4] + 8, rY + 8, 8.5, false, blackColor);
+      const textY = rY + resRowH / 2 - 4;
+      drawCenteredText(page1, row.stt, colX[0], colX[1], textY, 9, false, blackColor);
+      drawTextOnPage(page1, row.name, colX[1] + 8, textY, 9, false, blackColor, row.isItalic);
+      drawCenteredText(page1, row.res, colX[2], colX[3], textY, 9.5, true, primaryBlue);
+
+      // Handle multi-line meaning text
+      const meanLines = (row.mean || '').split('\n');
+      meanLines.forEach((mLine, mIdx) => {
+        drawTextOnPage(page1, mLine, colX[3] + 8, textY + 5 - mIdx * 11, 8.5, false, rgb(0.2, 0.2, 0.2));
+      });
+
+      drawTextOnPage(page1, row.note, colX[4] + 8, textY, 8.5, false, blackColor);
     });
 
     // Draw vertical column dividers ON TOP of all backgrounds to ensure high visibility
     for (let c = 1; c < colX.length - 1; c++) {
       page1.drawLine({
-        start: { x: colX[c], y: resTableY - 25 },
+        start: { x: colX[c], y: resTableY - resHeaderH },
         end: { x: colX[c], y: resTableY - resTableH },
         thickness: 1,
         color: borderGray,
@@ -716,18 +725,18 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       // White vertical dividers inside dark blue header
       page1.drawLine({
         start: { x: colX[c], y: resTableY },
-        end: { x: colX[c], y: resTableY - 25 },
+        end: { x: colX[c], y: resTableY - resHeaderH },
         thickness: 1,
         color: whiteColor,
       });
     }
 
-    // Conclusion Box (KẾT LUẬN)
-    const ketLuanBoxY = 280;
+    // Conclusion Box (KẾT LUẬN) - positioned right below results table
+    const ketLuanBoxY = resTableY - resTableH - 15;
     const ketLuanBoxH = 65;
     page1.drawRectangle({
       x: tableX,
-      y: ketLuanBoxY,
+      y: ketLuanBoxY - ketLuanBoxH,
       width: tableW,
       height: ketLuanBoxH,
       color: lightBlueBg,
@@ -735,14 +744,14 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       borderWidth: 1,
     });
 
-    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY + ketLuanBoxH - 18, 9.5, true, primaryBlue);
+    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY - 18, 9.5, true, primaryBlue);
     const klLines = wrapTextLines(data.ketLuan || 'BÌNH THƯỜNG', 68);
     klLines.forEach((lText, lIdx) => {
-      drawTextOnPage(page1, lText, tableX + 90, ketLuanBoxY + ketLuanBoxH - 18 - lIdx * 14, 9.5, true, blackColor);
+      drawTextOnPage(page1, lText, tableX + 90, ketLuanBoxY - 18 - lIdx * 14, 9.5, true, blackColor);
     });
 
     // Doctor Signature
-    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, 220);
+    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, ketLuanBoxY - ketLuanBoxH - 30);
 
     drawWatermarkOverlay(page1);
     drawTextOnPage(page1, 'Trang 1 / 1', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));

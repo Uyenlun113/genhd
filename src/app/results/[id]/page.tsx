@@ -889,7 +889,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 placeholder="Âm tính / Dương tính..."
                               />
                             </td>
-                            <td className="py-2 px-3 text-slate-600"></td>
+                            <td className="py-2 px-3 text-slate-600">Đánh giá sơ bộ sự xuất hiện của trùng roi</td>
                             <td className="py-2 px-3">
                               <input
                                 type="text"
