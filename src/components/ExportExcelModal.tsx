@@ -133,13 +133,13 @@ export default function ExportExcelModal({
               onChange={(e) => setCategory(e.target.value)}
               className="w-full h-10 px-3 text-sm font-semibold rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-slate-50/50"
             >
-              <option value="all">🌟 Tất Cả Dịch Vụ (Xuất 1 phát ra toàn bộ)</option>
-              <option value="cell">🔬 Xét nghiệm Cell (Bethesda)</option>
-              <option value="thinprep">🧪 Xét nghiệm ThinPrep</option>
-              <option value="hpv40">🧬 Xét nghiệm HPV 40 Types</option>
-              <option value="hpv20">🧬 Xét nghiệm HPV 20 Types</option>
-              <option value="soituoi">🧫 Xét nghiệm Soi Tươi</option>
-              <option value="giaiphaubenh">📋 Giải Phẫu Bệnh</option>
+              <option value="all">Tất Cả Dịch Vụ</option>
+              <option value="cell">Xét nghiệm Cell</option>
+              <option value="thinprep">Xét nghiệm ThinPrep</option>
+              <option value="hpv40">Xét nghiệm HPV 40 Types</option>
+              <option value="hpv20">Xét nghiệm HPV 20 Types</option>
+              <option value="soituoi">Xét nghiệm Soi Tươi</option>
+              <option value="giaiphaubenh">Giải Phẫu Bệnh</option>
             </select>
           </div>
 
@@ -172,11 +172,10 @@ export default function ExportExcelModal({
               <button
                 type="button"
                 onClick={() => handleQuickDatePreset('all')}
-                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                  !startDate && !endDate
-                    ? 'bg-emerald-600 text-white border-emerald-600'
-                    : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
-                }`}
+                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${!startDate && !endDate
+                  ? 'bg-emerald-600 text-white border-emerald-600'
+                  : 'bg-slate-100 text-slate-600 border-slate-200 hover:bg-slate-200'
+                  }`}
               >
                 Tất cả thời gian
               </button>

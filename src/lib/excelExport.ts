@@ -181,3 +181,103 @@ export async function generateTestResultsExcelBuffer(items: TestResultExportItem
   const arrayBuffer = await workbook.xlsx.writeBuffer();
   return Buffer.from(arrayBuffer);
 }
+
+export interface DoctorStatExportItem {
+  doctorName: string;
+  count: number;
+  completed: number;
+  processing: number;
+}
+
+export async function exportDoctorStatsExcel(byDoctorData: DoctorStatExportItem[]): Promise<void> {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'GenHD System';
+  workbook.lastModifiedBy = 'GenHD System';
+  workbook.created = new Date();
+
+  const worksheet = workbook.addWorksheet('Thống Kê Bác Sĩ', {
+    views: [{ showGridLines: true }],
+  });
+
+  const columns = [
+    { header: 'STT', key: 'stt', width: 8, align: 'center' },
+    { header: 'Bác sĩ đọc kết quả', key: 'doctorName', width: 32, align: 'left' },
+    { header: 'Tổng', key: 'count', width: 14, align: 'center' },
+    { header: 'Đã hoàn tất', key: 'completed', width: 16, align: 'center' },
+    { header: 'Đang xử lý', key: 'processing', width: 16, align: 'center' },
+  ];
+
+  worksheet.columns = columns.map((col) => ({
+    key: col.key,
+    width: col.width,
+  }));
+
+  const headerRow = worksheet.getRow(1);
+  headerRow.height = 28;
+
+  columns.forEach((col, idx) => {
+    const cell = headerRow.getCell(idx + 1);
+    cell.value = col.header;
+    cell.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true };
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FF006100' },
+    };
+    cell.font = {
+      name: 'Arial',
+      size: 11,
+      bold: true,
+      color: { argb: 'FFFFFFFF' },
+    };
+    cell.border = {
+      top: { style: 'thin', color: { argb: 'FF000000' } },
+      left: { style: 'thin', color: { argb: 'FF000000' } },
+      bottom: { style: 'thin', color: { argb: 'FF000000' } },
+      right: { style: 'thin', color: { argb: 'FF000000' } },
+    };
+  });
+
+  byDoctorData.forEach((item, index) => {
+    const rowNumber = index + 2;
+    const row = worksheet.getRow(rowNumber);
+    row.height = 22;
+
+    row.getCell(1).value = index + 1;
+    row.getCell(2).value = item.doctorName || '';
+    row.getCell(3).value = item.count || 0;
+    row.getCell(4).value = item.completed || 0;
+    row.getCell(5).value = item.processing || 0;
+
+    columns.forEach((col, colIdx) => {
+      const cell = row.getCell(colIdx + 1);
+      cell.font = { name: 'Arial', size: 10 };
+      cell.alignment = {
+        vertical: 'middle',
+        horizontal: (col.align as 'center' | 'left' | 'right') || 'left',
+      };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+        left: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+        bottom: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+        right: { style: 'thin', color: { argb: 'FFD9D9D9' } },
+      };
+    });
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+  a.download = `Thong_Ke_Bac_Si_${dateStr}.xlsx`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  a.remove();
+}
+
