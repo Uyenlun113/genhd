@@ -73,6 +73,7 @@ interface AdnOrderData {
   table3: LocusItem[];
   ketLuan: string;
   doTinCay: string;
+  anhChayMauList?: string[];
 }
 
 interface PageProps {
@@ -88,6 +89,9 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [uploadingResultFile, setUploadingResultFile] = useState(false);
+  const [uploadingChartFile, setUploadingChartFile] = useState(false);
+
+  const [anhChayMauList, setAnhChayMauList] = useState<string[]>([]);
 
   // Form states
   const [soPhieu, setSoPhieu] = useState('');
@@ -114,6 +118,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          action: 'nhan_mau',
           trangThai: 'dang_chay_mau',
           dieuKien: receiveDieuKien,
           anhNhanMau,
@@ -161,6 +166,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
         nguoiThuMau,
         boKit,
         mauDanhSach,
+        anhChayMauList,
         table1,
         table2,
         table3,
@@ -222,6 +228,8 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
           setDieuKien(d.dieuKien || 'chua_xac_nhan');
           setAnhGuiMau(d.anhGuiMau || '');
           setAnhNhanMau(d.anhNhanMau || '');
+          const chartList = d.anhChayMauList || [];
+          setAnhChayMauList(chartList);
 
           const samples = d.mauDanhSach || [];
           setMauDanhSach(samples);
@@ -242,6 +250,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
             nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
             boKit: d.boKit || 'A27Plex STR Detection Kit',
             mauDanhSach: samples,
+            anhChayMauList: chartList,
             table1: t1,
             table2: t2,
             table3: t3,
@@ -325,39 +334,166 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
     reader.readAsDataURL(file);
   };
 
-  // Upload DOCX/PDF Result File to parse Loci tables
-  const handleFileUploadResult = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // 1. Upload DOCX/PDF Result Files to parse Loci tables into the current order
+  const handleFileUploadLoci = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
 
     setUploadingResultFile(true);
+    let successCount = 0;
+
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append('file', file);
 
-      const res = await fetch('/api/adn/parse-pdf', {
-        method: 'POST',
-        body: formData,
-      });
+        const res = await fetch('/api/adn/parse-pdf', {
+          method: 'POST',
+          body: formData,
+        });
 
-      if (res.ok) {
-        const json = await res.json();
-        if (json.data) {
-          const d = json.data;
-          if (d.table1) setTable1(normalizeLociTable(d.table1, mauDanhSach));
-          if (d.table2) setTable2(normalizeLociTable(d.table2, mauDanhSach));
-          if (d.table3) setTable3(normalizeLociTable(d.table3, mauDanhSach));
-          if (d.ketLuan) setKetLuan(d.ketLuan);
-          if (d.doTinCay) setDoTinCay(d.doTinCay);
-          toast.success(`Đã tự động đọc bảng Locus từ file ${file.name}!`);
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const d = json.data;
+
+            const hasTable1 = d.table1 && d.table1.length > 0;
+            const hasTable2 = d.table2 && d.table2.length > 0;
+            const hasTable3 = d.table3 && d.table3.length > 0;
+
+            if (!hasTable1 && !hasTable2 && !hasTable3) {
+              toast.error(`❌ Không đọc được dữ liệu bảng Loci từ file "${file.name}". Vui lòng kiểm tra lại file DOCX/PDF!`);
+              continue;
+            }
+
+            // Fill Loci tables into form
+            if (hasTable1) setTable1(normalizeLociTable(d.table1, mauDanhSach));
+            if (hasTable2) setTable2(normalizeLociTable(d.table2, mauDanhSach));
+            if (hasTable3) setTable3(normalizeLociTable(d.table3, mauDanhSach));
+            if (d.ketLuan) setKetLuan(d.ketLuan);
+            if (d.doTinCay) setDoTinCay(d.doTinCay);
+
+            successCount++;
+
+            // Ticket code info notice
+            if (d.soPhieu) {
+              const fileCode = String(d.soPhieu).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+              const currentCode = String(soPhieu).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+              if (fileCode && currentCode && !currentCode.includes(fileCode) && !fileCode.includes(currentCode)) {
+                toast.success(`Đã nạp dữ liệu bảng Locus từ file ${file.name} vào đơn hiện tại (Mã ca gốc trong file: ${d.soPhieu})!`, {
+                  duration: 6000,
+                });
+              } else {
+                toast.success(`Đã nạp bảng Locus thành công từ file ${file.name}!`);
+              }
+            } else {
+              toast.success(`Đã nạp bảng Locus thành công từ file ${file.name}!`);
+            }
+          } else {
+            toast.error(json.error || `Không thể đọc dữ liệu từ file ${file.name}`);
+          }
+        } else {
+          const json = await res.json().catch(() => ({}));
+          toast.error(json.error || `Không thể đọc dữ liệu từ file ${file.name}`);
         }
-      } else {
-        toast.error('Không thể đọc file tự động, hãy nhập bảng thủ công.');
+      }
+
+      if (successCount > 0) {
+        toast.success(`Hoàn tất nạp dữ liệu ${successCount}/${files.length} file Loci!`);
+        setTimeout(() => {
+          generatePdfPreview();
+        }, 300);
       }
     } catch (err) {
-      toast.error('Lỗi phân tích file kết quả');
+      toast.error('Lỗi khi đọc bảng Loci từ file');
     } finally {
       setUploadingResultFile(false);
+    }
+  };
+
+  // 2. Upload GeneMapper / Peak Result Chart Images (Image files or DOCX/PDF) to append to PDF pages
+  const handleFileUploadChartImages = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadingChartFile(true);
+    let successCount = 0;
+    const newChartImages: string[] = [...anhChayMauList];
+    const updatedSamples = [...mauDanhSach];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+
+        if (file.type.startsWith('image/')) {
+          // Direct Image File
+          const reader = new FileReader();
+          await new Promise((resolve) => {
+            reader.onload = () => {
+              const b64 = reader.result as string;
+              if (!newChartImages.includes(b64)) {
+                newChartImages.push(b64);
+              }
+              const emptySample = updatedSamples.find((s) => !s.anhKetQuaChay);
+              if (emptySample) {
+                emptySample.anhKetQuaChay = b64;
+              }
+              resolve(null);
+            };
+            reader.readAsDataURL(file);
+          });
+          successCount++;
+        } else {
+          // DOCX or PDF containing embedded chart images
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const res = await fetch('/api/adn/parse-pdf', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (res.ok) {
+            const json = await res.json();
+            if (json.success && json.data && json.data.images) {
+              const imgs = json.data.images;
+              if (Array.isArray(imgs) && imgs.length > 0) {
+                imgs.forEach((imgB64: string, imgIdx: number) => {
+                  newChartImages.push(imgB64);
+                  if (updatedSamples[imgIdx]) {
+                    updatedSamples[imgIdx].anhKetQuaChay = imgB64;
+                  }
+                });
+                successCount++;
+                toast.success(`Đã trích xuất ${imgs.length} ảnh đồ thị từ file ${file.name}!`);
+              } else {
+                toast.error(`Không tìm thấy ảnh đồ thị trong file ${file.name}`);
+              }
+            } else {
+              toast.error(json.error || `Không thể trích xuất ảnh từ file ${file.name}`);
+            }
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            toast.error(errJson.error || `Lỗi xử lý file ${file.name}`);
+          }
+        }
+      }
+
+      setMauDanhSach(updatedSamples);
+      setAnhChayMauList(newChartImages);
+
+      if (successCount > 0) {
+        toast.success(`Đã đính kèm ${successCount} tệp ảnh đồ thị! Đang cập nhật PDF...`);
+        setTimeout(() => {
+          generatePdfPreview();
+        }, 300);
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tải ảnh đồ thị sắc ký');
+    } finally {
+      setUploadingChartFile(false);
     }
   };
 
@@ -394,9 +530,11 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
           ketLuan,
           doTinCay,
           trangThai: newStatus,
+          dieuKien,
           anhGuiMau,
           anhNhanMau,
           mauDanhSach: formattedMauDanhSach,
+          anhChayMauList,
           table1,
           table2,
           table3,
@@ -439,6 +577,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
         ketLuan,
         doTinCay,
         mauDanhSach,
+        anhChayMauList,
         table1,
         table2,
         table3,
@@ -999,30 +1138,89 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
               </div>
             </div>
 
-            {/* Section 2: Upload File Kết Quả DOCX/PDF & Ảnh CCCD + Ảnh Chạy Mẫu */}
+            {/* Section 2: Upload File Kết Quả Locus & Đính Kèm Ảnh Đồ Thị Sắc Ký */}
             <div className="glass-card p-6 space-y-6">
               <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
                 <Upload className="w-5 h-5 text-sky-600" />
-                <span>2. Upload File DOCX/PDF & Ảnh Đính Kèm Từng Người</span>
+                <span>2. Upload File Đọc Locus & Ảnh Đồ Thị Sắc Ký (GeneMapper)</span>
               </h3>
 
-              {/* Upload DOCX / PDF file (Chỉ hiện khi CHƯA trả kết quả) */}
+              {/* 2 Separate Upload Action Cards */}
               {trangThai !== 'da_tra_ket_qua' && (
-                <div className="bg-sky-50/80 p-4 rounded-xl border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div>
-                    <h4 className="text-xs font-bold text-sky-900 uppercase">Tải lên File DOCX hoặc PDF Kết quả (Bảng Locus)</h4>
-                    <p className="text-xs text-slate-500 mt-0.5">Tự động đọc và điền dữ liệu Alil Locus vào các bảng bên dưới.</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Button 1: Tải File Đọc Bảng Locus */}
+                  <div className="bg-sky-50/90 p-4 rounded-xl border border-sky-200 flex flex-col justify-between space-y-3 shadow-xs">
+                    <div>
+                      <h4 className="text-xs font-bold text-sky-900 uppercase flex items-center gap-1.5">
+                        <FileText className="w-4 h-4 text-sky-600" />
+                        <span>1. Tải File Đọc Bảng Locus (DOCX, PDF)</span>
+                      </h4>
+                      <p className="text-xs text-slate-500 mt-1">
+                        Tự động đọc và điền dữ liệu Alil Locus. <strong className="text-red-600 font-bold">Nếu mã ca trong file không khớp với mã ca hiện tại, hệ thống sẽ báo lỗi và HỦY nạp dữ liệu ngay lập tức.</strong>
+                      </p>
+                    </div>
+
+                    <label className="btn btn-primary text-xs w-full cursor-pointer justify-center py-2.5 shadow-sm">
+                      {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      <span>Tải File Đọc Bảng Loci (Check Mã Ca)</span>
+                      <input type="file" accept=".docx,.pdf" multiple onChange={handleFileUploadLoci} className="hidden" />
+                    </label>
                   </div>
 
-                  <label className="btn btn-primary text-xs shrink-0 cursor-pointer">
-                    {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                    <span>Tải File Đọc Tự Động</span>
-                    <input type="file" accept=".docx,.pdf" onChange={handleFileUploadResult} className="hidden" />
-                  </label>
+                  {/* Button 2: Tải Ảnh Đồ Thị Sắc Ký / GeneMapper */}
+                  <div className="bg-purple-50/90 p-4 rounded-xl border border-purple-200 flex flex-col justify-between space-y-3 shadow-xs">
+                    <div>
+                      <h4 className="text-xs font-bold text-purple-950 uppercase flex items-center gap-1.5">
+                        <ImageIcon className="w-4 h-4 text-purple-600" />
+                        <span>2. Tải Ảnh Đồ Thị Sắc Ký / GeneMapper</span>
+                      </h4>
+                      <p className="text-xs text-purple-800/80 mt-1">
+                        Tải ảnh biểu đồ sắc ký (hoặc file chứa ảnh). Tất cả ảnh sẽ được tự động đính kèm thành các trang phụ lục tiếp theo của file PDF kết quả.
+                      </p>
+                    </div>
+
+                    <label className="btn bg-purple-600 hover:bg-purple-700 text-white text-xs w-full cursor-pointer justify-center py-2.5 font-bold shadow-sm">
+                      {uploadingChartFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+                      <span>Tải Ảnh Đồ Thị Sắc Ký</span>
+                      <input type="file" accept="image/*,.docx,.pdf" multiple onChange={handleFileUploadChartImages} className="hidden" />
+                    </label>
+                  </div>
                 </div>
               )}
 
-              {/* Photos of CCCD & GeneMapper Chart per sample */}
+              {/* Display Extracted Chart Images Gallery (Appended to PDF) */}
+              {anhChayMauList.length > 0 && (
+                <div className="p-4 bg-purple-50/70 rounded-xl border border-purple-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900 flex items-center gap-1.5">
+                      <ImageIcon className="w-4 h-4 text-purple-600" />
+                      <span>Đã trích xuất {anhChayMauList.length} ảnh sắc ký / đồ thị STR (Sẽ tự động chèn vào các trang tiếp theo của PDF):</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setAnhChayMauList([])}
+                      className="text-[11px] text-red-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Xóa tất cả ảnh đồ thị
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {anhChayMauList.map((imgB64, imgIdx) => (
+                      <div key={imgIdx} className="relative group bg-white p-2 rounded-lg border border-purple-200 text-center shadow-xs">
+                        <img
+                          src={imgB64}
+                          alt={`Đồ thị ${imgIdx + 1}`}
+                          onClick={() => setZoomImage({ url: imgB64, title: `Phụ lục Đồ thị STR Trang ${imgIdx + 1}` })}
+                          className="h-24 w-full object-cover rounded cursor-pointer hover:opacity-85 transition-all"
+                        />
+                        <span className="text-[10px] font-bold text-purple-800 mt-1 block">Trang phụ lục {imgIdx + 1}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Photos of CCCD per sample */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {mauDanhSach.map((sample, idx) => (
                   <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
@@ -1095,42 +1293,6 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                         </div>
                       ) : (
                         <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt sau</span>
-                      )}
-                    </div>
-
-                    {/* Biểu đồ chạy GeneMapper */}
-                    <div className="bg-white p-3 rounded-lg border border-purple-200 space-y-2">
-                      <label className="block text-xs font-bold text-purple-900">
-                        Ảnh Kết quả chạy ADN (Biểu đồ GeneMapper - Ảnh 3)
-                      </label>
-                      <label className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
-                        <ImageIcon className="w-4 h-4 text-purple-600" />
-                        <span>Tải ảnh biểu đồ GeneMapper</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleImageUpload(e, (b64) => {
-                              const updated = [...mauDanhSach];
-                              updated[idx].anhKetQuaChay = b64;
-                              setMauDanhSach(updated);
-                            })
-                          }
-                          className="hidden"
-                        />
-                      </label>
-                      {sample.anhKetQuaChay ? (
-                        <div className="mt-2 bg-purple-50/50 p-2 rounded-lg border border-purple-200 space-y-1">
-                          <img
-                            src={sample.anhKetQuaChay}
-                            alt="Biểu đồ chạy"
-                            onClick={() => setZoomImage({ url: sample.anhKetQuaChay!, title: `Biểu đồ GeneMapper - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
-                            className="h-32 rounded border border-purple-300 object-cover w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
-                          />
-                          <span className="text-xs text-purple-700 font-bold block">✓ Đã tải ảnh biểu đồ GeneMapper (Bấm để xem)</span>
-                        </div>
-                      ) : (
-                        <span className="text-[11px] text-purple-400 block italic">Chưa chọn ảnh biểu đồ</span>
                       )}
                     </div>
                   </div>

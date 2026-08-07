@@ -36,12 +36,11 @@ export async function PUT(
 
     // Step 2: Receive Sample ("Nhận mẫu")
     if (body.action === 'nhan_mau') {
-      order.anhNhanMau = body.anhNhanMau || order.anhNhanMau;
-      order.dieuKien = body.dieuKien || 'du_dieu_kien';
+      if (body.anhNhanMau !== undefined) order.anhNhanMau = body.anhNhanMau;
+      if (body.dieuKien) order.dieuKien = body.dieuKien;
       order.trangThai = 'dang_chay_mau'; // Step 2: Đang chạy mẫu
     } else {
       if (body.dieuKien) order.dieuKien = body.dieuKien;
-      // Step 3: Up result or update full details
       if (body.loaiXetNghiemADN) order.loaiXetNghiemADN = body.loaiXetNghiemADN;
       if (body.soPhieu !== undefined) order.soPhieu = body.soPhieu;
       if (body.ngayBanHanh !== undefined) order.ngayBanHanh = body.ngayBanHanh;
@@ -59,6 +58,7 @@ export async function PUT(
       if (body.table3) order.table3 = body.table3;
       if (body.ketLuan !== undefined) order.ketLuan = body.ketLuan;
       if (body.doTinCay !== undefined) order.doTinCay = body.doTinCay;
+      if (body.anhChayMauList) order.anhChayMauList = body.anhChayMauList;
       if (body.trangThai) order.trangThai = body.trangThai;
     }
 

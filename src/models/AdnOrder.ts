@@ -55,6 +55,7 @@ export interface IAdnOrder extends Document {
 
   ketLuan: string;
   doTinCay: string;
+  anhChayMauList?: string[];
 
   createdAt: Date;
   updatedAt: Date;
@@ -117,6 +118,7 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
 
     ketLuan: { type: String, default: '' },
     doTinCay: { type: String, default: '> 99,9999%' },
+    anhChayMauList: { type: [String], default: [] },
   },
   {
     timestamps: true,

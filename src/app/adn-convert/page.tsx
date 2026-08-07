@@ -1635,7 +1635,7 @@ export default function AdnConvertPage() {
                           : 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'}
                       </div>
                       <div className="text-[9px] italic text-slate-600">
-                        Địa chỉ: Số 15, Ngõ 5 Hoàng Quốc Việt, Phường Nghĩa Đô, TP Hà Nội
+                        Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội
                       </div>
                     </div>
                     <div className="text-right text-[9px] italic">

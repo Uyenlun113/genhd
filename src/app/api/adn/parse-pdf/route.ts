@@ -105,7 +105,9 @@ export async function POST(request: NextRequest) {
       const scriptPath = path.join(process.cwd(), 'scripts', 'parse_adn_pdf.py');
       // Auto-detect python executable: Linux usually has python3, Windows has python
       const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-      const { stdout } = await execPromise(`${pythonCmd} "${scriptPath}" "${tmpPath}"`);
+      const { stdout } = await execPromise(`${pythonCmd} "${scriptPath}" "${tmpPath}"`, {
+        maxBuffer: 100 * 1024 * 1024, // 100MB max buffer to prevent overflow on base64 images
+      });
       const parsedData = JSON.parse(stdout);
 
       // Clean up tmp file
@@ -120,18 +122,13 @@ export async function POST(request: NextRequest) {
       console.error('Python parse error:', parseErr);
       if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
 
-      const ticketName = file.name.replace(/\.[^/.]+$/, '').replace(/^(KQ\s*-\s*|file\s*-\s*)/i, '').trim() || 'GT030726';
-      return NextResponse.json({
-        success: true,
-        message: `Đã cập nhật thông tin phiếu cho file ${file.name}`,
-        data: {
-          ...sampleData,
-          soPhieu: ticketName,
-          nguoiYeuCau: `Khách hàng ${ticketName}`,
-          m1: { ...sampleData.m1, hoTen: `Bệnh nhân ${ticketName}` },
-          m2: { ...sampleData.m2, hoTen: `Người liên quan ${ticketName}` },
+      return NextResponse.json(
+        {
+          success: false,
+          error: `Không thể phân tích dữ liệu tự động từ file ${file.name}. Vui lòng kiểm tra lại file hoặc nhập bảng Loci thủ công.`,
         },
-      });
+        { status: 400 }
+      );
     }
   } catch (error) {
     console.error('Parse PDF error:', error);

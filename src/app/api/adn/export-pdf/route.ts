@@ -282,7 +282,7 @@ export async function POST(request: NextRequest) {
         color: primaryBlue,
       });
       currentY -= 10;
-      page1.drawText(nfc('Hotline: 0936 654 456'), {
+      page1.drawText(nfc('Hotline: 0971 553 330'), {
         x: headerX,
         y: currentY,
         size: 7.5,
@@ -820,13 +820,25 @@ export async function POST(request: NextRequest) {
     }
 
     // ----------------------------------------------------
-    // PAGES FOR RUN RESULTS (GeneMapper Peak Charts)
-    // Page 2: Run result for Person 1
-    // Page 3: Run result for Person 2
+    // PAGES FOR RUN RESULTS (GeneMapper / Result Chart Images)
+    // Appends all result chart images as dedicated next pages of the PDF (clean full page without headers)
     // ----------------------------------------------------
-    for (let idx = 0; idx < mauDanhSach.length; idx++) {
-      const sample = mauDanhSach[idx];
-      const runImgStr = sample.anhKetQuaChay;
+    const allChartImages: string[] = [];
+
+    const extraCharts = body.anhChayMauList || body.anhChayMau || [];
+    if (Array.isArray(extraCharts) && extraCharts.length > 0) {
+      extraCharts.forEach((imgStr: string) => {
+        if (imgStr) allChartImages.push(imgStr);
+      });
+    } else {
+      mauDanhSach.forEach((sample: any) => {
+        if (sample.anhKetQuaChay) allChartImages.push(sample.anhKetQuaChay);
+      });
+    }
+
+    // Embed each chart image on dedicated appended PDF page (Clean full-page image)
+    for (let idx = 0; idx < allChartImages.length; idx++) {
+      const runImgStr = allChartImages[idx];
       if (!runImgStr) continue;
 
       const pageRun = pdfDoc.addPage([595.28, 841.89]);
@@ -840,8 +852,8 @@ export async function POST(request: NextRequest) {
         const imgDims = imgEmbed.scaleToFit(maxImgWidth, maxImgHeight);
 
         pageRun.drawImage(imgEmbed, {
-          x: margin + (maxImgWidth - imgDims.width) / 2,
-          y: margin + (maxImgHeight - imgDims.height) / 2,
+          x: (pW - imgDims.width) / 2,
+          y: (pH - imgDims.height) / 2,
           width: imgDims.width,
           height: imgDims.height,
         });
