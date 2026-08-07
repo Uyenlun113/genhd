@@ -97,7 +97,7 @@ export default function LoginPage() {
             </div>
           </div>
           <p className="text-xs text-slate-500 mt-1 font-semibold text-center">
-            Hệ thống Quản lý & Convert Kết quả Xét nghiệm
+            Hệ thống Quản lý Kết quả Xét nghiệm
           </p>
         </div>
 
