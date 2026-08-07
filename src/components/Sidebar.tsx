@@ -77,7 +77,7 @@ function SidebarContent() {
       id: 'hpv40',
       label: 'Xét nghiệm HPV 40',
       href: getCategoryHref('hpv40'),
-      icon: Dna,
+      icon: TestTube,
       isActive: pathname === '/' && selectedCategory === 'hpv40',
       show: canSeeHPV40,
       activeColor: 'text-indigo-600 bg-indigo-50/80 font-bold',
@@ -115,7 +115,7 @@ function SidebarContent() {
     },
     {
       id: 'adn-convert',
-      label: 'Convert kết quả ADN',
+      label: 'Xét Nghiệm ADN',
       href: '/adn-convert',
       icon: Dna,
       isActive: pathname === '/adn-convert',
@@ -149,16 +149,14 @@ function SidebarContent() {
             <Link
               key={item.id}
               href={item.href}
-              className={`flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
-                item.isActive
-                  ? item.activeColor
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-              }`}
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-colors ${item.isActive
+                ? item.activeColor
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                }`}
             >
               <Icon
-                className={`w-5 h-5 shrink-0 transition-colors ${
-                  item.isActive ? item.iconActive : 'text-slate-400'
-                }`}
+                className={`w-5 h-5 shrink-0 transition-colors ${item.isActive ? item.iconActive : 'text-slate-400'
+                  }`}
               />
               <span>{item.label}</span>
             </Link>
@@ -170,16 +168,14 @@ function SidebarContent() {
           <div className="pt-3 mt-3 border-t border-slate-100">
             <Link
               href="/users"
-              className={`flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-colors ${
-                pathname === '/users'
-                  ? 'text-purple-700 bg-purple-50/80 font-bold'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
-              }`}
+              className={`flex items-center gap-3.5 px-3.5 py-2.5 text-sm font-semibold rounded-xl transition-colors ${pathname === '/users'
+                ? 'text-purple-700 bg-purple-50/80 font-bold'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                }`}
             >
               <Users
-                className={`w-5 h-5 shrink-0 ${
-                  pathname === '/users' ? 'text-purple-600' : 'text-slate-400'
-                }`}
+                className={`w-5 h-5 shrink-0 ${pathname === '/users' ? 'text-purple-600' : 'text-slate-400'
+                  }`}
               />
               <span>Quản lý tài khoản</span>
             </Link>

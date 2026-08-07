@@ -8,10 +8,21 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const search = searchParams.get('search');
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
 
     const query: any = {};
     if (status && status !== 'all') {
       query.trangThai = status;
+    }
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(`${startDate}T00:00:00.000Z`);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(`${endDate}T23:59:59.999Z`);
+      }
     }
     if (search) {
       query.$or = [
@@ -126,6 +137,7 @@ export async function POST(request: NextRequest) {
       daiDienDonVi,
       kiemSoatKetQua,
       trangThai: 'gui_mau', // Step 1: Gửi mẫu
+      dieuKien: 'chua_xac_nhan',
       anhGuiMau,
       mauDanhSach,
       table1: defaultTable1,

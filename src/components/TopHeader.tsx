@@ -160,6 +160,7 @@ export default function TopHeader() {
         {/* Notification Bell Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
+            suppressHydrationWarning
             onClick={() => setShowBellMenu(!showBellMenu)}
             className="relative p-2 text-slate-600 hover:text-sky-600 hover:bg-slate-100 rounded-full transition-colors"
             title="Thông báo"
@@ -267,6 +268,7 @@ export default function TopHeader() {
           </div>
 
           <button
+            suppressHydrationWarning
             onClick={() => setShowLogoutModal(true)}
             className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors ml-1"
             title="Đăng xuất"

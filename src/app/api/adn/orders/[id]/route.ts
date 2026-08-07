@@ -37,8 +37,10 @@ export async function PUT(
     // Step 2: Receive Sample ("Nhận mẫu")
     if (body.action === 'nhan_mau') {
       order.anhNhanMau = body.anhNhanMau || order.anhNhanMau;
-      order.trangThai = 'dang_chay_mau'; // Step 2: Đủ điều kiện đang chạy mẫu
+      order.dieuKien = body.dieuKien || 'du_dieu_kien';
+      order.trangThai = 'dang_chay_mau'; // Step 2: Đang chạy mẫu
     } else {
+      if (body.dieuKien) order.dieuKien = body.dieuKien;
       // Step 3: Up result or update full details
       if (body.loaiXetNghiemADN) order.loaiXetNghiemADN = body.loaiXetNghiemADN;
       if (body.soPhieu !== undefined) order.soPhieu = body.soPhieu;

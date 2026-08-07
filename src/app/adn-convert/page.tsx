@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
+import ConfirmModal from '@/components/ConfirmModal';
 import {
   PlusCircle,
   Download,
@@ -25,6 +27,8 @@ import {
   Search,
   RefreshCw,
   Plus,
+  Calendar,
+  MoreVertical,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -69,6 +73,7 @@ interface AdnOrderData {
   daiDienDonVi: string;
   kiemSoatKetQua: string;
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
+  dieuKien?: 'du_dieu_kien' | 'khong_du_dieu_kien';
   anhGuiMau?: string;
   anhNhanMau?: string;
   mauDanhSach: SampleItem[];
@@ -82,6 +87,27 @@ interface AdnOrderData {
 
 const nfc = (str: string) => (str || '').normalize('NFC');
 
+const formatDateDisplay = (dateStr?: string) => {
+  if (!dateStr) return '---';
+  if (dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      const dd = parts[2].padStart(2, '0');
+      const mm = parts[1].padStart(2, '0');
+      return `${dd}/${mm}/${parts[0]}`;
+    }
+  }
+  if (dateStr.includes('/')) {
+    const parts = dateStr.split('/');
+    if (parts.length === 3) {
+      const dd = parts[0].padStart(2, '0');
+      const mm = parts[1].padStart(2, '0');
+      return `${dd}/${mm}/${parts[2]}`;
+    }
+  }
+  return dateStr;
+};
+
 const formatAllele = (v1?: string, v2?: string) => {
   const a1 = (v1 || '').trim();
   const a2 = (v2 || '').trim();
@@ -94,6 +120,12 @@ export default function AdnConvertPage() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
+  // 3-Dots Menu & Delete Modal State
+  const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
+  const [deleteOrderModal, setDeleteOrderModal] = useState<AdnOrderData | null>(null);
 
   // Modals state
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -107,6 +139,37 @@ export default function AdnConvertPage() {
   const [uploadingResultFile, setUploadingResultFile] = useState(false);
   const [previewTab, setPreviewTab] = useState<'page1' | 'run' | 'cccd'>('page1');
   const [previewSampleIdx, setPreviewSampleIdx] = useState(0);
+
+  const menuRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setActiveMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleDeleteOrderConfirm = async () => {
+    if (!deleteOrderModal) return;
+    try {
+      const res = await fetch(`/api/adn/orders/${deleteOrderModal._id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        toast.success('Đã xóa đơn xét nghiệm ADN!');
+        fetchOrders();
+      } else {
+        toast.error(json.error || 'Xóa đơn thất bại');
+      }
+    } catch (e) {
+      toast.error('Lỗi khi xóa đơn');
+    } finally {
+      setDeleteOrderModal(null);
+    }
+  };
 
   // Helper to generate default order code / ticket number (Số phiếu / Mã ca)
   const generateDefaultSoPhieu = (type: 'phap_ly' | 'tu_nguyen') => {
@@ -161,6 +224,7 @@ export default function AdnConvertPage() {
   // Receive Sample Form State (Step 2)
   // ---------------------------------------------------------
   const [receiveAnhNhanMau, setReceiveAnhNhanMau] = useState('');
+  const [receiveDieuKien, setReceiveDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien'>('du_dieu_kien');
 
   // ---------------------------------------------------------
   // Upload Result Form State (Step 3)
@@ -180,6 +244,8 @@ export default function AdnConvertPage() {
     try {
       let url = `/api/adn/orders?status=${statusFilter}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
+      if (startDate) url += `&startDate=${startDate}`;
+      if (endDate) url += `&endDate=${endDate}`;
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) {
@@ -194,7 +260,7 @@ export default function AdnConvertPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter]);
+  }, [statusFilter, startDate, endDate]);
 
   // ---------------------------------------------------------
   // Helper functions for image file reading
@@ -284,6 +350,7 @@ export default function AdnConvertPage() {
   const openReceiveModal = (order: AdnOrderData) => {
     setActiveOrder(order);
     setReceiveAnhNhanMau(order.anhNhanMau || '');
+    setReceiveDieuKien(order.dieuKien || 'du_dieu_kien');
     setShowReceiveModal(true);
   };
 
@@ -297,12 +364,13 @@ export default function AdnConvertPage() {
         body: JSON.stringify({
           action: 'nhan_mau',
           anhNhanMau: receiveAnhNhanMau,
+          dieuKien: receiveDieuKien,
         }),
       });
 
       const json = await res.json();
       if (json.success) {
-        toast.success('Đã xác nhận nhận mẫu! Trạng thái: Đủ điều kiện đang chạy mẫu');
+        toast.success(`Đã nhận mẫu thành công! Đánh giá: ${receiveDieuKien === 'du_dieu_kien' ? 'Đủ điều kiện' : 'Không đủ điều kiện'}`);
         setShowReceiveModal(false);
         fetchOrders();
       } else {
@@ -517,95 +585,142 @@ export default function AdnConvertPage() {
         <Sidebar />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
-          {/* Top Title Banner */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-black text-slate-900 flex items-center gap-2.5">
-                <Dna className="w-7 h-7 text-indigo-600" />
-                <span>Quản Lý Xét Nghiệm ADN</span>
-              </h1>
-              <p className="text-xs md:text-sm text-slate-500 mt-1">
-                Tạo đơn Xét nghiệm ADN Pháp Lý & Tự Nguyện $\rightarrow$ Quản lý trạng thái Gửi/Nhận mẫu $\rightarrow$ Trả kết quả & Xuất PDF đa trang.
-              </p>
-            </div>
-
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold text-sm shadow-md hover:from-sky-500 hover:to-indigo-500 transition-all active:scale-95 cursor-pointer shrink-0"
-            >
-              <PlusCircle className="w-5 h-5" />
-              <span>+ Tạo đơn xét nghiệm ADN mới</span>
-            </button>
-          </div>
-
-          {/* Filters & Search Bar */}
-          <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-            {/* Status Tabs */}
-            <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
-              {[
-                { key: 'all', label: 'Tất cả đơn' },
-                { key: 'gui_mau', label: 'Gửi mẫu' },
-                { key: 'dang_chay_mau', label: 'Đang chạy mẫu' },
-                { key: 'da_tra_ket_qua', label: 'Đã trả kết quả' },
-              ].map((tab) => (
-                <button
-                  key={tab.key}
-                  onClick={() => setStatusFilter(tab.key)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    statusFilter === tab.key
-                      ? 'bg-indigo-600 text-white shadow-xs'
-                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                  }`}
+          {/* Standard Page Header */}
+          <Header
+            title="Xét Nghiệm ADN"
+            subtitle="Quản lý workflow xét nghiệm ADN Pháp Lý & Tự Nguyện GenHD"
+            action={
+              <div className="flex items-center gap-2.5">
+                <Link
+                  href="/adn-convert/new"
+                  className="flex items-center justify-center gap-2 h-10 px-4 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white shadow-xs hover:shadow-md active:scale-[0.98]"
                 >
-                  {tab.label}
-                </button>
-              ))}
+                  <Plus className="w-4 h-4 shrink-0 text-white" />
+                  <span>Tạo đơn xét nghiệm ADN mới</span>
+                </Link>
+              </div>
+            }
+          />
+
+          {/* Tab Filters & Search Bar */}
+          <div className="glass-card p-4 mb-6 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+                {[
+                  { key: 'all', label: 'Tất cả', count: orders.length },
+                  { key: 'gui_mau', label: 'Gửi mẫu', count: orders.filter((o) => o.trangThai === 'gui_mau').length },
+                  { key: 'dang_chay_mau', label: 'Đang chạy mẫu', count: orders.filter((o) => o.trangThai === 'dang_chay_mau').length },
+                  { key: 'da_tra_ket_qua', label: 'Đã trả kết quả', count: orders.filter((o) => o.trangThai === 'da_tra_ket_qua').length },
+                ].map((tab) => (
+                  <button
+                    key={tab.key}
+                    onClick={() => setStatusFilter(tab.key)}
+                    className={`px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all inline-flex items-center gap-1.5 cursor-pointer ${statusFilter === tab.key
+                      ? 'bg-sky-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-extrabold ${statusFilter === tab.key
+                        ? 'bg-white/25 text-white'
+                        : 'bg-slate-200 text-slate-700'
+                        }`}
+                    >
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="relative w-full sm:w-80 md:w-96">
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                <input
+                  type="text"
+                  style={{ paddingLeft: '2.35rem' }}
+                  className="form-input w-full text-xs"
+                  placeholder="Tìm theo Mã đơn, Số phiếu, Họ tên..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
+                />
+              </div>
             </div>
 
-            {/* Search Input */}
-            <div className="relative w-full sm:w-72">
-              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchOrders()}
-                placeholder="Tìm mã số, số phiếu, họ tên..."
-                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none transition-all"
-              />
+            {/* Date Range Filter Row */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="font-bold text-slate-600 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                  <span>Lọc theo ngày tạo:</span>
+                </span>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 font-medium">Từ ngày:</span>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 font-medium">Đến ngày:</span>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                  />
+                </div>
+
+                {(startDate || endDate) && (
+                  <button
+                    onClick={() => {
+                      setStartDate('');
+                      setEndDate('');
+                    }}
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-1 cursor-pointer"
+                  >
+                    Xóa lọc ngày
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
           {/* Orders List Table */}
-          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+          <div className="glass-card">
             {loading ? (
               <div className="p-12 text-center text-slate-500 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+                <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
                 <span className="text-sm font-medium">Đang tải danh sách đơn xét nghiệm ADN...</span>
               </div>
             ) : orders.length === 0 ? (
               <div className="p-12 text-center text-slate-400">
-                <Dna className="w-12 h-12 mx-auto mb-3 opacity-30 text-indigo-600" />
+                <Dna className="w-12 h-12 mx-auto mb-3 opacity-30 text-sky-600" />
                 <p className="text-sm font-medium">Chưa có đơn xét nghiệm ADN nào phù hợp.</p>
-                <button
-                  onClick={() => setShowCreateModal(true)}
-                  className="mt-3 text-xs text-indigo-600 hover:underline font-bold"
+                <Link
+                  href="/adn-convert/new"
+                  className="mt-3 inline-block text-xs text-sky-600 hover:underline font-bold"
                 >
                   Tạo đơn mới ngay
-                </button>
+                </Link>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs border-collapse">
+              <div className="data-table-container min-h-[380px]">
+                <table className="data-table">
                   <thead>
-                    <tr className="bg-slate-50 text-slate-500 uppercase tracking-wider font-bold border-b border-slate-200">
-                      <th className="p-3.5 pl-5">Mã đơn / Số phiếu</th>
-                      <th className="p-3.5">Loại ADN</th>
-                      <th className="p-3.5">Người yêu cầu</th>
-                      <th className="p-3.5">Số lượng mẫu</th>
-                      <th className="p-3.5">Ngày yêu cầu</th>
-                      <th className="p-3.5">Trạng thái</th>
-                      <th className="p-3.5 pr-5 text-right">Thao tác quy trình</th>
+                    <tr>
+                      <th>Mã đơn / Số phiếu</th>
+                      <th>Loại ADN</th>
+                      <th>Người yêu cầu</th>
+                      <th>Số lượng mẫu</th>
+                      <th>Điều kiện</th>
+                      <th>Ngày yêu cầu</th>
+                      <th>Trạng thái</th>
+                      <th style={{ textAlign: 'right' }}>Thao tác quy trình</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -619,9 +734,8 @@ export default function AdnConvertPage() {
                           </td>
                           <td className="p-3.5">
                             <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${
-                                isPhapLy ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
-                              }`}
+                              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${isPhapLy ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
+                                }`}
                             >
                               {isPhapLy ? 'ADN Pháp Lý' : 'ADN Tự Nguyện'}
                             </span>
@@ -632,7 +746,22 @@ export default function AdnConvertPage() {
                               {order.mauDanhSach?.length || 2} Mẫu
                             </span>
                           </td>
-                          <td className="p-3.5 text-slate-500">{order.ngayYeuCau || '---'}</td>
+                          <td className="p-3.5">
+                            {order.dieuKien === 'du_dieu_kien' ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Đủ điều kiện
+                              </span>
+                            ) : order.dieuKien === 'khong_du_dieu_kien' ? (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-red-100 text-red-800 border border-red-200">
+                                Không đủ điều kiện
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                                Chưa xác nhận
+                              </span>
+                            )}
+                          </td>
+                          <td className="p-3.5 text-slate-500">{formatDateDisplay(order.ngayYeuCau)}</td>
                           <td className="p-3.5">
                             {order.trangThai === 'gui_mau' && (
                               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800 border border-amber-200">
@@ -650,54 +779,77 @@ export default function AdnConvertPage() {
                               </span>
                             )}
                           </td>
-                          <td className="p-3.5 pr-5 text-right space-x-2">
-                            {/* Step 2 Action Button: Receive sample */}
-                            {order.trangThai === 'gui_mau' && (
-                              <button
-                                onClick={() => openReceiveModal(order)}
-                                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1"
-                              >
-                                <PackageCheck className="w-3.5 h-3.5" /> Nhận mẫu
-                              </button>
-                            )}
+                          <td className="p-3.5 pr-5 text-right">
+                            <div className="flex gap-2 justify-end items-center relative">
+                              {/* Step 2 Action Button: Receive sample ("Nhận mẫu") */}
+                              {order.trangThai === 'gui_mau' && (
+                                <button
+                                  onClick={() => openReceiveModal(order)}
+                                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1 shrink-0"
+                                >
+                                  <PackageCheck className="w-3.5 h-3.5" />
+                                  <span>Nhận mẫu</span>
+                                </button>
+                              )}
 
-                            {/* Step 3 Action Button: Navigate to dedicated detail page to upload results */}
-                            {order.trangThai === 'dang_chay_mau' && (
-                              <Link
-                                href={`/adn-convert/${order._id}`}
-                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1.5"
-                              >
-                                <Upload className="w-3.5 h-3.5" /> Up kết quả
-                              </Link>
-                            )}
-
-                            {/* Step 4 Action Buttons: Navigate to detail page or download PDF */}
-                            {order.trangThai === 'da_tra_ket_qua' && (
-                              <>
+                              {/* Step 3 Action Button: Upload results ("Up kết quả") */}
+                              {order.trangThai === 'dang_chay_mau' && (
                                 <Link
                                   href={`/adn-convert/${order._id}`}
-                                  className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold rounded-lg transition-all cursor-pointer inline-flex items-center gap-1"
+                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1 shrink-0"
                                 >
-                                  <Eye className="w-3.5 h-3.5" /> Xem chi tiết
+                                  <Upload className="w-3.5 h-3.5" />
+                                  <span>Up kết quả</span>
                                 </Link>
-                                <button
-                                  onClick={() => handleDownloadPdf(order)}
-                                  disabled={exportingPdf}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-all shadow-xs cursor-pointer inline-flex items-center gap-1"
-                                >
-                                  <Download className="w-3.5 h-3.5" /> Tải PDF
-                                </button>
-                              </>
-                            )}
+                              )}
 
-                            {/* View Detail Direct Link */}
-                            <Link
-                              href={`/adn-convert/${order._id}`}
-                              className="p-1.5 text-slate-400 hover:text-slate-700 transition-colors inline-block"
-                              title="Vào trang chi tiết đơn"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Link>
+                              {/* 3-Dots Action Menu Trigger */}
+                              <button
+                                onClick={() => setActiveMenuId(activeMenuId === order._id ? null : order._id)}
+                                className="p-1.5 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 shadow-xs shrink-0 cursor-pointer"
+                                title="Thao tác khác"
+                              >
+                                <MoreVertical className="w-4 h-4" />
+                              </button>
+
+                              {/* Floating Dropdown Menu */}
+                              {activeMenuId === order._id && (
+                                <div className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-2xl border border-slate-200 py-1.5 z-[100] text-left space-y-0.5 animate-in fade-in zoom-in-95 duration-100">
+                                  <Link
+                                    href={`/adn-convert/${order._id}`}
+                                    onClick={() => setActiveMenuId(null)}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-sky-600 transition-colors"
+                                  >
+                                    <Eye className="w-4 h-4 text-sky-600" />
+                                    <span>Xem chi tiết</span>
+                                  </Link>
+
+                                  {order.trangThai === 'da_tra_ket_qua' && (
+                                    <button
+                                      onClick={() => {
+                                        setActiveMenuId(null);
+                                        handleDownloadPdf(order);
+                                      }}
+                                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-emerald-600 transition-colors"
+                                    >
+                                      <Download className="w-4 h-4 text-emerald-600" />
+                                      <span>Tải PDF kết quả</span>
+                                    </button>
+                                  )}
+
+                                  <button
+                                    onClick={() => {
+                                      setActiveMenuId(null);
+                                      setDeleteOrderModal(order);
+                                    }}
+                                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-red-600 hover:bg-red-50 transition-colors border-t border-slate-100 mt-1 pt-1.5"
+                                  >
+                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                    <span>Xóa đơn này</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       );
@@ -741,11 +893,10 @@ export default function AdnConvertPage() {
                     setCreateType('phap_ly');
                     setCreateSoPhieu(generateDefaultSoPhieu('phap_ly'));
                   }}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    createType === 'phap_ly'
-                      ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'phap_ly'
+                    ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
                 >
                   <div className="font-bold text-purple-900 text-base">ADN Pháp Lý (HCGT-...)</div>
                   <div className="text-xs text-purple-700 mt-1">
@@ -759,11 +910,10 @@ export default function AdnConvertPage() {
                     setCreateType('tu_nguyen');
                     setCreateSoPhieu(generateDefaultSoPhieu('tu_nguyen'));
                   }}
-                  className={`p-4 rounded-xl border-2 text-left transition-all ${
-                    createType === 'tu_nguyen'
-                      ? 'border-teal-600 bg-teal-50/60 ring-2 ring-teal-500/20'
-                      : 'border-slate-200 bg-white hover:border-slate-300'
-                  }`}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'tu_nguyen'
+                    ? 'border-teal-600 bg-teal-50/60 ring-2 ring-teal-500/20'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
                 >
                   <div className="font-bold text-teal-900 text-base">ADN Tự Nguyện (TNGT-...)</div>
                   <div className="text-xs text-teal-700 mt-1">
@@ -1035,7 +1185,7 @@ export default function AdnConvertPage() {
               {/* Upload Ảnh gửi mẫu */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                 <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-                  3. Đính kèm Ảnh gửi mẫu (Trạng thái: Gửi mẫu)
+                  3. Đính kèm Ảnh gửi mẫu
                 </h4>
                 <div className="flex items-center gap-4">
                   <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5">
@@ -1072,7 +1222,7 @@ export default function AdnConvertPage() {
                   className="px-6 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 text-white font-bold text-xs rounded-xl hover:from-sky-500 hover:to-indigo-500 shadow-md cursor-pointer flex items-center gap-2"
                 >
                   {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>Tạo Đơn (Chuyển sang Gửi Mẫu)</span>
+                  <span>Tạo Đơn</span>
                 </button>
               </div>
             </form>
@@ -1129,6 +1279,54 @@ export default function AdnConvertPage() {
                   )}
                 </div>
               </div>
+
+              {/* Confirm conditions for running test */}
+              <div className="pt-3 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  Xác nhận điều kiện chạy mẫu (*):
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setReceiveDieuKien('du_dieu_kien')}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2.5 ${receiveDieuKien === 'du_dieu_kien'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="dieuKienCheck"
+                      checked={receiveDieuKien === 'du_dieu_kien'}
+                      onChange={() => setReceiveDieuKien('du_dieu_kien')}
+                      className="w-4 h-4 text-emerald-600 cursor-pointer"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-emerald-800">Đủ điều kiện</div>
+                      <div className="text-[10px] text-emerald-600 font-normal">Mẫu đạt chuẩn chạy ADN</div>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setReceiveDieuKien('khong_du_dieu_kien')}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2.5 ${receiveDieuKien === 'khong_du_dieu_kien'
+                      ? 'border-red-600 bg-red-50 text-red-900 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="dieuKienCheck"
+                      checked={receiveDieuKien === 'khong_du_dieu_kien'}
+                      onChange={() => setReceiveDieuKien('khong_du_dieu_kien')}
+                      className="w-4 h-4 text-red-600 cursor-pointer"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-red-800">Không đủ điều kiện</div>
+                      <div className="text-[10px] text-red-600 font-normal">Mẫu không đạt chuẩn</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 pt-4 border-t">
@@ -1144,7 +1342,7 @@ export default function AdnConvertPage() {
                 className="px-5 py-2 bg-sky-600 text-white font-bold text-xs rounded-xl hover:bg-sky-500 cursor-pointer flex items-center gap-1.5"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Xác nhận (Chuyển sang Đủ ĐK Đang chạy mẫu)</span>
+                <span>Xác nhận</span>
               </button>
             </div>
           </div>
@@ -1359,7 +1557,7 @@ export default function AdnConvertPage() {
                 className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-1.5"
               >
                 {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-                <span>Lưu Kết Quả (Chuyển sang Đã trả kết quả)</span>
+                <span>Lưu Kết Quả</span>
               </button>
             </div>
           </div>
@@ -1402,25 +1600,22 @@ export default function AdnConvertPage() {
             <div className="flex items-center gap-2 border-b pb-2">
               <button
                 onClick={() => setPreviewTab('page1')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'page1' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${previewTab === 'page1' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'
+                  }`}
               >
                 Trang 1: Phiếu Kết Quả ADN
               </button>
               <button
                 onClick={() => setPreviewTab('run')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'run' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${previewTab === 'run' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-700'
+                  }`}
               >
                 Các Trang Biểu Đồ Chạy ADN (GeneMapper)
               </button>
               <button
                 onClick={() => setPreviewTab('cccd')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'cccd' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${previewTab === 'cccd' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'
+                  }`}
               >
                 Các Trang CCCD / Giấy Khai Sinh
               </button>
@@ -1630,6 +1825,18 @@ export default function AdnConvertPage() {
           </div>
         </div>
       )}
+
+      {/* Confirm Delete Order Modal */}
+      <ConfirmModal
+        isOpen={Boolean(deleteOrderModal)}
+        title="Xóa đơn xét nghiệm ADN"
+        message={`Bạn có chắc chắn muốn xóa đơn xét nghiệm ${deleteOrderModal?.maSo || ''}? Thao tác này không thể hoàn tác.`}
+        confirmText="Xóa đơn"
+        cancelText="Hủy bỏ"
+        type="danger"
+        onConfirm={handleDeleteOrderConfirm}
+        onCancel={() => setDeleteOrderModal(null)}
+      />
     </div>
   );
 }

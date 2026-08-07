@@ -4,23 +4,22 @@ import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
+import Header from '@/components/Header';
 import {
-  ArrowLeft,
-  Download,
   Dna,
   FileText,
-  ImageIcon,
+  Upload,
+  Download,
+  Save,
   Trash2,
   Loader2,
-  CheckCircle2,
-  FlaskConical,
-  Upload,
   Eye,
-  Save,
-  Send,
-  PackageCheck,
   Plus,
   ShieldCheck,
+  Image as ImageIcon,
+  Lock as LockIcon,
+  CheckCircle2,
+  Package,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -65,6 +64,7 @@ interface AdnOrderData {
   daiDienDonVi: string;
   kiemSoatKetQua: string;
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
+  dieuKien?: 'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan';
   anhGuiMau?: string;
   anhNhanMau?: string;
   mauDanhSach: SampleItem[];
@@ -73,21 +73,23 @@ interface AdnOrderData {
   table3: LocusItem[];
   ketLuan: string;
   doTinCay: string;
-  createdAt?: string;
 }
 
-export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function AdnOrderDetailPage({ params }: PageProps) {
   const { id } = use(params);
   const router = useRouter();
 
+  const [order, setOrder] = useState<AdnOrderData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [uploadingResultFile, setUploadingResultFile] = useState(false);
 
-  const [order, setOrder] = useState<AdnOrderData | null>(null);
-
-  // Editable Form State
+  // Form states
   const [soPhieu, setSoPhieu] = useState('');
   const [loaiXetNghiemADN, setLoaiXetNghiemADN] = useState<'phap_ly' | 'tu_nguyen'>('phap_ly');
   const [ngayYeuCau, setNgayYeuCau] = useState('');
@@ -95,24 +97,107 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [nguoiYeuCau, setNguoiYeuCau] = useState('');
   const [nguoiThuMau, setNguoiThuMau] = useState('Hoàng Văn Luận');
   const [boKit, setBoKit] = useState('A27Plex STR Detection Kit');
-  const [daiDienDonVi, setDaiDienDonVi] = useState('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+  const [daiDienDonVi, setDaiDienDonVi] = useState('CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH');
   const [kiemSoatKetQua, setKiemSoatKetQua] = useState('TS. BS. Nguyễn Khánh Dương');
   const [ketLuan, setKetLuan] = useState('');
   const [doTinCay, setDoTinCay] = useState('> 99,9999%');
   const [trangThai, setTrangThai] = useState<'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua'>('gui_mau');
+  const [dieuKien, setDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan'>('chua_xac_nhan');
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveDieuKien, setReceiveDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien'>('du_dieu_kien');
+  const [zoomImage, setZoomImage] = useState<{ url: string; title?: string } | null>(null);
+
+  const handleConfirmReceive = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/adn/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          trangThai: 'dang_chay_mau',
+          dieuKien: receiveDieuKien,
+          anhNhanMau,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success) {
+        setTrangThai('dang_chay_mau');
+        setDieuKien(receiveDieuKien);
+        toast.success('Đã nhận mẫu thành công! Chuyển sang trạng thái Đang chạy mẫu.');
+        setShowReceiveModal(false);
+      } else {
+        toast.error(json.error || 'Lỗi khi nhận mẫu');
+      }
+    } catch {
+      toast.error('Lỗi kết nối khi nhận mẫu');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const [anhGuiMau, setAnhGuiMau] = useState('');
   const [anhNhanMau, setAnhNhanMau] = useState('');
-
   const [mauDanhSach, setMauDanhSach] = useState<SampleItem[]>([]);
+
+  // 3 Loci comparison tables
   const [table1, setTable1] = useState<LocusItem[]>([]);
   const [table2, setTable2] = useState<LocusItem[]>([]);
   const [table3, setTable3] = useState<LocusItem[]>([]);
 
-  // Preview state
-  const [previewTab, setPreviewTab] = useState<'page1' | 'run' | 'cccd'>('page1');
+  // Preview tab state
+  const [previewTab, setPreviewTab] = useState<'pdf' | 'page1' | 'run' | 'cccd'>('pdf');
+  const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('');
+  const [generatingPreview, setGeneratingPreview] = useState(false);
 
-  // Fetch Order Details
+  const generatePdfPreview = async () => {
+    setGeneratingPreview(true);
+    try {
+      const payload = {
+        loaiXetNghiemADN,
+        soPhieu,
+        ngayYeuCau,
+        nguoiYeuCau,
+        nguoiThuMau,
+        boKit,
+        mauDanhSach,
+        table1,
+        table2,
+        table3,
+        ketLuan,
+        doTinCay,
+      };
+      const res = await fetch('/api/adn/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        setPdfPreviewUrl(url);
+      }
+    } catch (e) {
+      console.error('PDF Preview error:', e);
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  const deepNfc = (obj: any): any => {
+    if (!obj) return obj;
+    if (typeof obj === 'string') return obj.normalize('NFC');
+    if (Array.isArray(obj)) return obj.map(deepNfc);
+    if (typeof obj === 'object') {
+      const res: any = {};
+      for (const key of Object.keys(obj)) {
+        res[key] = deepNfc(obj[key]);
+      }
+      return res;
+    }
+    return obj;
+  };
+
   useEffect(() => {
     const fetchOrder = async () => {
       setLoading(true);
@@ -120,27 +205,57 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         const res = await fetch(`/api/adn/orders/${id}`);
         const json = await res.json();
         if (json.success && json.data) {
-          const d: AdnOrderData = json.data;
+          const d: AdnOrderData = deepNfc(json.data);
           setOrder(d);
           setSoPhieu(d.soPhieu || d.maSo || '');
           setLoaiXetNghiemADN(d.loaiXetNghiemADN || 'phap_ly');
-          setNgayYeuCau(d.ngayYeuCau || '');
+          setNgayYeuCau(d.ngayYeuCau || new Date().toISOString().split('T')[0]);
           setNgayBanHanh(d.ngayBanHanh || '');
           setNguoiYeuCau(d.nguoiYeuCau || '');
           setNguoiThuMau(d.nguoiThuMau || 'Hoàng Văn Luận');
           setBoKit(d.boKit || 'A27Plex STR Detection Kit');
-          setDaiDienDonVi(d.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+          setDaiDienDonVi(d.daiDienDonVi || 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH');
           setKiemSoatKetQua(d.kiemSoatKetQua || 'TS. BS. Nguyễn Khánh Dương');
           setKetLuan(d.ketLuan || '');
           setDoTinCay(d.doTinCay || '> 99,9999%');
           setTrangThai(d.trangThai || 'gui_mau');
+          setDieuKien(d.dieuKien || 'chua_xac_nhan');
           setAnhGuiMau(d.anhGuiMau || '');
           setAnhNhanMau(d.anhNhanMau || '');
+
           const samples = d.mauDanhSach || [];
           setMauDanhSach(samples);
-          setTable1(normalizeLociTable(d.table1 || [], samples));
-          setTable2(normalizeLociTable(d.table2 || [], samples));
-          setTable3(normalizeLociTable(d.table3 || [], samples));
+          const t1 = normalizeLociTable(d.table1 || [], samples);
+          const t2 = normalizeLociTable(d.table2 || [], samples);
+          const t3 = normalizeLociTable(d.table3 || [], samples);
+          setTable1(t1);
+          setTable2(t2);
+          setTable3(t3);
+
+          // Auto generate initial live PDF preview
+          const initialPayload = {
+            loaiXetNghiemADN: d.loaiXetNghiemADN || 'phap_ly',
+            soPhieu: d.soPhieu || d.maSo || '',
+            ngayYeuCau: d.ngayYeuCau || '',
+            ngayBanHanh: d.ngayBanHanh || '',
+            nguoiYeuCau: d.nguoiYeuCau || '',
+            nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
+            boKit: d.boKit || 'A27Plex STR Detection Kit',
+            mauDanhSach: samples,
+            table1: t1,
+            table2: t2,
+            table3: t3,
+            ketLuan: d.ketLuan || '',
+            doTinCay: d.doTinCay || '> 99,9999%',
+          };
+          fetch('/api/adn/export-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(initialPayload),
+          })
+            .then((r) => r.blob())
+            .then((blob) => setPdfPreviewUrl(URL.createObjectURL(blob)))
+            .catch((e) => console.error('Initial PDF preview error:', e));
         } else {
           toast.error('Không tìm thấy đơn xét nghiệm');
         }
@@ -246,10 +361,10 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
     }
   };
 
-  // Save changes & update status to 'da_tra_ket_qua'
+  // Save changes & update status
   const handleSaveOrder = async (targetStatus?: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua') => {
     setSaving(true);
-    const newStatus = targetStatus || (trangThai === 'gui_mau' ? 'dang_chay_mau' : 'da_tra_ket_qua');
+    const newStatus = targetStatus || trangThai;
     try {
       const res = await fetch(`/api/adn/orders/${id}`, {
         method: 'PUT',
@@ -279,7 +394,11 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
       const json = await res.json();
       if (json.success) {
         setTrangThai(newStatus);
-        toast.success(`Đã lưu kết quả thành công! Trạng thái: ${newStatus === 'da_tra_ket_qua' ? 'Đã trả kết quả' : 'Đang xử lý'}`);
+        const msg = targetStatus === 'da_tra_ket_qua' ? 'Đã trả kết quả xét nghiệm ADN thành công!' : 'Đã cập nhật kết quả thành công!';
+        toast.success(msg);
+
+        // Auto update live PDF preview
+        await generatePdfPreview();
       } else {
         toast.error(json.error || 'Lưu thất bại');
       }
@@ -377,7 +496,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               updated[locIdx].alleles[sKey].a1 = e.target.value;
                               setTableData(updated);
                             }}
-                            className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold"
+                            disabled={trangThai === 'da_tra_ket_qua'}
+                            className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold disabled:bg-slate-100 disabled:text-slate-500"
                             placeholder="Alil 1"
                           />
                           <span className="text-slate-400 font-bold">;</span>
@@ -391,7 +511,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               updated[locIdx].alleles[sKey].a2 = e.target.value;
                               setTableData(updated);
                             }}
-                            className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold"
+                            disabled={trangThai === 'da_tra_ket_qua'}
+                            className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold disabled:bg-slate-100 disabled:text-slate-500"
                             placeholder="Alil 2"
                           />
                         </div>
@@ -409,266 +530,595 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-100 flex flex-col">
+      <div className="min-h-screen bg-slate-50 flex flex-col">
         <TopHeader />
-        <div className="flex flex-1 items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-            <span className="text-sm font-semibold text-slate-600">Đang tải trang chi tiết đơn ADN...</span>
-          </div>
+        <div className="flex flex-1">
+          <Sidebar />
+          <main className="flex-1 p-8 text-center text-slate-500">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+              <span className="text-sm font-semibold text-slate-600">Đang tải thông tin phiếu...</span>
+            </div>
+          </main>
         </div>
       </div>
     );
   }
 
+  const isReadOnly = trangThai === 'dang_chay_mau' || trangThai === 'da_tra_ket_qua';
+
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col">
       <TopHeader />
 
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 w-full">
         <Sidebar />
 
-        <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-6 space-y-6">
-          {/* Top Bar Header Navigation */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-xs flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-            <div className="flex items-center gap-3 min-w-0">
-              <button
-                onClick={() => router.push('/adn-convert')}
-                className="p-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition-all cursor-pointer shrink-0"
-                title="Quay lại danh sách"
-              >
-                <ArrowLeft className="w-5 h-5" />
-              </button>
+        <main className="flex-1 p-6 md:p-8 w-full">
+          <Header
+            title={`Phiếu xét nghiệm ADN: ${soPhieu}`}
+            subtitle={`Bệnh nhân: ${mauDanhSach[0]?.hoTen || 'Xét nghiệm ADN'} (${loaiXetNghiemADN === 'phap_ly' ? 'Mẫu ADN Pháp Lý' : 'Mẫu ADN Tự Nguyện'})`}
+            action={
+              <div className="flex items-center gap-3">
+                {trangThai === 'gui_mau' && (
+                  <>
+                    <button
+                      onClick={() => setShowReceiveModal(true)}
+                      disabled={saving}
+                      className="btn btn-primary"
+                    >
+                      <Package className="w-4 h-4" />
+                      <span>Nhận Mẫu</span>
+                    </button>
 
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h1 className="text-xl font-black text-slate-900 truncate">Chi Tiết Kết Quả: {soPhieu}</h1>
-                  <span
-                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold shrink-0 ${
-                      loaiXetNghiemADN === 'phap_ly' ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
-                    }`}
-                  >
-                    {loaiXetNghiemADN === 'phap_ly' ? 'ADN Pháp Lý' : 'ADN Tự Nguyện'}
-                  </span>
-                  {trangThai === 'gui_mau' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 shrink-0">
-                      Gửi mẫu
-                    </span>
-                  )}
-                  {trangThai === 'dang_chay_mau' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-sky-100 text-sky-800 shrink-0">
-                      Đang chạy mẫu
-                    </span>
-                  )}
-                  {trangThai === 'da_tra_ket_qua' && (
-                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 shrink-0">
-                      Đã trả kết quả
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-500 mt-1">Cập nhật thông tin mẫu, tải file kết quả DOCX/PDF & ảnh đính kèm.</p>
-              </div>
-            </div>
+                    <button
+                      onClick={() => handleSaveOrder()}
+                      disabled={saving}
+                      className="btn btn-secondary"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      <span>Lưu thông tin</span>
+                    </button>
+                  </>
+                )}
 
-            {/* Header Action Buttons */}
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => handleSaveOrder('da_tra_ket_qua')}
-                disabled={saving}
-                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 transition-all active:scale-95"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                <span>Lưu Kết Quả</span>
-              </button>
+                {trangThai === 'dang_chay_mau' && (
+                  <>
+                    <button
+                      onClick={() => handleSaveOrder()}
+                      disabled={saving}
+                      className="btn btn-primary"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      <span>Lưu kết quả</span>
+                    </button>
 
-              <button
-                onClick={handleDownloadPdf}
-                disabled={exportingPdf}
-                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2 transition-all active:scale-95"
-              >
-                {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                <span>Tải PDF Kết Quả</span>
-              </button>
-            </div>
-          </div>
+                    <button
+                      onClick={() => handleSaveOrder('da_tra_ket_qua')}
+                      disabled={saving}
+                      className="btn btn-success"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                      <span>Trả Kết Quả</span>
+                    </button>
+                  </>
+                )}
 
-          {/* Section 1: Thông tin chung & Danh sách các mẫu */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide border-b pb-3 flex items-center gap-2">
-              <Dna className="w-4 h-4 text-indigo-600" /> 1. Thông Tin Chung & Danh Sách Mẫu ({mauDanhSach.length} mẫu)
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Mã ca / Số phiếu</label>
-                <input
-                  type="text"
-                  value={soPhieu}
-                  onChange={(e) => setSoPhieu(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold text-indigo-700"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Người yêu cầu</label>
-                <input
-                  type="text"
-                  value={nguoiYeuCau}
-                  onChange={(e) => setNguoiYeuCau(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg font-bold"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Ngày yêu cầu</label>
-                <input
-                  type="text"
-                  value={ngayYeuCau}
-                  onChange={(e) => setNgayYeuCau(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Bộ kit STR</label>
-                <input
-                  type="text"
-                  value={boKit}
-                  onChange={(e) => setBoKit(e.target.value)}
-                  className="w-full p-2 bg-slate-50 border border-slate-300 rounded-lg"
-                />
-              </div>
-            </div>
-
-            {/* List of Samples (M1, M2, M3...) */}
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-xs text-slate-700">Chi tiết thông tin từng mẫu:</span>
                 <button
-                  type="button"
-                  onClick={() =>
-                    setMauDanhSach([
-                      ...mauDanhSach,
-                      {
-                        kyHieuMau: `M${mauDanhSach.length + 1}`,
-                        hoTen: '',
-                        gioiTinh: 'Nam',
-                        ngaySinh: '',
-                        loaiMau: 'Máu',
-                      },
-                    ])
-                  }
-                  className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1"
+                  onClick={handleDownloadPdf}
+                  disabled={exportingPdf}
+                  className="btn btn-secondary"
                 >
-                  <Plus className="w-3.5 h-3.5" /> Thêm mẫu
+                  {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  <span>Download PDF kết quả</span>
                 </button>
               </div>
+            }
+          />
 
-              <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
+          <div className="space-y-6">
+            {/* Read-Only Alert Banner */}
+            {isReadOnly && (
+              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2.5 shadow-xs">
+                <LockIcon className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  Đơn đang ở trạng thái <strong>{trangThai === 'da_tra_ket_qua' ? 'Đã trả kết quả' : 'Đang chạy kết quả'}</strong>. Thông tin hành chính và thông tin mẫu đã được khóa cố định, không thể chỉnh sửa.
+                </span>
+              </div>
+            )}
+
+            {/* Section 1: Thông tin hành chính đơn ADN */}
+            <div className="glass-card p-6">
+              <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
+                <Dna className="w-5 h-5 text-sky-600" />
+                <span>1. Thông Tin Chung & Danh Sách Mẫu ({mauDanhSach.length} mẫu)</span>
+              </h3>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="form-group mb-0">
+                  <label>Người yêu cầu</label>
+                  <input
+                    type="text"
+                    value={nguoiYeuCau}
+                    onChange={(e) => setNguoiYeuCau(e.target.value)}
+                    disabled={isReadOnly}
+                    className="form-input font-bold disabled:bg-slate-100 disabled:text-slate-600"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Ngày yêu cầu</label>
+                  <input
+                    type="date"
+                    value={ngayYeuCau?.includes('/') ? ngayYeuCau.split('/').reverse().join('-') : ngayYeuCau}
+                    onChange={(e) => setNgayYeuCau(e.target.value)}
+                    disabled={isReadOnly}
+                    className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Bộ kit STR</label>
+                  <input
+                    type="text"
+                    value={boKit}
+                    onChange={(e) => setBoKit(e.target.value)}
+                    disabled={isReadOnly}
+                    className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Người thu mẫu / nhận mẫu</label>
+                  <input
+                    type="text"
+                    value={nguoiThuMau}
+                    onChange={(e) => setNguoiThuMau(e.target.value)}
+                    placeholder="VD: Hoàng Văn Luận"
+                    disabled={isReadOnly}
+                    className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                  />
+                </div>
+              </div>
+
+              {/* List of Samples (M1, M2, M3...) */}
+              <div className="mt-6 pt-4 border-t border-slate-100 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-sm text-slate-800">Chi tiết thông tin từng mẫu:</span>
+                  {!isReadOnly && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setMauDanhSach([
+                          ...mauDanhSach,
+                          {
+                            kyHieuMau: `M${mauDanhSach.length + 1}`,
+                            hoTen: '',
+                            gioiTinh: 'Nam',
+                            ngaySinh: '',
+                            loaiMau: 'Máu',
+                          },
+                        ])
+                      }
+                      className="btn btn-secondary text-xs py-1.5 px-3"
+                    >
+                      <Plus className="w-4 h-4" /> Thêm mẫu
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {mauDanhSach.map((sample, idx) => (
+                    <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+                      <div className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-700">Ký hiệu mẫu:</span>
+                          <input
+                            type="text"
+                            value={sample.kyHieuMau}
+                            onChange={(e) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].kyHieuMau = e.target.value;
+                              setMauDanhSach(updated);
+                            }}
+                            disabled={isReadOnly}
+                            className="form-input w-24 py-1 text-xs font-bold text-sky-700 disabled:bg-slate-100 disabled:text-slate-600"
+                          />
+                        </div>
+                        {!isReadOnly && mauDanhSach.length > 2 && (
+                          <button
+                            type="button"
+                            onClick={() => setMauDanhSach(mauDanhSach.filter((_, i) => i !== idx))}
+                            className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-semibold cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" /> Xóa
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                        <div className="form-group mb-0">
+                          <label>Họ tên</label>
+                          <input
+                            type="text"
+                            value={sample.hoTen}
+                            onChange={(e) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].hoTen = e.target.value;
+                              setMauDanhSach(updated);
+                            }}
+                            disabled={isReadOnly}
+                            className="form-input font-bold disabled:bg-slate-100 disabled:text-slate-600"
+                          />
+                        </div>
+                        <div className="form-group mb-0">
+                          <label>Giới tính</label>
+                          <select
+                            value={sample.gioiTinh}
+                            onChange={(e) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].gioiTinh = e.target.value;
+                              setMauDanhSach(updated);
+                            }}
+                            disabled={isReadOnly}
+                            className="form-select disabled:bg-slate-100 disabled:text-slate-600"
+                          >
+                            <option value="Nam">Nam</option>
+                            <option value="Nữ">Nữ</option>
+                          </select>
+                        </div>
+                        <div className="form-group mb-0">
+                          <label>Ngày sinh</label>
+                          <input
+                            type="date"
+                            value={sample.ngaySinh?.includes('/') ? sample.ngaySinh.split('/').reverse().join('-') : sample.ngaySinh || ''}
+                            onChange={(e) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].ngaySinh = e.target.value;
+                              setMauDanhSach(updated);
+                            }}
+                            disabled={isReadOnly}
+                            className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                          />
+                        </div>
+                        <div className="form-group mb-0">
+                          <label>Loại mẫu</label>
+                          <input
+                            type="text"
+                            value={sample.loaiMau || 'Máu'}
+                            onChange={(e) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].loaiMau = e.target.value;
+                              setMauDanhSach(updated);
+                            }}
+                            disabled={isReadOnly}
+                            className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                          />
+                        </div>
+
+                        {/* Legal specific fields for ADN Pháp Lý */}
+                        {loaiXetNghiemADN === 'phap_ly' && (
+                          <>
+                            <div className="form-group mb-0">
+                              <label>CCCD / Passport / Chứng sinh số</label>
+                              <input
+                                type="text"
+                                value={sample.cccd || ''}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].cccd = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                            <div className="form-group mb-0">
+                              <label>Quyển số (Giấy chứng sinh)</label>
+                              <input
+                                type="text"
+                                value={sample.quyenSo || ''}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].quyenSo = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                            <div className="form-group mb-0">
+                              <label>Quốc tịch</label>
+                              <input
+                                type="text"
+                                value={sample.quocTich || 'Việt Nam'}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].quocTich = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                            <div className="form-group mb-0">
+                              <label>Ngày cấp (Tách riêng)</label>
+                              <input
+                                type="date"
+                                value={sample.ngayCap?.includes('/') ? sample.ngayCap.split('/').reverse().join('-') : sample.ngayCap || ''}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].ngayCap = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                            <div className="form-group mb-0 md:col-span-2">
+                              <label>Nơi cấp (Tách riêng)</label>
+                              <input
+                                type="text"
+                                value={sample.noiCap || ''}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].noiCap = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                placeholder="VD: Cục QLHC về TTXH"
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                            <div className="form-group mb-0 md:col-span-2">
+                              <label>Nơi thường trú</label>
+                              <input
+                                type="text"
+                                value={sample.noiThuongTru || ''}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].noiThuongTru = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                placeholder="Nhập địa chỉ nơi thường trú"
+                                disabled={isReadOnly}
+                                className="form-input disabled:bg-slate-100 disabled:text-slate-600"
+                              />
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                        <label className="btn btn-secondary text-xs py-1 px-3 cursor-pointer">
+                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" /> Ảnh Chân Dung Mẫu {sample.kyHieuMau}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) =>
+                              handleImageUpload(e, (b64) => {
+                                const updated = [...mauDanhSach];
+                                updated[idx].anhChanDung = b64;
+                                setMauDanhSach(updated);
+                              })
+                            }
+                            className="hidden"
+                          />
+                        </label>
+                        {sample.anhChanDung ? (
+                          <div className="flex items-center gap-2">
+                            <img
+                              src={sample.anhChanDung}
+                              alt="Chân dung"
+                              onClick={() => setZoomImage({ url: sample.anhChanDung!, title: `Ảnh Chân Dung - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
+                              className="w-8 h-10 object-cover rounded border cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
+                            />
+                            <span className="text-[11px] text-emerald-600 font-bold">✓ Đã có ảnh</span>
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400">Chưa có ảnh chân dung</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Display Photos: Ảnh Gửi Mẫu & Ảnh Nhận Mẫu (UI Only) */}
+              <div className="pt-4 border-t border-slate-100">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide mb-3">
+                  Ảnh Gửi Mẫu & Ảnh Nhận Mẫu (Hiển thị trên UI quản lý)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Ảnh Gửi Mẫu (Bước 1):</span>
+                      <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
+                        Đổi ảnh
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {anhGuiMau ? (
+                      <img
+                        src={anhGuiMau}
+                        alt="Ảnh gửi mẫu"
+                        onClick={() => setZoomImage({ url: anhGuiMau, title: 'Ảnh Gửi Mẫu (Bước 1)' })}
+                        className="h-36 object-cover rounded-lg border w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
+                      />
+                    ) : (
+                      <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
+                        Chưa đính kèm ảnh gửi mẫu
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-slate-800">Ảnh Nhận Mẫu (Bước 2):</span>
+                      <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
+                        Đổi ảnh
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => handleImageUpload(e, (b64) => setAnhNhanMau(b64))}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {anhNhanMau ? (
+                      <img
+                        src={anhNhanMau}
+                        alt="Ảnh nhận mẫu"
+                        onClick={() => setZoomImage({ url: anhNhanMau, title: 'Ảnh Nhận Mẫu (Bước 2)' })}
+                        className="h-36 object-cover rounded-lg border w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
+                      />
+                    ) : (
+                      <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
+                        Chưa đính kèm ảnh nhận mẫu
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Section 2: Upload File Kết Quả DOCX/PDF & Ảnh CCCD + Ảnh Chạy Mẫu */}
+            <div className="glass-card p-6 space-y-6">
+              <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
+                <Upload className="w-5 h-5 text-sky-600" />
+                <span>2. Upload File DOCX/PDF & Ảnh Đính Kèm Từng Người</span>
+              </h3>
+
+              {/* Upload DOCX / PDF file (Chỉ hiện khi CHƯA trả kết quả) */}
+              {trangThai !== 'da_tra_ket_qua' && (
+                <div className="bg-sky-50/80 p-4 rounded-xl border border-sky-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-sky-900 uppercase">Tải lên File DOCX hoặc PDF Kết quả (Bảng Locus)</h4>
+                    <p className="text-xs text-slate-500 mt-0.5">Tự động đọc và điền dữ liệu Alil Locus vào các bảng bên dưới.</p>
+                  </div>
+
+                  <label className="btn btn-primary text-xs shrink-0 cursor-pointer">
+                    {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    <span>Tải File Đọc Tự Động</span>
+                    <input type="file" accept=".docx,.pdf" onChange={handleFileUploadResult} className="hidden" />
+                  </label>
+                </div>
+              )}
+
+              {/* Photos of CCCD & GeneMapper Chart per sample */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {mauDanhSach.map((sample, idx) => (
-                  <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-                    <div className="flex items-center justify-between border-b pb-2 text-xs">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-700">Ký hiệu mẫu:</span>
-                        <input
-                          type="text"
-                          value={sample.kyHieuMau}
-                          onChange={(e) => {
-                            const updated = [...mauDanhSach];
-                            updated[idx].kyHieuMau = e.target.value;
-                            setMauDanhSach(updated);
-                          }}
-                          className="w-24 p-1 bg-white border border-indigo-300 rounded font-bold text-indigo-700 text-xs"
-                        />
-                      </div>
-                      {mauDanhSach.length > 2 && (
-                        <button
-                          type="button"
-                          onClick={() => setMauDanhSach(mauDanhSach.filter((_, i) => i !== idx))}
-                          className="text-red-500 hover:text-red-700 text-xs flex items-center gap-1 font-semibold cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Xóa
-                        </button>
-                      )}
+                  <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
+                    <div className="font-bold text-xs text-sky-900 border-b border-slate-200 pb-2">
+                      Mẫu {sample.kyHieuMau}: {sample.hoTen || 'Chưa nhập tên'}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="block font-semibold text-slate-600 mb-1">Họ tên</label>
-                        <input
-                          type="text"
-                          value={sample.hoTen}
-                          onChange={(e) => {
-                            const updated = [...mauDanhSach];
-                            updated[idx].hoTen = e.target.value;
-                            setMauDanhSach(updated);
-                          }}
-                          className="w-full p-1.5 bg-white border border-slate-300 rounded font-bold"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-slate-600 mb-1">Giới tính</label>
-                        <select
-                          value={sample.gioiTinh}
-                          onChange={(e) => {
-                            const updated = [...mauDanhSach];
-                            updated[idx].gioiTinh = e.target.value;
-                            setMauDanhSach(updated);
-                          }}
-                          className="w-full p-1.5 bg-white border border-slate-300 rounded"
-                        >
-                          <option value="Nam">Nam</option>
-                          <option value="Nữ">Nữ</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-slate-600 mb-1">Ngày sinh</label>
-                        <input
-                          type="text"
-                          value={sample.ngaySinh}
-                          onChange={(e) => {
-                            const updated = [...mauDanhSach];
-                            updated[idx].ngaySinh = e.target.value;
-                            setMauDanhSach(updated);
-                          }}
-                          className="w-full p-1.5 bg-white border border-slate-300 rounded"
-                        />
-                      </div>
-                      <div>
-                        <label className="block font-semibold text-slate-600 mb-1">CCCD / Chứng sinh</label>
-                        <input
-                          type="text"
-                          value={sample.cccd}
-                          onChange={(e) => {
-                            const updated = [...mauDanhSach];
-                            updated[idx].cccd = e.target.value;
-                            setMauDanhSach(updated);
-                          }}
-                          className="w-full p-1.5 bg-white border border-slate-300 rounded"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="pt-2 border-t flex items-center justify-between">
-                      <label className="px-3 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5" /> Ảnh Chân Dung Mẫu {sample.kyHieuMau}
+                    {/* CCCD Mat Truoc */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                      <label className="block text-xs font-bold text-slate-800">Ảnh CCCD Mặt trước</label>
+                      <label className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs rounded-xl border border-sky-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
+                        <Upload className="w-4 h-4 text-sky-600" />
+                        <span>Tải ảnh CCCD Mặt trước</span>
                         <input
                           type="file"
                           accept="image/*"
                           onChange={(e) =>
                             handleImageUpload(e, (b64) => {
                               const updated = [...mauDanhSach];
-                              updated[idx].anhChanDung = b64;
+                              updated[idx].anhCccdMatTruoc = b64;
                               setMauDanhSach(updated);
                             })
                           }
                           className="hidden"
                         />
                       </label>
-                      {sample.anhChanDung ? (
-                        <div className="flex items-center gap-2">
-                          <img src={sample.anhChanDung} alt="Chân dung" className="w-8 h-10 object-cover rounded border" />
-                          <span className="text-[10px] text-emerald-600 font-bold">✓ Đã có ảnh</span>
+                      {sample.anhCccdMatTruoc ? (
+                        <div className="mt-2 flex items-center gap-3 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                          <img
+                            src={sample.anhCccdMatTruoc}
+                            alt="CCCD Trước"
+                            onClick={() => setZoomImage({ url: sample.anhCccdMatTruoc!, title: `Ảnh CCCD Mặt trước - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
+                            className="h-20 rounded border border-emerald-300 object-cover cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
+                          />
+                          <span className="text-xs text-emerald-700 font-bold">✓ Đã tải ảnh CCCD Mặt trước (Bấm để xem)</span>
                         </div>
                       ) : (
-                        <span className="text-[10px] text-slate-400">Chưa có ảnh chân dung</span>
+                        <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt trước</span>
+                      )}
+                    </div>
+
+                    {/* CCCD Mat Sau */}
+                    <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
+                      <label className="block text-xs font-bold text-slate-800">Ảnh CCCD Mặt sau / Giấy khai sinh</label>
+                      <label className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs rounded-xl border border-sky-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
+                        <Upload className="w-4 h-4 text-sky-600" />
+                        <span>Tải ảnh CCCD Mặt sau / Giấy khai sinh</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleImageUpload(e, (b64) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].anhCccdMatSau = b64;
+                              setMauDanhSach(updated);
+                            })
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                      {sample.anhCccdMatSau ? (
+                        <div className="mt-2 flex items-center gap-3 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
+                          <img
+                            src={sample.anhCccdMatSau}
+                            alt="CCCD Sau"
+                            onClick={() => setZoomImage({ url: sample.anhCccdMatSau!, title: `Ảnh CCCD Mặt sau / Giấy khai sinh - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
+                            className="h-20 rounded border border-emerald-300 object-cover cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
+                          />
+                          <span className="text-xs text-emerald-700 font-bold">✓ Đã tải ảnh mặt sau / giấy khai sinh (Bấm để xem)</span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt sau</span>
+                      )}
+                    </div>
+
+                    {/* Biểu đồ chạy GeneMapper */}
+                    <div className="bg-white p-3 rounded-lg border border-purple-200 space-y-2">
+                      <label className="block text-xs font-bold text-purple-900">
+                        Ảnh Kết quả chạy ADN (Biểu đồ GeneMapper - Ảnh 3)
+                      </label>
+                      <label className="px-3.5 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 font-bold text-xs rounded-xl border border-purple-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
+                        <ImageIcon className="w-4 h-4 text-purple-600" />
+                        <span>Tải ảnh biểu đồ GeneMapper</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) =>
+                            handleImageUpload(e, (b64) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].anhKetQuaChay = b64;
+                              setMauDanhSach(updated);
+                            })
+                          }
+                          className="hidden"
+                        />
+                      </label>
+                      {sample.anhKetQuaChay ? (
+                        <div className="mt-2 bg-purple-50/50 p-2 rounded-lg border border-purple-200 space-y-1">
+                          <img
+                            src={sample.anhKetQuaChay}
+                            alt="Biểu đồ chạy"
+                            onClick={() => setZoomImage({ url: sample.anhKetQuaChay!, title: `Biểu đồ GeneMapper - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
+                            className="h-32 rounded border border-purple-300 object-cover w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
+                          />
+                          <span className="text-xs text-purple-700 font-bold block">✓ Đã tải ảnh biểu đồ GeneMapper (Bấm để xem)</span>
+                        </div>
+                      ) : (
+                        <span className="text-[11px] text-purple-400 block italic">Chưa chọn ảnh biểu đồ</span>
                       )}
                     </div>
                   </div>
@@ -676,39 +1126,187 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               </div>
             </div>
 
-            {/* Display Photos: Ảnh Gửi Mẫu & Ảnh Nhận Mẫu (UI Only) */}
-            <div className="pt-4 border-t border-slate-200">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide mb-3">
-                Ảnh Gửi Mẫu & Ảnh Nhận Mẫu (Hiển thị trên UI quản lý)
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">Ảnh Gửi Mẫu (Bước 1):</span>
-                    <label className="text-[11px] text-indigo-600 hover:underline font-bold cursor-pointer">
-                      Đổi ảnh
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
-                        className="hidden"
-                      />
-                    </label>
-                  </div>
-                  {anhGuiMau ? (
-                    <img src={anhGuiMau} alt="Ảnh gửi mẫu" className="h-36 object-cover rounded-lg border w-full" />
-                  ) : (
-                    <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
-                      Chưa đính kèm ảnh gửi mẫu
-                    </div>
-                  )}
-                </div>
+            {/* Section 3: Bảng Kết quả phân tích Alil Locus */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
+                <FileText className="w-5 h-5 text-sky-600" />
+                <span>3. Bảng Kết Quả Phân Tích Alil Locus</span>
+              </h3>
 
-                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-800">Ảnh Nhận Mẫu (Bước 2):</span>
-                    <label className="text-[11px] text-indigo-600 hover:underline font-bold cursor-pointer">
-                      Đổi ảnh
+              {renderLociEditor(table1, setTable1, 'Bảng Locus 1 (D3S1358, vWA, D12S391, CSF1PO, Penta E...)')}
+              {renderLociEditor(table2, setTable2, 'Bảng Locus 2 (D2S1338, Penta D, AMEL, D22S1045...)')}
+              {renderLociEditor(table3, setTable3, 'Bảng Locus 3 (D8S1179, D5S818, D21S11, FGA...)')}
+            </div>
+
+            {/* Section 4: Kết luận & Độ tin cậy */}
+            <div className="glass-card p-6 space-y-4">
+              <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
+                <ShieldCheck className="w-5 h-5 text-sky-600" />
+                <span>4. Kết Luận & Độ Tin Cậy</span>
+              </h3>
+
+              <div className="form-group">
+                <label>Kết luận xét nghiệm</label>
+                <textarea
+                  rows={3}
+                  value={ketLuan}
+                  onChange={(e) => setKetLuan(e.target.value)}
+                  placeholder="VD: có quan hệ huyết thống bố - con ( cha – con)"
+                  disabled={trangThai === 'da_tra_ket_qua'}
+                  className="form-textarea font-bold text-red-600 disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </div>
+
+              <div className="max-w-md">
+                <div className="form-group mb-0">
+                  <label>Độ tin cậy</label>
+                  <input
+                    type="text"
+                    value={doTinCay}
+                    onChange={(e) => setDoTinCay(e.target.value)}
+                    disabled={trangThai === 'da_tra_ket_qua'}
+                    className="form-input disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+              </div>
+
+              {/* Action Buttons: Thay đổi theo trạng thái quy trình */}
+              {trangThai === 'gui_mau' && (
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveOrder()}
+                    disabled={saving}
+                    className="btn btn-secondary"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>Lưu thông tin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setShowReceiveModal(true)}
+                    disabled={saving}
+                    className="btn btn-primary"
+                  >
+                    <Package className="w-4 h-4" />
+                    <span>Nhận Mẫu</span>
+                  </button>
+                </div>
+              )}
+
+              {trangThai === 'dang_chay_mau' && (
+                <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveOrder()}
+                    disabled={saving}
+                    className="btn btn-primary"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>Lưu kết quả</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSaveOrder('da_tra_ket_qua')}
+                    disabled={saving}
+                    className="btn btn-success"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Trả Kết Quả</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Section 5: Xem trước PDF kết quả */}
+            <div className="glass-card p-6 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="flex items-center gap-2 text-base font-bold text-sky-700">
+                  <Eye className="w-5 h-5 text-sky-600" />
+                  <span>Xem trước PDF kết quả</span>
+                </h3>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleDownloadPdf}
+                    disabled={exportingPdf}
+                    className="btn btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5"
+                  >
+                    {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+                    <span>Tải PDF</span>
+                  </button>
+
+                  <button
+                    onClick={() => router.push('/adn-convert')}
+                    className="px-4 py-1.5 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg hover:bg-slate-200 cursor-pointer transition-colors"
+                  >
+                    Đóng
+                  </button>
+                </div>
+              </div>
+
+              {/* PDF Preview Display Box */}
+              <div className="bg-slate-800 p-2 md:p-4 rounded-xl shadow-inner flex items-center justify-center min-h-[450px]">
+                {pdfPreviewUrl ? (
+                  <iframe
+                    src={pdfPreviewUrl}
+                    title="PDF Preview"
+                    className="w-full h-[850px] border border-slate-700 rounded-lg shadow-lg bg-white"
+                  />
+                ) : (
+                  <div className="h-[400px] flex flex-col items-center justify-center gap-3 bg-white w-full rounded-lg border border-slate-200">
+                    <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+                    <p className="text-xs text-slate-500 font-semibold">Đang tự động tải bản xem trước PDF...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+
+      {/* Modal: Bước 2 - Nhận Mẫu & Đánh Giá Điều Kiện Chạy Mẫu */}
+      {showReceiveModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-100">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="text-base font-bold text-sky-900 flex items-center gap-2">
+                <Package className="w-5 h-5 text-sky-600" />
+                <span>Bước 2: Nhận Mẫu Xét Nghiệm ADN</span>
+              </h3>
+              <button
+                onClick={() => setShowReceiveModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-sky-50 p-3 rounded-xl text-xs text-sky-900 font-medium">
+                Đơn: <strong>{soPhieu}</strong> - Người yêu cầu: <strong>{nguoiYeuCau}</strong>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-2">Đính kèm Ảnh nhận mẫu (*)</label>
+                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-sky-300 rounded-xl bg-sky-50/50 hover:bg-sky-50 transition-colors">
+                  {anhNhanMau ? (
+                    <div className="space-y-2 text-center">
+                      <img src={anhNhanMau} alt="Ảnh nhận mẫu" className="max-h-40 mx-auto rounded-lg shadow-sm border" />
+                      <button
+                        type="button"
+                        onClick={() => setAnhNhanMau('')}
+                        className="text-xs text-red-600 hover:underline font-bold"
+                      >
+                        Đổi ảnh khác
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="cursor-pointer text-center space-y-2">
+                      <Upload className="w-8 h-8 mx-auto text-sky-600" />
+                      <span className="block text-xs font-bold text-sky-700">Tải ảnh nhận mẫu lên</span>
                       <input
                         type="file"
                         accept="image/*"
@@ -716,443 +1314,111 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         className="hidden"
                       />
                     </label>
-                  </div>
-                  {anhNhanMau ? (
-                    <img src={anhNhanMau} alt="Ảnh nhận mẫu" className="h-36 object-cover rounded-lg border w-full" />
-                  ) : (
-                    <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
-                      Chưa đính kèm ảnh nhận mẫu
-                    </div>
                   )}
                 </div>
               </div>
-            </div>
-          </div>
 
-          {/* Section 2: Upload File Kết Quả DOCX/PDF & Ảnh CCCD + Ảnh Chạy Mẫu */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-6">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide border-b pb-3 flex items-center gap-2">
-              <Upload className="w-4 h-4 text-indigo-600" /> 2. Upload File DOCX/PDF & Ảnh Đính Kèm Từng Người
-            </h3>
-
-            {/* Upload DOCX / PDF file (Image 2) */}
-            <div className="bg-indigo-50/80 p-4 rounded-xl border border-indigo-200 flex items-center justify-between gap-4">
-              <div>
-                <h4 className="text-xs font-bold text-indigo-900 uppercase">Tải lên File DOCX hoặc PDF Kết quả (Bảng Locus)</h4>
-                <p className="text-xs text-slate-500 mt-0.5">Tự động đọc và điền dữ liệu Alil Locus vào các bảng bên dưới.</p>
-              </div>
-
-              <label className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-2 shadow-sm shrink-0">
-                {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                <span>Chọn File Kết Quả</span>
-                <input type="file" accept=".docx,.pdf" onChange={handleFileUploadResult} className="hidden" />
-              </label>
-            </div>
-
-            {/* Photos of CCCD & GeneMapper Chart per sample */}
-            <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
-              {mauDanhSach.map((sample, idx) => (
-                <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                  <div className="font-bold text-xs text-indigo-900 border-b pb-2">
-                    Mẫu {sample.kyHieuMau}: {sample.hoTen || 'Chưa nhập tên'}
+              {/* Confirm conditions for running test */}
+              <div className="pt-3 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-800 mb-2">
+                  Xác nhận điều kiện chạy mẫu (*):
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <div
+                    onClick={() => setReceiveDieuKien('du_dieu_kien')}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2.5 ${receiveDieuKien === 'du_dieu_kien'
+                      ? 'border-emerald-600 bg-emerald-50 text-emerald-900 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                  >
+                    <input
+                      type="radio"
+                      name="dieuKienCheckDetail"
+                      checked={receiveDieuKien === 'du_dieu_kien'}
+                      onChange={() => setReceiveDieuKien('du_dieu_kien')}
+                      className="w-4 h-4 text-emerald-600 cursor-pointer"
+                    />
+                    <div className="text-xs">
+                      <div className="font-bold text-emerald-800">Đủ điều kiện</div>
+                      <div className="text-[10px] text-emerald-600 font-normal">Mẫu đạt chuẩn chạy ADN</div>
+                    </div>
                   </div>
 
-                  {/* CCCD Mat Truoc */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Ảnh CCCD Mặt trước</label>
+                  <div
+                    onClick={() => setReceiveDieuKien('khong_du_dieu_kien')}
+                    className={`p-3 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-2.5 ${receiveDieuKien === 'khong_du_dieu_kien'
+                      ? 'border-red-600 bg-red-50 text-red-900 font-bold shadow-xs'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                      }`}
+                  >
                     <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(e, (b64) => {
-                          const updated = [...mauDanhSach];
-                          updated[idx].anhCccdMatTruoc = b64;
-                          setMauDanhSach(updated);
-                        })
-                      }
-                      className="text-xs w-full"
+                      type="radio"
+                      name="dieuKienCheckDetail"
+                      checked={receiveDieuKien === 'khong_du_dieu_kien'}
+                      onChange={() => setReceiveDieuKien('khong_du_dieu_kien')}
+                      className="w-4 h-4 text-red-600 cursor-pointer"
                     />
-                    {sample.anhCccdMatTruoc && (
-                      <img src={sample.anhCccdMatTruoc} alt="CCCD Trước" className="mt-2 h-24 rounded border object-cover" />
-                    )}
-                  </div>
-
-                  {/* CCCD Mat Sau */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-slate-700 mb-1">Ảnh CCCD Mặt sau / Giấy khai sinh</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(e, (b64) => {
-                          const updated = [...mauDanhSach];
-                          updated[idx].anhCccdMatSau = b64;
-                          setMauDanhSach(updated);
-                        })
-                      }
-                      className="text-xs w-full"
-                    />
-                    {sample.anhCccdMatSau && (
-                      <img src={sample.anhCccdMatSau} alt="CCCD Sau" className="mt-2 h-24 rounded border object-cover" />
-                    )}
-                  </div>
-
-                  {/* Biểu đồ chạy GeneMapper (Ảnh 3) */}
-                  <div className="pt-2 border-t">
-                    <label className="block text-[11px] font-bold text-purple-900 mb-1">
-                      Ảnh Kết quả chạy ADN (Biểu đồ GeneMapper - Ảnh 3)
-                    </label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) =>
-                        handleImageUpload(e, (b64) => {
-                          const updated = [...mauDanhSach];
-                          updated[idx].anhKetQuaChay = b64;
-                          setMauDanhSach(updated);
-                        })
-                      }
-                      className="text-xs w-full"
-                    />
-                    {sample.anhKetQuaChay && (
-                      <img src={sample.anhKetQuaChay} alt="Biểu đồ chạy" className="mt-2 h-32 rounded border object-cover w-full" />
-                    )}
+                    <div className="text-xs">
+                      <div className="font-bold text-red-800">Không đủ điều kiện</div>
+                      <div className="text-[10px] text-red-600 font-normal">Mẫu không đạt chuẩn</div>
+                    </div>
                   </div>
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <button
+                onClick={() => setShowReceiveModal(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 text-xs font-bold rounded-xl"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={handleConfirmReceive}
+                disabled={saving}
+                className="px-5 py-2 bg-sky-600 text-white font-bold text-xs rounded-xl hover:bg-sky-500 cursor-pointer flex items-center gap-1.5"
+              >
+                {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                <span>Xác nhận nhận mẫu (Đang chạy mẫu)</span>
+              </button>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Section 3: Bảng Kết quả phân tích Alil Locus */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide border-b pb-3 flex items-center gap-2">
-              <FileText className="w-4 h-4 text-indigo-600" /> 3. Bảng Kết Quả Phân Tích Alil Locus
-            </h3>
+      {/* Modal Zoom Xem Phóng To Ảnh */}
+      {zoomImage && (
+        <div
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200"
+          onClick={() => setZoomImage(null)}
+        >
+          <div
+            className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center justify-center bg-slate-900 rounded-2xl p-4 border border-slate-700 shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-full flex items-center justify-between border-b border-slate-700/80 pb-3">
+              <span className="text-sm font-bold text-white tracking-wide">
+                {zoomImage.title || 'Xem Phóng To Ảnh'}
+              </span>
+              <button
+                onClick={() => setZoomImage(null)}
+                className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-base cursor-pointer transition-colors border border-slate-600"
+              >
+                ✕
+              </button>
+            </div>
 
-            {renderLociEditor(table1, setTable1, 'Bảng Locus 1 (D3S1358, vWA, D12S391, CSF1PO, Penta E...)')}
-            {renderLociEditor(table2, setTable2, 'Bảng Locus 2 (D2S1338, Penta D, AMEL, D22S1045...)')}
-            {renderLociEditor(table3, setTable3, 'Bảng Locus 3 (D8S1179, D5S818, D21S11, FGA...)')}
-          </div>
-
-          {/* Section 4: Kết luận & Độ tin cậy */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide border-b pb-3 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-indigo-600" /> 4. Kết Luận & Độ Tin Cậy
-            </h3>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Kết luận xét nghiệm</label>
-              <textarea
-                rows={3}
-                value={ketLuan}
-                onChange={(e) => setKetLuan(e.target.value)}
-                placeholder="VD: có quan hệ huyết thống bố - con ( cha – con) độ tin cậy > 99,9999%"
-                className="w-full p-3 border border-slate-300 rounded-xl text-xs font-bold text-red-600 focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+            <div className="overflow-auto max-h-[78vh] flex items-center justify-center w-full p-2">
+              <img
+                src={zoomImage.url}
+                alt={zoomImage.title || 'Phóng to ảnh'}
+                className="max-w-full max-h-[72vh] object-contain rounded-lg shadow-2xl"
               />
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Độ tin cậy</label>
-                <input
-                  type="text"
-                  value={doTinCay}
-                  onChange={(e) => setDoTinCay(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Cán bộ xét nghiệm</label>
-                <input
-                  type="text"
-                  value={kiemSoatKetQua}
-                  onChange={(e) => setKiemSoatKetQua(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
-                />
-              </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Đại diện đơn vị</label>
-                <input
-                  type="text"
-                  value={daiDienDonVi}
-                  onChange={(e) => setDaiDienDonVi(e.target.value)}
-                  className="w-full p-2 border border-slate-300 rounded-lg"
-                />
-              </div>
-            </div>
           </div>
-
-          {/* Section 5: Live Preview Trang Kết Quả & Ảnh Đính Kèm */}
-          <div className="bg-white p-6 rounded-2xl border border-slate-200/80 shadow-xs space-y-4">
-            <div className="flex items-center justify-between border-b pb-3">
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide flex items-center gap-2">
-                <Eye className="w-4 h-4 text-emerald-600" /> 5. Xem Trực Quan Trang Kết Quả (Live Preview)
-              </h3>
-
-              <button
-                onClick={handleDownloadPdf}
-                disabled={exportingPdf}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-1.5"
-              >
-                {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                <span>Tải PDF Kết Quả</span>
-              </button>
-            </div>
-
-            {/* Preview Tabs */}
-            <div className="flex items-center gap-2 border-b pb-2">
-              <button
-                onClick={() => setPreviewTab('page1')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'page1' ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                Trang 1: Phiếu Kết Quả ADN
-              </button>
-              <button
-                onClick={() => setPreviewTab('run')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'run' ? 'bg-purple-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                Các Trang Biểu Đồ Chạy ADN (GeneMapper)
-              </button>
-              <button
-                onClick={() => setPreviewTab('cccd')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  previewTab === 'cccd' ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'
-                }`}
-              >
-                Các Trang CCCD / Giấy Khai Sinh
-              </button>
-            </div>
-
-            {/* Preview Display Box */}
-            <div className="bg-slate-200/70 p-6 rounded-2xl flex items-center justify-center min-h-[450px]">
-              {previewTab === 'page1' && (
-                <div className="bg-white w-[595px] min-h-[842px] p-8 shadow-xl text-black font-serif text-[10px] leading-snug space-y-3 border border-slate-300 relative">
-                  {/* Header Logo HK & Company Info */}
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3 items-start">
-                      <img src="/logo_hk.jpg" alt="Logo HK-Tech" className="w-20 h-14 object-contain" />
-                      <div>
-                        {loaiXetNghiemADN === 'tu_nguyen' ? (
-                          <>
-                            <div className="font-bold text-blue-900 text-[10px]">VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN</div>
-                            <div className="font-bold text-blue-900 text-[10px]">CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH</div>
-                            <div className="text-[8px] italic text-blue-800">Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội</div>
-                            <div className="text-[8px] italic text-blue-800">Website: hk-tech.vn | Hotline: 0971 553 330</div>
-                            <div className="text-[8px] italic text-blue-800">Email: xetnghiemht.central@gmail.com</div>
-                          </>
-                        ) : (
-                          <>
-                            <div className="font-bold text-blue-900 text-[10.5px]">CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH</div>
-                            <div className="text-[8px] italic text-blue-800">Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội</div>
-                            <div className="text-[8px] italic text-blue-800">Website: hk-tech.vn | Hotline: 0936 654 456</div>
-                            <div className="text-[8px] italic text-blue-800">Email: xetnghiemht.central@gmail.com</div>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Header Blue Bar */}
-                  <div className="w-full h-1 bg-blue-900 my-1"></div>
-
-                  {/* Top Right Date & Ticket Number */}
-                  <div className="text-right text-[9px] italic">
-                    <div>{ngayBanHanh || 'Hà Nội, ngày .... tháng .... năm ........'}</div>
-                    <div>Số: {soPhieu}</div>
-                  </div>
-
-                  {/* Title */}
-                  <div className="text-center font-bold text-black text-sm py-0.5">KẾT QUẢ XÉT NGHIỆM ADN</div>
-
-                  {/* Intro */}
-                  <div className="text-[9.5px]">
-                    Theo đơn yêu cầu xét nghiệm ADN ngày {ngayYeuCau || '...................'} của bà(ông) {nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những {loaiXetNghiemADN === 'tu_nguyen' ? 'mẫu được ghi tên' : 'người'} sau:
-                  </div>
-
-                  {/* Samples Detail List */}
-                  <div className="space-y-2 text-[9.5px]">
-                    {mauDanhSach.map((s, idx) => (
-                      <div key={idx} className="flex gap-3 items-start">
-                        {loaiXetNghiemADN === 'phap_ly' && (
-                          <img
-                            src={s.anhChanDung || s.anhCccdMatTruoc || '/logo_hk.jpg'}
-                            alt="Chân dung"
-                            className="w-12 h-16 object-cover border border-slate-300 shrink-0"
-                          />
-                        )}
-                        <div className="space-y-0.5">
-                          {loaiXetNghiemADN === 'tu_nguyen' ? (
-                            <>
-                              <div className="font-bold">{idx + 1}. Người có mẫu ghi tên: {s.hoTen || '...................'}</div>
-                              <div>Giới tính: {s.gioiTinh}   Ngày sinh: {s.ngaySinh}   Loại mẫu: {s.loaiMau || 'Máu'}</div>
-                              <div>Ký hiệu mẫu: {s.kyHieuMau}</div>
-                            </>
-                          ) : idx === 0 ? (
-                            <>
-                              <div className="font-bold">1. Họ tên: {s.hoTen}   Giới tính: {s.gioiTinh}   Ngày sinh: {s.ngaySinh}   Quốc tịch: {s.quocTich || 'Việt Nam'}</div>
-                              <div>CCCD/Passport: {s.cccd}   Ngày cấp: {s.ngayCap}</div>
-                              <div>Nơi cấp: {s.noiCap}</div>
-                              <div>Nơi thường trú: {s.noiThuongTru}</div>
-                              <div>Ký hiệu mẫu: {s.kyHieuMau}</div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="font-bold">{idx + 1}. Người có tên dự kiến: {s.hoTen}</div>
-                              <div>Giới tính: {s.gioiTinh}   Ngày sinh: {s.ngaySinh}</div>
-                              <div>Giấy chứng sinh số: {s.cccd}   Quyển số: {s.quyenSo}</div>
-                              <div>Ngày cấp: {s.ngayCap}   Nơi cấp: {s.noiCap}</div>
-                              <div>Ký hiệu mẫu: {s.kyHieuMau}</div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Notes */}
-                  <div className="text-[8.5px] italic space-y-0.5 pt-1">
-                    <div>- Người {loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: {nguoiThuMau}</div>
-                    <div>- {loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.</div>
-                    <div>- Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.</div>
-                    <div>- Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit {boKit}.</div>
-                  </div>
-
-                  {/* 3 Loci Comparison Tables */}
-                  <div className="text-[9.5px] font-bold">Kết quả phân tích ADN như sau:</div>
-
-                  {[
-                    ['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317'],
-                    ['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391'],
-                    ['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33'],
-                  ].map((lociList, tableIdx) => {
-                    const currentSourceTable = tableIdx === 0 ? table1 : tableIdx === 1 ? table2 : table3;
-                    return (
-                      <table key={tableIdx} className="w-full text-center border-collapse border border-slate-600 text-[8px]">
-                        <thead>
-                          <tr className="bg-slate-50 font-bold border-b border-slate-600">
-                            <th className="border border-slate-600 p-0.5 w-12">Locus/Mẫu</th>
-                            {lociList.map((loc, lIdx) => (
-                              <th key={lIdx} className="border border-slate-600 p-0.5">{loc}</th>
-                            ))}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {mauDanhSach.map((s, sIdx) => {
-                            const sKey = s.kyHieuMau || `M${sIdx + 1}`;
-                            return (
-                              <tr key={sIdx} className="border-b border-slate-600">
-                                <td className="border border-slate-600 p-0.5 font-bold bg-slate-50">{sKey}</td>
-                                {lociList.map((locName, lIdx) => {
-                                  const rowItem = currentSourceTable.find((r) => (r.locus || '').toLowerCase() === locName.toLowerCase());
-                                  let valStr = '';
-                                  if (rowItem) {
-                                    if (rowItem.alleles && rowItem.alleles[sKey]) {
-                                      const a1 = rowItem.alleles[sKey].a1 || '';
-                                      const a2 = rowItem.alleles[sKey].a2 || '';
-                                      valStr = a1 && a2 ? `${a1} ; ${a2}` : a1 || a2 || '';
-                                    }
-                                  }
-                                  return (
-                                    <td key={lIdx} className="border border-slate-600 p-0.5 font-sans font-medium">
-                                      {valStr}
-                                    </td>
-                                  );
-                                })}
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    );
-                  })}
-
-                  {/* Conclusion */}
-                  <div className="pt-1">
-                    <div className="font-bold text-[10px] text-center">KẾT LUẬN:</div>
-                    <div className="font-bold text-red-600 text-[9.5px] text-center mt-0.5">
-                      {ketLuan ||
-                        `${mauDanhSach[0]?.hoTen || '...'} (Kí hiệu: ${mauDanhSach[0]?.kyHieuMau || 'M1'}) có quan hệ huyết thống bố - con ( cha – con) với ${mauDanhSach[1]?.hoTen || '...'} (Kí hiệu: ${mauDanhSach[1]?.kyHieuMau || 'M2'}) độ tin cậy > 99,9999%.`}
-                    </div>
-                  </div>
-
-                  {/* Signatures */}
-                  <div className="flex justify-between pt-4 text-[9.5px] font-bold text-center">
-                    <div>
-                      <div>CÁN BỘ XÉT NGHIỆM</div>
-                      <div className="mt-10 font-normal">{kiemSoatKetQua}</div>
-                    </div>
-                    <div>
-                      <div>ĐẠI DIỆN ĐƠN VỊ</div>
-                      <div className="mt-10 font-normal">{daiDienDonVi}</div>
-                    </div>
-                  </div>
-
-                  {/* Footer note for ADN Tự nguyện (Image 3) */}
-                  {loaiXetNghiemADN === 'tu_nguyen' && (
-                    <div className="text-[7.5px] italic text-slate-400 text-center pt-2">
-                      Ghi chú: Kết quả xét nghiệm có giá trị trên mẫu phân tích, không có giá trị trong tranh chấp, tổ tụng pháp lý
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {previewTab === 'run' && (
-                <div className="space-y-6 w-full max-w-2xl">
-                  {mauDanhSach.map((sample, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-2xl shadow-md border border-slate-300 space-y-3">
-                      <div className="font-bold text-sm text-purple-900 border-b pb-2">
-                        Trang {idx + 2}: Biểu đồ kết quả chạy (GeneMapper) - Mẫu {sample.kyHieuMau}: {sample.hoTen}
-                      </div>
-                      {sample.anhKetQuaChay ? (
-                        <img src={sample.anhKetQuaChay} alt="Biểu đồ chạy" className="w-full max-h-96 object-contain rounded-lg border" />
-                      ) : (
-                        <div className="p-8 text-center text-slate-400 text-xs italic bg-slate-50 rounded-lg">
-                          Chưa upload ảnh kết quả chạy GeneMapper cho mẫu này
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {previewTab === 'cccd' && (
-                <div className="space-y-6 w-full max-w-2xl">
-                  {mauDanhSach.map((sample, idx) => (
-                    <div key={idx} className="bg-white p-6 rounded-2xl shadow-md border border-slate-300 space-y-4">
-                      <div className="font-bold text-sm text-teal-900 border-b pb-2">
-                        Trang {mauDanhSach.length + idx + 2}: CCCD / Giấy khai sinh - Mẫu {sample.kyHieuMau}: {sample.hoTen}
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <div className="text-xs font-bold text-slate-700 mb-1">Mặt trước CCCD:</div>
-                          {sample.anhCccdMatTruoc ? (
-                            <img src={sample.anhCccdMatTruoc} alt="CCCD Trước" className="w-full max-h-48 object-contain rounded border" />
-                          ) : (
-                            <div className="p-6 text-center text-slate-400 text-xs italic bg-slate-50 rounded">Chưa có ảnh mặt trước</div>
-                          )}
-                        </div>
-
-                        <div>
-                          <div className="text-xs font-bold text-slate-700 mb-1">Mặt sau CCCD:</div>
-                          {sample.anhCccdMatSau ? (
-                            <img src={sample.anhCccdMatSau} alt="CCCD Sau" className="w-full max-h-48 object-contain rounded border" />
-                          ) : (
-                            <div className="p-6 text-center text-slate-400 text-xs italic bg-slate-50 rounded">Chưa có ảnh mặt sau</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </main>
-      </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,6 +41,7 @@ export interface IAdnOrder extends Document {
   kiemSoatKetQua: string;
 
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
+  dieuKien?: 'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan';
 
   anhGuiMau?: string;
   anhNhanMau?: string;
@@ -98,6 +99,11 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
       type: String,
       enum: ['gui_mau', 'dang_chay_mau', 'da_tra_ket_qua'],
       default: 'gui_mau',
+    },
+    dieuKien: {
+      type: String,
+      enum: ['du_dieu_kien', 'khong_du_dieu_kien', 'chua_xac_nhan'],
+      default: 'chua_xac_nhan',
     },
 
     anhGuiMau: { type: String, default: '' },

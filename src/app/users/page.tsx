@@ -50,7 +50,7 @@ export default function UserManagementPage() {
     isOpen: false,
     title: '',
     message: '',
-    onConfirm: () => {},
+    onConfirm: () => { },
   });
 
   const [formData, setFormData] = useState({
@@ -285,19 +285,18 @@ export default function UserManagementPage() {
                               user.allowedCategories.map((cat) => (
                                 <span
                                   key={cat}
-                                  className={`px-2 py-0.5 rounded-md font-bold uppercase ${
-                                    cat === 'cell'
+                                  className={`px-2 py-0.5 rounded-md font-bold uppercase ${cat === 'cell'
                                       ? 'bg-sky-100 text-sky-700'
                                       : cat === 'thinprep'
-                                      ? 'bg-purple-100 text-purple-700'
-                                      : cat === 'hpv40'
-                                      ? 'bg-indigo-100 text-indigo-700'
-                                      : cat === 'hpv20'
-                                      ? 'bg-teal-100 text-teal-700'
-                                      : cat === 'soituoi'
-                                      ? 'bg-emerald-100 text-emerald-700'
-                                      : 'bg-amber-100 text-amber-700'
-                                  }`}
+                                        ? 'bg-purple-100 text-purple-700'
+                                        : cat === 'hpv40'
+                                          ? 'bg-indigo-100 text-indigo-700'
+                                          : cat === 'hpv20'
+                                            ? 'bg-teal-100 text-teal-700'
+                                            : cat === 'soituoi'
+                                              ? 'bg-emerald-100 text-emerald-700'
+                                              : 'bg-amber-100 text-amber-700'
+                                    }`}
                                 >
                                   {cat}
                                 </span>
@@ -483,7 +482,7 @@ export default function UserManagementPage() {
                             checked={formData.allowedCategories.includes('adn')}
                             onChange={() => handleCategoryToggle('adn')}
                           />
-                          <span className="text-xs font-bold text-indigo-700">CONVERT KẾT QUẢ ADN</span>
+                          <span className="text-xs font-bold text-indigo-700">XÉT NGHIỆM ADN</span>
                         </label>
                       </div>
                     </div>

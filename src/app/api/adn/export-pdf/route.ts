@@ -51,6 +51,23 @@ const formatAllelePair = (v1: any, v2: any) => {
   return a1 || a2 || '';
 };
 
+const formatDateVN = (dateStr: any): string => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+  const trimmed = dateStr.trim();
+  if (!trimmed) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  if (trimmed.includes('T') && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const ymd = trimmed.split('T')[0];
+    const [y, m, d] = ymd.split('-');
+    return `${d}/${m}/${y}`;
+  }
+  return trimmed;
+};
+
 // Helper to embed image (base64 data URI or file path/buffer) onto PDF
 async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
   if (!imgStr || typeof imgStr !== 'string') return null;
@@ -70,6 +87,12 @@ async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
         imageBytes = Buffer.from(base64Data, 'base64');
         isPng = imgStr.includes('png');
       }
+    } else if (imgStr.startsWith('/')) {
+      const publicPath = path.join(process.cwd(), 'public', imgStr);
+      if (fs.existsSync(publicPath)) {
+        imageBytes = fs.readFileSync(publicPath);
+        isPng = publicPath.toLowerCase().endsWith('.png');
+      }
     } else if (fs.existsSync(imgStr)) {
       imageBytes = fs.readFileSync(imgStr);
       isPng = imgStr.toLowerCase().endsWith('.png');
@@ -87,10 +110,45 @@ async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
     return null;
   }
 }
+function wrapText(text: string, font: any, fontSize: number, maxWidth: number): string[] {
+  if (!text) return [];
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = '';
+
+  for (const word of words) {
+    const testLine = currentLine ? `${currentLine} ${word}` : word;
+    const testWidth = font.widthOfTextAtSize(nfc(testLine), fontSize);
+    if (testWidth > maxWidth && currentLine) {
+      lines.push(currentLine);
+      currentLine = word;
+    } else {
+      currentLine = testLine;
+    }
+  }
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  return lines;
+}
+
+const deepNfc = (obj: any): any => {
+  if (!obj) return obj;
+  if (typeof obj === 'string') return obj.normalize('NFC');
+  if (Array.isArray(obj)) return obj.map(deepNfc);
+  if (typeof obj === 'object') {
+    const res: any = {};
+    for (const key of Object.keys(obj)) {
+      res[key] = deepNfc(obj[key]);
+    }
+    return res;
+  }
+  return obj;
+};
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const body = deepNfc(await request.json());
     const {
       loaiXetNghiemADN = 'phap_ly',
       soPhieu = 'HCGT-070826-01',
@@ -253,7 +311,8 @@ export async function POST(request: NextRequest) {
 
     // Date & Code at top right
     currentY -= 18;
-    page1.drawText(nfc(ngayBanHanh || 'Hà Nội, ngày .... tháng .... năm ........'), {
+    const formattedNgayBanHanh = formatDateVN(ngayBanHanh);
+    page1.drawText(nfc(formattedNgayBanHanh || 'Hà Nội, ngày .... tháng .... năm ........'), {
       x: width - margin - 170,
       y: currentY,
       size: 8.5,
@@ -272,41 +331,47 @@ export async function POST(request: NextRequest) {
     // Title KẾT QUẢ XÉT NGHIỆM ADN
     currentY -= 20;
     const titleText = nfc('KẾT QUẢ XÉT NGHIỆM ADN');
-    const titleWidth = fontBold.widthOfTextAtSize(titleText, 14);
+    const titleWidth = fontBold.widthOfTextAtSize(titleText, 16);
     page1.drawText(titleText, {
       x: (width - titleWidth) / 2,
       y: currentY,
-      size: 14,
+      size: 16,
       font: fontBold,
       color: darkColor,
     });
 
     // Intro text
-    currentY -= 16;
+    currentY -= 18;
+    const formattedNgayYeuCau = formatDateVN(ngayYeuCau) || '...................';
     let introStr = '';
     if (loaiXetNghiemADN === 'tu_nguyen') {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${ngayYeuCau || '...................'} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
+      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
     } else {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${ngayYeuCau || '...................'} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những người sau:`;
+      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những người sau:`;
     }
 
-    page1.drawText(nfc(introStr), {
-      x: margin,
-      y: currentY,
-      size: 8.5,
-      font: fontRegular,
-      color: darkColor,
-    });
+    const introLines = wrapText(introStr, fontRegular, 13, width - margin * 2);
+    for (const line of introLines) {
+      page1.drawText(nfc(line), {
+        x: margin,
+        y: currentY,
+        size: 13,
+        font: fontRegular,
+        color: darkColor,
+      });
+      currentY -= 15;
+    }
 
     // Render Samples List
-    currentY -= 16;
+    currentY -= 14;
 
     for (let idx = 0; idx < mauDanhSach.length; idx++) {
       const sample = mauDanhSach[idx];
       const labelKey = sample.kyHieuMau || `M${idx + 1}`;
       const name = sample.hoTen || '...................';
       const gender = sample.gioiTinh || '......';
-      const dob = sample.ngaySinh || '........';
+      const dob = formatDateVN(sample.ngaySinh) || '........';
+      const sampleNgayCap = formatDateVN(sample.ngayCap) || '...................';
       const sampleType = sample.loaiMau || 'Máu';
 
       if (loaiXetNghiemADN === 'tu_nguyen') {
@@ -314,27 +379,27 @@ export async function POST(request: NextRequest) {
         page1.drawText(nfc(`${idx + 1}.  Người có mẫu ghi tên: ${name}`), {
           x: margin + 15,
           y: currentY,
-          size: 8.5,
+          size: 13,
           font: fontBold,
           color: darkColor,
         });
-        currentY -= 12;
+        currentY -= 15;
         page1.drawText(nfc(`    Giới tính: ${gender}   Ngày sinh: ${dob}   Loại mẫu: ${sampleType}`), {
           x: margin + 15,
           y: currentY,
-          size: 8.5,
+          size: 13,
           font: fontRegular,
           color: darkColor,
         });
-        currentY -= 12;
+        currentY -= 15;
         page1.drawText(nfc(`    Ký hiệu mẫu: ${labelKey}`), {
           x: margin + 15,
           y: currentY,
-          size: 8.5,
+          size: 13,
           font: fontRegular,
           color: darkColor,
         });
-        currentY -= 14;
+        currentY -= 16;
       } else {
         // ADN Pháp Lý (Image 2 format with Portrait Avatar Photo on left)
         const portraitImgStr = sample.anhChanDung || sample.anhCccdMatTruoc;
@@ -343,12 +408,13 @@ export async function POST(request: NextRequest) {
         if (portraitImgStr) {
           const avatarEmbed = await embedImageHelper(pdfDoc, portraitImgStr);
           if (avatarEmbed) {
-            drawnAvatarWidth = 50;
+            drawnAvatarWidth = 52;
+            const avatarHeight = 68;
             page1.drawImage(avatarEmbed, {
               x: margin + 10,
-              y: currentY - 55,
-              width: 50,
-              height: 60,
+              y: currentY + 8 - avatarHeight,
+              width: 52,
+              height: avatarHeight,
             });
           }
         }
@@ -356,135 +422,143 @@ export async function POST(request: NextRequest) {
         const textX = margin + 10 + (drawnAvatarWidth ? drawnAvatarWidth + 12 : 0);
 
         if (idx === 0) {
-          page1.drawText(nfc(`1.  Họ tên: ${name}    Giới tính: ${gender}   Ngày sinh: ${dob}   Quốc tịch: ${sample.quocTich || 'Việt Nam'}`), {
+          page1.drawText(nfc(`1.  Họ tên: ${name}`), {
             x: textX,
             y: currentY,
-            size: 8.5,
+            size: 13,
             font: fontBold,
             color: darkColor,
           });
-          currentY -= 11;
-          page1.drawText(nfc(`CCCD/Passport: ${sample.cccd || '...................'}   Ngày cấp: ${sample.ngayCap || '...................'}`), {
+          currentY -= 15;
+          page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}   Quốc tịch: ${sample.quocTich || 'Việt Nam'}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
+          page1.drawText(nfc(`CCCD/Passport: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
+            x: textX,
+            y: currentY,
+            size: 13,
+            font: fontRegular,
+            color: darkColor,
+          });
+          currentY -= 15;
           page1.drawText(nfc(`Nơi cấp: ${sample.noiCap || '...................'}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
           page1.drawText(nfc(`Nơi thường trú: ${sample.noiThuongTru || '...................'}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
           page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
             x: textX,
             y: currentY,
-            size: 8.5,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 16;
+          currentY -= 18;
         } else {
           page1.drawText(nfc(`${idx + 1}.  Người có tên dự kiến: ${name}`), {
             x: textX,
             y: currentY,
-            size: 8.5,
+            size: 13,
             font: fontBold,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
           page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
           page1.drawText(nfc(`Giấy chứng sinh số: ${sample.cccd || '...................'}   Quyển số: ${sample.quyenSo || '...................'}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
-          page1.drawText(nfc(`Ngày cấp: ${sample.ngayCap || '...................'}   Nơi cấp: ${sample.noiCap || '...................'}`), {
+          currentY -= 15;
+          page1.drawText(nfc(`Ngày cấp: ${sampleNgayCap}   Nơi cấp: ${sample.noiCap || '...................'}`), {
             x: textX,
             y: currentY,
-            size: 8,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 11;
+          currentY -= 15;
           page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
             x: textX,
             y: currentY,
-            size: 8.5,
+            size: 13,
             font: fontRegular,
             color: darkColor,
           });
-          currentY -= 16;
+          currentY -= 18;
         }
       }
     }
 
-    // Notes Section
-    currentY -= 2;
+    // Notes Section (Khoảng cách vừa vặn với phần thông tin mẫu bên trên)
+    currentY -= 6;
     page1.drawText(nfc(`-  Người ${loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`), {
       x: margin,
       y: currentY,
-      size: 7.5,
+      size: 10,
       font: fontItalic,
       color: darkColor,
     });
-    currentY -= 10;
+    currentY -= 12;
     page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.`), {
       x: margin,
       y: currentY,
-      size: 7.5,
+      size: 10,
       font: fontItalic,
       color: darkColor,
     });
-    currentY -= 10;
+    currentY -= 12;
     page1.drawText(nfc('-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.'), {
       x: margin,
       y: currentY,
-      size: 7.5,
+      size: 10,
       font: fontItalic,
       color: darkColor,
     });
-    currentY -= 10;
+    currentY -= 12;
     page1.drawText(nfc(`-  Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit ${boKit || 'A27Plex STR Detection Kit'}.`), {
       x: margin,
       y: currentY,
-      size: 7.5,
+      size: 10,
       font: fontItalic,
       color: darkColor,
     });
-    currentY -= 14;
+    currentY -= 16;
 
     // STR Loci Header
     page1.drawText(nfc('Kết quả phân tích ADN như sau:'), {
       x: margin,
       y: currentY,
-      size: 8.5,
+      size: 13,
       font: fontBold,
       color: darkColor,
     });
-    currentY -= 10;
+    currentY -= 14;
 
     // ----------------------------------------------------
     // RENDER THE 3 LOCI TABLES (Image 2 & Image 3 exact format)
@@ -496,32 +570,73 @@ export async function POST(request: NextRequest) {
     const lociTable3Def = ['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33'];
 
     const drawStandard9LociTable = (lociList: string[], dataRows: any[]) => {
-      const rowHeight = 11;
+      const rowHeight = 14;
       const firstColWidth = 52;
       const lociColWidth = Math.floor((width - margin * 2 - firstColWidth) / 9);
       const totalTableWidth = firstColWidth + lociColWidth * 9;
+      const tableHeight = rowHeight * (1 + sampleKeys.length);
+      const tableStartY = currentY;
 
-      // Table Header Row
+      // Outer border box
       page1.drawRectangle({
         x: margin,
-        y: currentY - rowHeight,
+        y: tableStartY - tableHeight,
         width: totalTableWidth,
-        height: rowHeight,
+        height: tableHeight,
         borderColor: darkColor,
         borderWidth: 0.5,
       });
 
+      // Horizontal inner lines
+      for (let r = 1; r <= sampleKeys.length; r++) {
+        const ry = tableStartY - r * rowHeight;
+        page1.drawLine({
+          start: { x: margin, y: ry },
+          end: { x: margin + totalTableWidth, y: ry },
+          color: darkColor,
+          thickness: 0.5,
+        });
+      }
+
+      // Vertical line separating first column (Mẫu \ Locus)
+      page1.drawLine({
+        start: { x: margin + firstColWidth, y: tableStartY },
+        end: { x: margin + firstColWidth, y: tableStartY - tableHeight },
+        color: darkColor,
+        thickness: 0.5,
+      });
+
+      // Vertical lines separating each of the 9 locus columns
+      for (let lIdx = 1; lIdx <= 9; lIdx++) {
+        const vx = margin + firstColWidth + lIdx * lociColWidth;
+        page1.drawLine({
+          start: { x: vx, y: tableStartY },
+          end: { x: vx, y: tableStartY - tableHeight },
+          color: darkColor,
+          thickness: 0.5,
+        });
+      }
+
+      // Diagonal slash line in top-left cell header (Mẫu \ Locus)
+      page1.drawLine({
+        start: { x: margin, y: tableStartY },
+        end: { x: margin + firstColWidth, y: tableStartY - rowHeight },
+        color: darkColor,
+        thickness: 0.5,
+      });
+
+      // Table Header Row Text
       page1.drawText(nfc('Locus'), {
-        x: margin + 14,
-        y: currentY - rowHeight + 3,
-        size: 6.5,
+        x: margin + 18,
+        y: currentY - rowHeight + 8,
+        size: 7,
         font: fontBold,
         color: darkColor,
       });
       page1.drawText(nfc('Mẫu'), {
         x: margin + 3,
-        y: currentY - rowHeight + 3,
-        size: 6.5,
+        y: currentY - rowHeight + 2,
+        size: 7,
         font: fontBold,
         color: darkColor,
       });
@@ -529,11 +644,11 @@ export async function POST(request: NextRequest) {
       // Loci columns names
       lociList.forEach((locName, lIdx) => {
         const lx = margin + firstColWidth + lIdx * lociColWidth;
-        const tw = fontBold.widthOfTextAtSize(nfc(locName), 6.5);
+        const tw = fontBold.widthOfTextAtSize(nfc(locName), 7.5);
         page1.drawText(nfc(locName), {
           x: lx + Math.max(1, (lociColWidth - tw) / 2),
-          y: currentY - rowHeight + 3,
-          size: 6.5,
+          y: currentY - rowHeight + 4,
+          size: 7.5,
           font: fontBold,
           color: darkColor,
         });
@@ -543,20 +658,11 @@ export async function POST(request: NextRequest) {
 
       // Sample rows (M1, M2...)
       sampleKeys.forEach((sKey: string) => {
-        page1.drawRectangle({
-          x: margin,
-          y: currentY - rowHeight,
-          width: totalTableWidth,
-          height: rowHeight,
-          borderColor: darkColor,
-          borderWidth: 0.5,
-        });
-
         // Sample key on left col
         page1.drawText(nfc(sKey), {
           x: margin + 16,
-          y: currentY - rowHeight + 3,
-          size: 7,
+          y: currentY - rowHeight + 4,
+          size: 8,
           font: fontBold,
           color: darkColor,
         });
@@ -576,11 +682,11 @@ export async function POST(request: NextRequest) {
           }
 
           const lx = margin + firstColWidth + lIdx * lociColWidth;
-          const tw = fontRegular.widthOfTextAtSize(nfc(alleleVal), 6.5);
+          const tw = fontRegular.widthOfTextAtSize(nfc(alleleVal), 7.5);
           page1.drawText(nfc(alleleVal), {
             x: lx + Math.max(1, (lociColWidth - tw) / 2),
-            y: currentY - rowHeight + 3,
-            size: 6.5,
+            y: currentY - rowHeight + 4,
+            size: 7.5,
             font: fontRegular,
             color: darkColor,
           });
@@ -589,7 +695,7 @@ export async function POST(request: NextRequest) {
         currentY -= rowHeight;
       });
 
-      currentY -= 2;
+      currentY -= 3;
     };
 
     drawStandard9LociTable(lociTable1Def, table1);
@@ -597,54 +703,102 @@ export async function POST(request: NextRequest) {
     drawStandard9LociTable(lociTable3Def, table3);
 
     // Conclusion Section
-    currentY -= 4;
+    currentY -= 10;
     page1.drawText(nfc('KẾT LUẬN:'), {
-      x: margin + 120,
+      x: margin,
       y: currentY,
-      size: 9,
+      size: 13,
       font: fontBold,
       color: darkColor,
     });
-    currentY -= 12;
+    currentY -= 15;
 
     const m1Name = mauDanhSach[0]?.hoTen || '...................';
     const m1Key = mauDanhSach[0]?.kyHieuMau || 'M1';
     const m2Name = mauDanhSach[1]?.hoTen || '...................';
     const m2Key = mauDanhSach[1]?.kyHieuMau || 'M2';
 
+    const rawKetLuan = (ketLuan || 'có quan hệ huyết thống bố - con ( cha – con)').trim();
+    const isAlreadyFullSentence =
+      rawKetLuan.toLowerCase().includes('kí hiệu') ||
+      rawKetLuan.toLowerCase().includes('ký hiệu') ||
+      rawKetLuan.toLowerCase().startsWith('người có mẫu');
+
     let conclusionFullText = '';
-    if (loaiXetNghiemADN === 'tu_nguyen') {
-      conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) có quan hệ huyết thống bố - con ( cha – con) với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) độ tin cậy > 99,9999%.`;
+    if (isAlreadyFullSentence) {
+      conclusionFullText = rawKetLuan;
     } else {
-      conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) có quan hệ huyết thống bố - con ( cha – con) với người có tên dự kiến ${m2Name} (Kí hiệu: ${m2Key}) độ tin cậy > 99,9999%.`;
+      const phrase = rawKetLuan;
+      const confidenceVal = (doTinCay || '> 99,9999%').trim();
+      const confidenceStr = confidenceVal.toLowerCase().startsWith('độ tin cậy')
+        ? confidenceVal
+        : `độ tin cậy ${confidenceVal}`;
+
+      if (loaiXetNghiemADN === 'tu_nguyen') {
+        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+      } else {
+        // ADN Pháp lý
+        conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có tên dự kiến ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+      }
     }
 
-    if (ketLuan) conclusionFullText = ketLuan;
+    const redPhraseRegex = /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
+    const match = conclusionFullText.match(redPhraseRegex);
+    const wordTokens: { word: string; color: any }[] = [];
 
-    page1.drawText(nfc(conclusionFullText), {
-      x: margin + 15,
-      y: currentY,
-      size: 8,
-      font: fontBold,
-      color: redColor,
-    });
+    if (match && match.index !== undefined) {
+      const idx = match.index;
+      const matchedStr = match[0];
+      const partBefore = conclusionFullText.slice(0, idx);
+      const partAfter = conclusionFullText.slice(idx + matchedStr.length);
+
+      partBefore.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: darkColor }));
+      matchedStr.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: redColor }));
+      partAfter.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: darkColor }));
+    } else {
+      conclusionFullText.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: darkColor }));
+    }
+
+    let concCurrentX = margin;
+    const concFontSize = 13;
+    const spaceW = fontBold.widthOfTextAtSize(' ', concFontSize);
+    const maxConcW = width - margin * 2;
+
+    for (const item of wordTokens) {
+      const wW = fontBold.widthOfTextAtSize(nfc(item.word), concFontSize);
+      if (concCurrentX + wW > margin + maxConcW && concCurrentX > margin) {
+        concCurrentX = margin;
+        currentY -= 15;
+      }
+      page1.drawText(nfc(item.word), {
+        x: concCurrentX,
+        y: currentY,
+        size: concFontSize,
+        font: fontBold,
+        color: item.color,
+      });
+      concCurrentX += wW + spaceW;
+    }
+    currentY -= 16;
 
     // Signatures
-    currentY -= 30;
+    currentY -= 40;
     page1.drawText(nfc('CÁN BỘ XÉT NGHIỆM'), {
-      x: margin + 40,
+      x: margin + 35,
       y: currentY,
-      size: 9,
+      size: 13,
       font: fontBold,
       color: darkColor,
     });
     page1.drawText(nfc('ĐẠI DIỆN ĐƠN VỊ'), {
-      x: width - margin - 140,
+      x: width - margin - 155,
       y: currentY,
-      size: 9,
+      size: 13,
       font: fontBold,
       color: darkColor,
     });
+
+
 
     // Footer note for ADN Tự nguyện (Image 3)
     if (loaiXetNghiemADN === 'tu_nguyen') {
@@ -671,27 +825,10 @@ export async function POST(request: NextRequest) {
       const pW = pageRun.getSize().width;
       const pH = pageRun.getSize().height;
 
-      // Header Banner
-      pageRun.drawRectangle({
-        x: margin,
-        y: pH - margin - 30,
-        width: pW - margin * 2,
-        height: 30,
-        color: primaryBlue,
-      });
-
-      pageRun.drawText(nfc(`KẾT QUẢ CHẠY ADN (GENEMAPPER) - MẪU ${sample.kyHieuMau || `M${idx + 1}`}: ${sample.hoTen || ''}`), {
-        x: margin + 15,
-        y: pH - margin - 20,
-        size: 11,
-        font: fontBold,
-        color: rgb(1, 1, 1),
-      });
-
       const imgEmbed = await embedImageHelper(pdfDoc, runImgStr);
       if (imgEmbed) {
         const maxImgWidth = pW - margin * 2;
-        const maxImgHeight = pH - margin * 2 - 50;
+        const maxImgHeight = pH - margin * 2;
         const imgDims = imgEmbed.scaleToFit(maxImgWidth, maxImgHeight);
 
         pageRun.drawImage(imgEmbed, {
@@ -718,64 +855,29 @@ export async function POST(request: NextRequest) {
       const pW = pageCccd.getSize().width;
       const pH = pageCccd.getSize().height;
 
-      // Header Banner
-      pageCccd.drawRectangle({
-        x: margin,
-        y: pH - margin - 30,
-        width: pW - margin * 2,
-        height: 30,
-        color: primaryBlue,
-      });
-
-      pageCccd.drawText(nfc(`CĂN CƯỚC CÔNG DÂN / GIẤY TỜ MẪU ${sample.kyHieuMau || `M${idx + 1}`}: ${sample.hoTen || ''}`), {
-        x: margin + 15,
-        y: pH - margin - 20,
-        size: 11,
-        font: fontBold,
-        color: rgb(1, 1, 1),
-      });
-
-      let cccdY = pH - margin - 50;
+      let cccdY = pH - margin;
 
       if (cccdFront) {
-        pageCccd.drawText(nfc('Mặt trước CCCD / Giấy chứng sinh:'), {
-          x: margin,
-          y: cccdY,
-          size: 10,
-          font: fontBold,
-          color: darkColor,
-        });
-        cccdY -= 15;
-
         const imgFrontEmbed = await embedImageHelper(pdfDoc, cccdFront);
         if (imgFrontEmbed) {
-          const dims = imgFrontEmbed.scaleToFit(pW - margin * 2, 330);
+          const dims = imgFrontEmbed.scaleToFit(pW - margin * 2, cccdBack ? 360 : 740);
           pageCccd.drawImage(imgFrontEmbed, {
             x: margin + (pW - margin * 2 - dims.width) / 2,
-            y: cccdY - dims.height,
+            y: cccdBack ? cccdY - dims.height : margin + (pH - margin * 2 - dims.height) / 2,
             width: dims.width,
             height: dims.height,
           });
-          cccdY -= dims.height + 25;
+          cccdY -= dims.height + 20;
         }
       }
 
       if (cccdBack) {
-        pageCccd.drawText(nfc('Mặt sau CCCD / Giấy tờ bổ sung:'), {
-          x: margin,
-          y: cccdY,
-          size: 10,
-          font: fontBold,
-          color: darkColor,
-        });
-        cccdY -= 15;
-
         const imgBackEmbed = await embedImageHelper(pdfDoc, cccdBack);
         if (imgBackEmbed) {
-          const dims = imgBackEmbed.scaleToFit(pW - margin * 2, 330);
+          const dims = imgBackEmbed.scaleToFit(pW - margin * 2, cccdFront ? 360 : 740);
           pageCccd.drawImage(imgBackEmbed, {
             x: margin + (pW - margin * 2 - dims.width) / 2,
-            y: cccdY - dims.height,
+            y: cccdFront ? cccdY - dims.height : margin + (pH - margin * 2 - dims.height) / 2,
             width: dims.width,
             height: dims.height,
           });
