@@ -73,7 +73,7 @@ interface AdnOrderData {
   daiDienDonVi: string;
   kiemSoatKetQua: string;
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
-  dieuKien?: 'du_dieu_kien' | 'khong_du_dieu_kien';
+  dieuKien?: 'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan';
   anhGuiMau?: string;
   anhNhanMau?: string;
   mauDanhSach: SampleItem[];
@@ -350,7 +350,7 @@ export default function AdnConvertPage() {
   const openReceiveModal = (order: AdnOrderData) => {
     setActiveOrder(order);
     setReceiveAnhNhanMau(order.anhNhanMau || '');
-    setReceiveDieuKien(order.dieuKien || 'du_dieu_kien');
+    setReceiveDieuKien(order.dieuKien === 'khong_du_dieu_kien' ? 'khong_du_dieu_kien' : 'du_dieu_kien');
     setShowReceiveModal(true);
   };
 

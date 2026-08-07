@@ -15,6 +15,7 @@ import {
   X,
   Check,
   Key,
+  Dna,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -24,8 +25,8 @@ interface UserItem {
   _id: string;
   username: string;
   fullName: string;
-  role: 'admin' | 'doctor' | 'staff' | 'lab_admin';
-  allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh'>;
+  role: 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn';
+  allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'adn'>;
   title?: string;
   createdAt: string;
 }
@@ -57,8 +58,8 @@ export default function UserManagementPage() {
     username: '',
     password: '',
     fullName: '',
-    role: 'doctor' as 'admin' | 'doctor' | 'staff' | 'lab_admin',
-    allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'] as string[],
+    role: 'doctor' as 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn',
+    allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'] as string[],
     title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
   });
 
@@ -265,6 +266,11 @@ export default function UserManagementPage() {
                               <ShieldCheck className="w-3.5 h-3.5" />
                               <span>Admin Phòng Lab</span>
                             </span>
+                          ) : user.role === 'lab_adn' ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                              <Dna className="w-3.5 h-3.5 text-blue-600" />
+                              <span>Admin Lab ADN</span>
+                            </span>
                           ) : user.role === 'doctor' ? (
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-700 border border-sky-200">
                               <Stethoscope className="w-3.5 h-3.5" />
@@ -394,13 +400,14 @@ export default function UserManagementPage() {
                         onChange={(e) =>
                           setFormData({
                             ...formData,
-                            role: e.target.value as 'admin' | 'doctor' | 'staff' | 'lab_admin',
+                            role: e.target.value as 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn',
                           })
                         }
                       >
                         <option value="doctor">Bác sĩ đọc kết quả</option>
                         <option value="staff">Phòng khám / Nhân viên nhập phiếu</option>
                         <option value="lab_admin">Admin Phòng Lab (Xem tất cả phiếu các Bác sĩ)</option>
+                        <option value="lab_adn">Admin Lab ADN (Tạo & Quản lý danh sách ADN)</option>
                         <option value="admin">Quản trị viên (Admin Hệ Thống)</option>
                       </select>
                     </div>
@@ -422,7 +429,7 @@ export default function UserManagementPage() {
                     </div>
                   )}
 
-                  {(formData.role === 'doctor' || formData.role === 'staff' || formData.role === 'lab_admin') && (
+                  {(formData.role === 'doctor' || formData.role === 'staff' || formData.role === 'lab_admin' || formData.role === 'lab_adn') && (
                     <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                       <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider">
                         Phân quyền xem/xử lý danh mục xét nghiệm:

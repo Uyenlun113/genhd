@@ -365,6 +365,18 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
   const handleSaveOrder = async (targetStatus?: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua') => {
     setSaving(true);
     const newStatus = targetStatus || trangThai;
+
+    const baseCode = (soPhieu || '').split('/')[0].trim();
+    const formattedMauDanhSach = mauDanhSach.map((s, idx) => {
+      const defaultRaw = idx === 0 ? 'B' : idx === 1 ? 'C' : `M${idx + 1}`;
+      const rawKey = s.kyHieuMau && s.kyHieuMau.trim() ? s.kyHieuMau.trim() : defaultRaw;
+      const fullKey = rawKey.endsWith(baseCode) ? rawKey : `${rawKey}${baseCode}`;
+      return {
+        ...s,
+        kyHieuMau: fullKey,
+      };
+    });
+
     try {
       const res = await fetch(`/api/adn/orders/${id}`, {
         method: 'PUT',
@@ -384,7 +396,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
           trangThai: newStatus,
           anhGuiMau,
           anhNhanMau,
-          mauDanhSach,
+          mauDanhSach: formattedMauDanhSach,
           table1,
           table2,
           table3,

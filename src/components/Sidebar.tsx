@@ -32,7 +32,7 @@ function SidebarContent() {
   const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
   const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('soituoi');
   const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('giaiphaubenh');
-  const canSeeAdnConvert = userRole === 'admin' || allowedCategories.includes('adn');
+  const canSeeAdnConvert = userRole === 'admin' || userRole === 'lab_adn' || allowedCategories.includes('adn');
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {

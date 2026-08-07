@@ -46,20 +46,27 @@ export default function NewAdnOrderPage() {
   const [anhGuiMau, setAnhGuiMau] = useState('');
 
   const [mauDanhSach, setMauDanhSach] = useState<SampleItem[]>([
-    { kyHieuMau: 'M1', hoTen: '', gioiTinh: 'Nam', ngaySinh: '', loaiMau: 'Máu', cccd: '' },
-    { kyHieuMau: 'M2', hoTen: '', gioiTinh: 'Nữ', ngaySinh: '', loaiMau: 'Máu', cccd: '' },
+    { kyHieuMau: 'B', hoTen: '', gioiTinh: 'Nam', ngaySinh: '', loaiMau: 'Máu', cccd: '' },
+    { kyHieuMau: 'C', hoTen: '', gioiTinh: 'Nữ', ngaySinh: '', loaiMau: 'Máu', cccd: '' },
   ]);
 
   // Auto-generate ticket number & request date on mount / type change
   useEffect(() => {
     const today = new Date();
-    const dd = String(today.getDate()).padStart(2, '0');
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
     const yy = String(today.getFullYear()).slice(-2);
-    const dateStr = `${dd}${mm}${yy}`;
+    const tag = createType === 'phap_ly' ? 'HHK/ADN' : 'THK/ADN';
 
-    const prefix = createType === 'phap_ly' ? 'HCGT' : 'TNGT';
-    setSoPhieu(`${prefix}-${dateStr}-01`);
+    fetch('/api/adn/orders')
+      .then((res) => res.json())
+      .then((json) => {
+        const count = json.data?.length || 0;
+        const seq = String(count + 1).padStart(4, '0');
+        setSoPhieu(`${yy}${seq}${tag}`);
+      })
+      .catch(() => {
+        setSoPhieu(`${yy}0001${tag}`);
+      });
+
     const yyyy = today.getFullYear();
     const mmIso = String(today.getMonth() + 1).padStart(2, '0');
     const ddIso = String(today.getDate()).padStart(2, '0');
@@ -92,6 +99,17 @@ export default function NewAdnOrderPage() {
       return;
     }
 
+    const baseCode = (soPhieu || '').split('/')[0].trim();
+    const formattedMauDanhSach = mauDanhSach.map((s, idx) => {
+      const defaultRaw = idx === 0 ? 'B' : idx === 1 ? 'C' : `M${idx + 1}`;
+      const rawKey = s.kyHieuMau && s.kyHieuMau.trim() ? s.kyHieuMau.trim() : defaultRaw;
+      const fullKey = rawKey.endsWith(baseCode) ? rawKey : `${rawKey}${baseCode}`;
+      return {
+        ...s,
+        kyHieuMau: fullKey,
+      };
+    });
+
     setLoading(true);
     try {
       const res = await fetch('/api/adn/orders', {
@@ -106,7 +124,7 @@ export default function NewAdnOrderPage() {
           nguoiThuMau,
           boKit,
           anhGuiMau,
-          mauDanhSach,
+          mauDanhSach: formattedMauDanhSach,
         }),
       });
 

@@ -61,24 +61,35 @@ export async function POST(request: NextRequest) {
     } = body;
 
     const now = new Date();
-    const d = String(now.getDate()).padStart(2, '0');
-    const m = String(now.getMonth() + 1).padStart(2, '0');
-    const y = String(now.getFullYear()).slice(-2);
-    const dateTag = `${d}${m}${y}`;
-
-    const prefix = loaiXetNghiemADN === 'phap_ly' ? 'HCGT' : 'TNGT';
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const countToday = await AdnOrder.countDocuments({
-      createdAt: { $gte: startOfDay },
+    const yy = String(now.getFullYear()).slice(-2);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+    const countThisYear = await AdnOrder.countDocuments({
+      createdAt: { $gte: startOfYear },
     });
-    const seq = String(countToday + 1).padStart(2, '0');
+    const seqStr = String(countThisYear + 1).padStart(4, '0');
+    const tag = loaiXetNghiemADN === 'tu_nguyen' ? 'THK/ADN' : 'HHK/ADN';
 
-    const generatedMaSo = `${prefix}-${dateTag}-${seq}`;
+    const generatedMaSo = `${yy}${seqStr}${tag}`;
     const maSo = soPhieu && soPhieu.trim() ? soPhieu.trim() : generatedMaSo;
     const finalSoPhieu = maSo;
 
+    const baseCode = finalSoPhieu.split('/')[0].trim();
+
+    // Format sample symbols (kyHieuMau): B + 260001HHK -> B260001HHK
+    const formattedMauDanhSach = mauDanhSach.map((s: any, idx: number) => {
+      const defaultRaw = idx === 0 ? 'B' : idx === 1 ? 'C' : `M${idx + 1}`;
+      const rawKey = s.kyHieuMau && String(s.kyHieuMau).trim() ? String(s.kyHieuMau).trim() : defaultRaw;
+      const fullKey = rawKey.endsWith(baseCode) ? rawKey : `${rawKey}${baseCode}`;
+      return {
+        ...s,
+        kyHieuMau: fullKey,
+      };
+    });
+
     // Initialize default loci tables for dynamic samples
-    const sampleKeys = mauDanhSach.length > 0 ? mauDanhSach.map((s: any) => s.kyHieuMau || 'M1') : ['M1', 'M2'];
+    const sampleKeys = formattedMauDanhSach.length > 0
+      ? formattedMauDanhSach.map((s: any) => s.kyHieuMau)
+      : [`B${baseCode}`, `C${baseCode}`];
 
     const initLoci = (lociList: string[]) =>
       lociList.map((loc) => {
@@ -130,7 +141,7 @@ export async function POST(request: NextRequest) {
       loaiXetNghiemADN,
       soPhieu: finalSoPhieu,
       ngayBanHanh: ngayBanHanh || `Hà Nội, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}.`,
-      ngayYeuCau: ngayYeuCau || new Date().toLocaleDateString('vi-VN'),
+      ngayYeuCau: ngayYeuCau || new Date().toISOString().split('T')[0],
       nguoiYeuCau,
       nguoiThuMau,
       boKit,
@@ -139,7 +150,7 @@ export async function POST(request: NextRequest) {
       trangThai: 'gui_mau', // Step 1: Gửi mẫu
       dieuKien: 'chua_xac_nhan',
       anhGuiMau,
-      mauDanhSach,
+      mauDanhSach: formattedMauDanhSach,
       table1: defaultTable1,
       table2: defaultTable2,
       table3: defaultTable3,
