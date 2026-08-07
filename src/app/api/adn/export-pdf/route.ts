@@ -571,7 +571,7 @@ export async function POST(request: NextRequest) {
 
     const drawStandard9LociTable = (lociList: string[], dataRows: any[]) => {
       const rowHeight = 14;
-      const firstColWidth = 52;
+      const firstColWidth = 78;
       const lociColWidth = Math.floor((width - margin * 2 - firstColWidth) / 9);
       const totalTableWidth = firstColWidth + lociColWidth * 9;
       const tableHeight = rowHeight * (1 + sampleKeys.length);
@@ -627,14 +627,14 @@ export async function POST(request: NextRequest) {
 
       // Table Header Row Text
       page1.drawText(nfc('Locus'), {
-        x: margin + 18,
+        x: margin + firstColWidth - 32,
         y: currentY - rowHeight + 8,
         size: 7,
         font: fontBold,
         color: darkColor,
       });
       page1.drawText(nfc('Mẫu'), {
-        x: margin + 3,
+        x: margin + 6,
         y: currentY - rowHeight + 2,
         size: 7,
         font: fontBold,
@@ -656,13 +656,21 @@ export async function POST(request: NextRequest) {
 
       currentY -= rowHeight;
 
-      // Sample rows (M1, M2...)
+      // Sample rows (B260001HHK, C260001HHK...)
       sampleKeys.forEach((sKey: string) => {
-        // Sample key on left col
-        page1.drawText(nfc(sKey), {
-          x: margin + 16,
-          y: currentY - rowHeight + 4,
-          size: 8,
+        const keyText = nfc(sKey);
+        let keyFontSize = 7.5;
+        let keyWidth = fontBold.widthOfTextAtSize(keyText, keyFontSize);
+        if (keyWidth > firstColWidth - 4) {
+          keyFontSize = Math.max(5.5, ((firstColWidth - 4) / keyWidth) * keyFontSize);
+          keyWidth = fontBold.widthOfTextAtSize(keyText, keyFontSize);
+        }
+        const keyX = margin + Math.max(2, (firstColWidth - keyWidth) / 2);
+
+        page1.drawText(keyText, {
+          x: keyX,
+          y: currentY - rowHeight + 3.5,
+          size: keyFontSize,
           font: fontBold,
           color: darkColor,
         });
