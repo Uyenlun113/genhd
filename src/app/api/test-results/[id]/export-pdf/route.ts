@@ -33,23 +33,19 @@ export async function GET(request: NextRequest, { params }: Params) {
       }
     }
 
-    // Map bác sĩ đọc kết quả → file chữ ký (Linh hoạt theo tên hoặc từ khóa)
-    let signatureImage = '';
-    if (testResult.daKy) {
-      const docName = (testResult.bacSiDoc || '').toUpperCase();
-      if (docName.includes('TRỰC') || docName.includes('TRUC')) {
-        signatureImage = 'chu_ki_truc.png';
-      } else if (docName.includes('HÙNG') || docName.includes('HUNG')) {
-        signatureImage = 'chu_ki_hung.png';
-      } else if (docName.includes('DƯƠNG') || docName.includes('DUONG')) {
-        signatureImage = 'chu_ki_duong.png';
-      } else if (docName.includes('DŨNG') || docName.includes('DUNG')) {
-        signatureImage = 'chu_ki_dung.png';
-      } else {
-        // Mặc định nếu là Admin hoặc chưa map tên cụ thể
-        signatureImage = 'chu_ki_hung.png';
-      }
-    }
+    // Map bác sĩ đọc kết quả → file chữ ký
+    const getSig = (docName?: string) => {
+      if (!testResult.daKy || !docName) return '';
+      const upper = docName.toUpperCase();
+      if (upper.includes('TRỰC') || upper.includes('TRUC')) return 'chu_ki_truc.png';
+      if (upper.includes('HÙNG') || upper.includes('HUNG')) return 'chu_ki_hung.png';
+      if (upper.includes('DƯƠNG') || upper.includes('DUONG')) return 'chu_ki_duong.png';
+      if (upper.includes('DŨNG') || upper.includes('DUNG')) return 'chu_ki_dung.png';
+      return 'chu_ki_hung.png';
+    };
+
+    const signatureImage1 = getSig(testResult.bacSiDoc);
+    const signatureImage2 = getSig(testResult.bacSiDoc2 || testResult.bacSiDoc);
 
     const pdfBuffer = await generatePDF({
       maSo: testResult.maSo,
@@ -100,12 +96,15 @@ export async function GET(request: NextRequest, { params }: Params) {
       soiTuoiGhiChuTrichomonas: testResult.soiTuoiGhiChuTrichomonas,
 
       ketLuan: testResult.ketLuan,
-      khuyenNghi: testResult.khuyenNghi || '',
+      khuyenNghi: testResult.khuyenNghi,
       ngayXetNghiem: testResult.ngayXetNghiem,
-      bacSiDoc: testResult.bacSiDoc || 'BS CK1 PHẠM THẾ HÙNG',
+      bacSiDoc: testResult.bacSiDoc,
+      bacSiDoc2: testResult.bacSiDoc2,
       bacSiTitle,
       anhTeBao: testResult.anhTeBao,
-      signatureImage,
+      anhHpv: testResult.anhHpv,
+      signatureImage: signatureImage1,
+      signatureImage2: signatureImage2,
     });
 
     const filename = `${testResult.maSo} ${testResult.hoTen}.pdf`;

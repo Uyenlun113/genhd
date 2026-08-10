@@ -197,13 +197,13 @@ export default function NewAdnOrderPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <TopHeader />
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">
+      <Sidebar />
 
-      <div className="flex flex-1 w-full">
-        <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <TopHeader />
 
-        <main className="flex-1 p-6 md:p-8 w-full">
+        <main className="flex-1 p-6 md:p-8 w-full overflow-y-auto">
           <Header
             title="Tạo mới đơn xét nghiệm ADN"
             subtitle="Nhập thông tin ban đầu, đính kèm ảnh gửi mẫu và các thông tin mẫu xét nghiệm"

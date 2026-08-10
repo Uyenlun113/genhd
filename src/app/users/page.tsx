@@ -201,13 +201,13 @@ export default function UserManagementPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <TopHeader />
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">
+      <Sidebar />
 
-      <div className="flex flex-1 w-full">
-        <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <TopHeader />
 
-        <main className="flex-1 p-6 md:p-8 w-full">
+        <main className="flex-1 p-6 md:p-8 w-full overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
@@ -490,6 +490,40 @@ export default function UserManagementPage() {
                             onChange={() => handleCategoryToggle('adn')}
                           />
                           <span className="text-xs font-bold text-indigo-700">XÉT NGHIỆM ADN</span>
+                        </label>
+
+                        {/* COMBO PERMISSIONS */}
+                        <label className="checkbox-item bg-orange-50/80 border-orange-200 col-span-1 sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('combo_hpv20_cell')}
+                            onChange={() => handleCategoryToggle('combo_hpv20_cell')}
+                          />
+                          <span className="text-xs font-bold text-orange-700">🔥 COMBO: HPV 20 + CELL</span>
+                        </label>
+                        <label className="checkbox-item bg-rose-50/80 border-rose-200 col-span-1 sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('combo_hpv40_cell')}
+                            onChange={() => handleCategoryToggle('combo_hpv40_cell')}
+                          />
+                          <span className="text-xs font-bold text-rose-700">🔥 COMBO: HPV 40 + CELL</span>
+                        </label>
+                        <label className="checkbox-item bg-purple-50/80 border-purple-200 col-span-1 sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('combo_hpv20_thinprep')}
+                            onChange={() => handleCategoryToggle('combo_hpv20_thinprep')}
+                          />
+                          <span className="text-xs font-bold text-purple-700">🔥 COMBO: HPV 20 + THINPREP</span>
+                        </label>
+                        <label className="checkbox-item bg-red-50/80 border-red-200 col-span-1 sm:col-span-2">
+                          <input
+                            type="checkbox"
+                            checked={formData.allowedCategories.includes('combo_hpv40_thinprep')}
+                            onChange={() => handleCategoryToggle('combo_hpv40_thinprep')}
+                          />
+                          <span className="text-xs font-bold text-red-700">🔥 COMBO: HPV 40 + THINPREP</span>
                         </label>
                       </div>
                     </div>

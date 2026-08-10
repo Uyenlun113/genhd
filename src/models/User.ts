@@ -5,7 +5,7 @@ export interface IUser extends Document {
   password: string;
   fullName: string;
   role: 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn';
-  allowedCategories: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'adn'>;
+  allowedCategories: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'adn' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep'>;
   title: string;
   createdAt: Date;
   updatedAt: Date;
@@ -35,8 +35,8 @@ const UserSchema = new Schema<IUser>(
     },
     allowedCategories: {
       type: [String],
-      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'],
-      default: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn', 'combo_hpv20_cell', 'combo_hpv40_cell', 'combo_hpv20_thinprep', 'combo_hpv40_thinprep'],
+      default: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn', 'combo_hpv20_cell', 'combo_hpv40_cell', 'combo_hpv20_thinprep', 'combo_hpv40_thinprep'],
     },
     title: {
       type: String,

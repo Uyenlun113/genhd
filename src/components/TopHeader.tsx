@@ -14,10 +14,12 @@ import {
   ExternalLink,
   Handshake,
   Dna,
+  Menu,
 } from 'lucide-react';
 import Image from 'next/image';
 import logoImg from '../../public/logo.png';
 import logoGenetrust from '../../public/Logo_Genetrust.png';
+import { useSidebar } from '@/context/SidebarContext';
 
 interface NotificationItem {
   _id: string;
@@ -32,6 +34,7 @@ import { useWebSocket } from '@/hooks/useWebSocket';
 import ConfirmModal from '@/components/ConfirmModal';
 
 export default function TopHeader() {
+  const { toggleSidebar } = useSidebar();
   const { data: session } = useSession();
   const userRole = (session?.user as { role?: string })?.role;
   const userName = session?.user?.name || session?.user?.email || 'User';
@@ -111,27 +114,15 @@ export default function TopHeader() {
 
   return (
     <header className="w-full bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-40">
-      {/* Left: Brand Logos & Partnership Co-Branding */}
+      {/* Left: Hamburger Toggle Button */}
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-3 group">
-          {/* GENETRUST Logo */}
-          <Image
-            src={logoGenetrust}
-            alt="Genetrust Logo"
-            width={48}
-            height={48}
-            style={{ objectFit: 'contain', width: '48px', height: '48px' }}
-            className="group-hover:scale-105 transition-transform"
-          />
-          <div className="leading-tight">
-            <span className="text-xl font-black text-[#003399] tracking-tight block">
-              GENETRUST
-            </span>
-            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
-              Việt Nam
-            </span>
-          </div>
-        </Link>
+        <button
+          onClick={toggleSidebar}
+          className="p-2 rounded-xl text-slate-600 hover:text-sky-600 hover:bg-sky-50 active:scale-95 transition-all border border-slate-200/80 bg-white shadow-2xs flex items-center justify-center cursor-pointer"
+          title="Đóng / Mở menu"
+        >
+          <Menu className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Right: Actions (Notification Bell, Admin Link, User Profile) */}

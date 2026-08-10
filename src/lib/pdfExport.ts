@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -58,12 +58,15 @@ export interface ITestResultData {
   khuyenNghi?: string;
   ngayXetNghiem: string | Date;
   bacSiDoc?: string;
+  bacSiDoc2?: string;
   bacSiTitle?: string;
   anhTeBao?: string;
-  signatureImage?: string; // tên file ảnh chữ ký trong public/ (vd: chu_ky_hung.jpg)
+  anhHpv?: string;
+  signatureImage?: string;
+  signatureImage2?: string;
 }
 
-export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
+export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
@@ -1026,20 +1029,21 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     );
 
     // Embedded PCR chart image if uploaded
-    if (data.anhTeBao && data.anhTeBao.length > 20) {
+    const hpvImg = data.anhHpv || (data.loaiXetNghiem?.startsWith('combo') ? '' : data.anhTeBao);
+    if (hpvImg && hpvImg.length > 20) {
       try {
         let imageBytes: Buffer;
-        if (data.anhTeBao.startsWith('http://') || data.anhTeBao.startsWith('https://')) {
-          const res = await fetch(data.anhTeBao);
+        if (hpvImg.startsWith('http://') || hpvImg.startsWith('https://')) {
+          const res = await fetch(hpvImg);
           const arrayBuf = await res.arrayBuffer();
           imageBytes = Buffer.from(arrayBuf);
         } else {
-          const base64Data = data.anhTeBao.replace(/^data:image\/\w+;base64,/, '');
+          const base64Data = hpvImg.replace(/^data:image\/\w+;base64,/, '');
           imageBytes = Buffer.from(base64Data, 'base64');
         }
 
         let embeddedImg;
-        if (data.anhTeBao.includes('.png') || data.anhTeBao.includes('image/png')) {
+        if (hpvImg.includes('.png') || hpvImg.includes('image/png')) {
           embeddedImg = await pdfDoc.embedPng(imageBytes);
         } else {
           embeddedImg = await pdfDoc.embedJpg(imageBytes);
@@ -1604,4 +1608,43 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
 
   const modifiedPdfBytes = await pdfDoc.save();
   return modifiedPdfBytes;
+}
+
+export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
+  if (data.loaiXetNghiem && data.loaiXetNghiem.startsWith('combo_')) {
+    let type1: 'hpv20' | 'hpv40' = 'hpv20';
+    let type2: 'cell' | 'thinprep' = 'cell';
+
+    if (data.loaiXetNghiem.includes('hpv40')) type1 = 'hpv40';
+    if (data.loaiXetNghiem.includes('thinprep')) type2 = 'thinprep';
+
+    const pdfBytes1 = await generateSingleTestPDF({
+      ...data,
+      loaiXetNghiem: type1,
+      bacSiDoc: data.bacSiDoc,
+      signatureImage: data.signatureImage,
+      ketLuan: data.hpvHighRiskResult ? `NHÓM HPV NGUY CƠ CAO (TYPE 16, 18): ${data.hpvHighRiskResult.toUpperCase()}` : (data.ketLuan || 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
+    });
+
+    const pdfBytes2 = await generateSingleTestPDF({
+      ...data,
+      loaiXetNghiem: type2,
+      bacSiDoc: data.bacSiDoc2 || data.bacSiDoc,
+      signatureImage: data.signatureImage2 || data.signatureImage,
+    });
+
+    const mergedPdf = await PDFDocument.create();
+    const doc1 = await PDFDocument.load(pdfBytes1);
+    const doc2 = await PDFDocument.load(pdfBytes2);
+
+    const pages1 = await mergedPdf.copyPages(doc1, doc1.getPageIndices());
+    pages1.forEach((p) => mergedPdf.addPage(p));
+
+    const pages2 = await mergedPdf.copyPages(doc2, doc2.getPageIndices());
+    pages2.forEach((p) => mergedPdf.addPage(p));
+
+    return await mergedPdf.save();
+  }
+
+  return await generateSingleTestPDF(data);
 }

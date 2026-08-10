@@ -2,12 +2,14 @@
 
 import { SessionProvider } from 'next-auth/react';
 import { Toaster } from 'react-hot-toast';
+import { SidebarProvider } from '@/context/SidebarContext';
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <SessionProvider refetchOnWindowFocus={false} refetchInterval={0}>
-      {children}
-      <Toaster
+      <SidebarProvider>
+        {children}
+        <Toaster
         position="top-right"
         toastOptions={{
           duration: 4000,
@@ -35,6 +37,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
+      </SidebarProvider>
     </SessionProvider>
   );
 }

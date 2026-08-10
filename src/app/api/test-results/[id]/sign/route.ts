@@ -36,14 +36,18 @@ export async function POST(request: NextRequest, { params }: Params) {
     delete body.createdAt;
     delete body.updatedAt;
 
+    const part = body.part || 1;
+    delete body.part;
+
     const updatePayload: any = {
       ...body,
-      daKy: true,
+      daKy: part === 1 ? (body.daKy !== undefined ? body.daKy : true) : (body.daKy || false),
+      daKy2: part === 2 ? (body.daKy2 !== undefined ? body.daKy2 : true) : (body.daKy2 || false),
       $push: {
         lichSuChinhSua: {
           nguoiSua: userName,
           thoiGian: new Date(),
-          noiDung: 'Bác sĩ lưu kết quả và ký xét nghiệm',
+          noiDung: `Bác sĩ ${userName} cập nhật chữ ký phần ${part}`,
         },
       },
     };

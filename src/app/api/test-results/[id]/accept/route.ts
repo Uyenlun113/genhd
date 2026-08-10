@@ -28,7 +28,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const duKienTra = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Exactly +3 days (72 hours)
 
     const body = await request.json().catch(() => ({}));
-    const { bacSiDoc } = body;
+    const { bacSiDoc, bacSiDoc2 } = body;
 
     const updateFields: any = {
       trangThai: 'chay_ket_qua',
@@ -39,7 +39,9 @@ export async function POST(request: NextRequest, { params }: Params) {
         lichSuChinhSua: {
           nguoiSua: userName,
           thoiGian: now,
-          noiDung: bacSiDoc
+          noiDung: bacSiDoc2
+            ? `Nhận mẫu & phân công bác sĩ: P1 (${bacSiDoc}), P2 (${bacSiDoc2})`
+            : bacSiDoc
             ? `Nhận mẫu & phân công bác sĩ đọc kết quả: ${bacSiDoc}`
             : 'Nhận mẫu & tiếp nhận phiếu xét nghiệm',
         },
@@ -48,6 +50,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (bacSiDoc) {
       updateFields.bacSiDoc = bacSiDoc;
+    }
+    if (bacSiDoc2) {
+      updateFields.bacSiDoc2 = bacSiDoc2;
     }
 
     const result = await TestResult.findByIdAndUpdate(

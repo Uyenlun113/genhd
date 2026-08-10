@@ -15,7 +15,8 @@ export {
 
 export interface ITestResult extends Document {
   maSo: string;
-  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh';
+  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
+  bacSiDoc2?: string;
 
   // Thông tin bệnh nhân
   hoTen: string;
@@ -82,7 +83,9 @@ export interface ITestResult extends Document {
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
 
   daKy: boolean;
-  anhTeBao: string; // Ảnh soi tế bào hoặc biểu đồ PCR
+  daKy2?: boolean;
+  anhTeBao: string; // Ảnh soi tế bào
+  anhHpv?: string; // Ảnh biểu đồ HPV Realtime PCR
   pdfDaKy: string;
 
   nguoiNhap: mongoose.Types.ObjectId;
@@ -105,7 +108,7 @@ const TestResultSchema = new Schema<ITestResult>(
     maSo: { type: String, unique: true, required: true },
     loaiXetNghiem: {
       type: String,
-      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'combo_hpv20_cell', 'combo_hpv40_cell', 'combo_hpv20_thinprep', 'combo_hpv40_thinprep'],
       default: 'cell',
     },
 
@@ -159,6 +162,7 @@ const TestResultSchema = new Schema<ITestResult>(
 
     ngayXetNghiem: { type: Date, default: Date.now },
     bacSiDoc: { type: String, default: 'BS CK1 PHẠM THẾ HÙNG' },
+    bacSiDoc2: { type: String, default: '' },
 
     trangThai: {
       type: String,
@@ -167,7 +171,9 @@ const TestResultSchema = new Schema<ITestResult>(
     },
 
     daKy: { type: Boolean, default: false },
+    daKy2: { type: Boolean, default: false },
     anhTeBao: { type: String, default: '' },
+    anhHpv: { type: String, default: '' },
     pdfDaKy: { type: String, default: '' },
 
     nguoiNhap: { type: Schema.Types.ObjectId, ref: 'User' },
@@ -190,6 +196,10 @@ export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
   else if (loaiXetNghiem === 'hpv20') prefix = 'GTHD-20HP';
   else if (loaiXetNghiem === 'soituoi') prefix = 'GTHD-ST';
   else if (loaiXetNghiem === 'giaiphaubenh') prefix = 'GTHD-GP';
+  else if (loaiXetNghiem === 'combo_hpv20_cell') prefix = 'GTHD-CB20C';
+  else if (loaiXetNghiem === 'combo_hpv40_cell') prefix = 'GTHD-CB40C';
+  else if (loaiXetNghiem === 'combo_hpv20_thinprep') prefix = 'GTHD-CB20TP';
+  else if (loaiXetNghiem === 'combo_hpv40_thinprep') prefix = 'GTHD-CB40TP';
 
   let uniqueMaSo = '';
   let isUnique = false;

@@ -635,11 +635,11 @@ export default function AdnConvertListPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-800 flex flex-col font-sans">
-      <TopHeader />
+    <div className="min-h-screen bg-slate-100 text-slate-800 flex overflow-hidden h-screen font-sans">
+      <Sidebar />
 
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <TopHeader />
 
         <main className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6">
           {/* Standard Page Header */}

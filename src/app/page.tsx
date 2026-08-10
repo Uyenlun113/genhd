@@ -43,6 +43,7 @@ interface TestResultItem {
   diaChi?: string;
   soDienThoai?: string;
   loaiMau?: string;
+  loaiXetNghiem?: string;
   donVi?: string;
   bacSiChiDinh?: string;
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
@@ -50,6 +51,7 @@ interface TestResultItem {
   ngayDuKienTra?: string;
   createdAt: string;
   bacSiDoc?: string;
+  bacSiDoc2?: string;
   nguoiNhap?: any;
   daKy?: boolean;
 }
@@ -261,25 +263,66 @@ function DashboardContent() {
     }
   };
 
-  const [acceptItem, setAcceptItem] = useState<{ id: string; maSo: string; bacSiDoc?: string } | null>(null);
+  const [acceptItem, setAcceptItem] = useState<{
+    id: string;
+    maSo: string;
+    loaiXetNghiem?: string;
+    bacSiDoc?: string;
+    bacSiDoc2?: string;
+  } | null>(null);
   const [selectedDoctorForAccept, setSelectedDoctorForAccept] = useState('');
+  const [selectedDoctor2ForAccept, setSelectedDoctor2ForAccept] = useState('');
 
-  const handleAcceptClick = (item: { _id: string; maSo: string; bacSiDoc?: string }) => {
+  const handleAcceptClick = (item: { _id: string; maSo: string; loaiXetNghiem?: string; bacSiDoc?: string; bacSiDoc2?: string }) => {
     setActiveMenuId(null);
-    setAcceptItem({ id: item._id, maSo: item.maSo, bacSiDoc: item.bacSiDoc });
-    setSelectedDoctorForAccept(item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : doctors[0]?.fullName || '');
+    setAcceptItem({
+      id: item._id,
+      maSo: item.maSo,
+      loaiXetNghiem: item.loaiXetNghiem,
+      bacSiDoc: item.bacSiDoc,
+      bacSiDoc2: item.bacSiDoc2,
+    });
+
+    const isCombo = item.loaiXetNghiem?.startsWith('combo_');
+    const type1 = item.loaiXetNghiem?.startsWith('combo_hpv20')
+      ? 'hpv20'
+      : item.loaiXetNghiem?.startsWith('combo_hpv40')
+      ? 'hpv40'
+      : item.loaiXetNghiem || 'cell';
+    const type2 = item.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
+
+    const docs1 = doctors.filter(
+      (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
+    );
+    const docs2 = doctors.filter(
+      (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
+    );
+
+    setSelectedDoctorForAccept(
+      item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : docs1[0]?.fullName || ''
+    );
+    setSelectedDoctor2ForAccept(
+      item.bacSiDoc2 && item.bacSiDoc2 !== 'Chưa phân loại' ? item.bacSiDoc2 : docs2[0]?.fullName || docs1[0]?.fullName || ''
+    );
   };
 
   const handleConfirmAccept = async () => {
     if (!acceptItem || !selectedDoctorForAccept) return;
+    const isCombo = acceptItem.loaiXetNghiem?.startsWith('combo_');
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: any = { bacSiDoc: selectedDoctorForAccept };
+      if (isCombo) {
+        payload.bacSiDoc2 = selectedDoctor2ForAccept || selectedDoctorForAccept;
+      }
+
       const res = await fetch(`/api/test-results/${acceptItem.id}/accept`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bacSiDoc: selectedDoctorForAccept }),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
-        toast.success(`Đã nhận mẫu ${acceptItem.maSo}! Bác sĩ phân công: ${selectedDoctorForAccept}`);
+        toast.success(`Đã nhận mẫu ${acceptItem.maSo}!`);
         setAcceptItem(null);
         fetchResults();
       } else {
@@ -322,13 +365,13 @@ function DashboardContent() {
   };
 
   return (
-    <div className="h-screen bg-slate-50 flex flex-col overflow-hidden">
-      <TopHeader />
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">
+      <Sidebar />
 
-      <div className="flex flex-1 w-full overflow-hidden">
-        <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <TopHeader />
 
-        <main className="flex-1 p-5 md:p-6 w-full overflow-y-auto max-h-[calc(100vh-61px)]">
+        <main className="flex-1 p-5 md:p-6 w-full overflow-y-auto">
           <Header
             title={doctorFilter ? `Phiếu xét nghiệm: ${doctorFilter}` : 'Danh sách phiếu xét nghiệm'}
             subtitle={
@@ -588,7 +631,27 @@ function DashboardContent() {
                             </td>
                           )}
                           <td className="text-xs text-slate-600 font-medium">
-                            {item.bacSiDoc === 'Chưa phân loại' ? (
+                            {item.loaiXetNghiem?.startsWith('combo_') ? (
+                              (() => {
+                                const lxn = item.loaiXetNghiem || '';
+                                const part1Name = lxn.includes('hpv20') ? 'HPV 20' : 'HPV 40';
+                                const part2Name = lxn.includes('thinprep') ? 'ThinPrep' : 'Cell';
+                                const doc1Name = item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : 'Chưa phân loại';
+                                const doc2Name = (item.bacSiDoc2 || item.bacSiDoc) && (item.bacSiDoc2 || item.bacSiDoc) !== 'Chưa phân loại' ? (item.bacSiDoc2 || item.bacSiDoc) : 'Chưa phân loại';
+                                return (
+                                  <div className="space-y-1 text-xs">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-sky-700 text-[11px] shrink-0">{part1Name}:</span>
+                                      <span className="font-semibold text-slate-800 truncate">{doc1Name}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="font-bold text-purple-700 text-[11px] shrink-0">{part2Name}:</span>
+                                      <span className="font-semibold text-slate-800 truncate">{doc2Name}</span>
+                                    </div>
+                                  </div>
+                                );
+                              })()
+                            ) : item.bacSiDoc === 'Chưa phân loại' ? (
                               <span className="text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 text-[11px] font-semibold">
                                 Chưa phân loại
                               </span>
@@ -934,57 +997,97 @@ function DashboardContent() {
         )}
 
         {/* MODAL PHÂN CÔNG BÁC SĨ KHI NHẬN MẪU */}
-        {acceptItem && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-150">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4 text-left">
-              <h3 className="text-base font-bold text-sky-800 flex items-center gap-2 pb-3 border-b border-slate-100">
-                <FileCheck className="w-5 h-5 text-sky-600" />
-                <span>Tiếp nhận mẫu & Phân công Bác sĩ</span>
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Vui lòng chọn Bác sĩ sẽ phụ trách đọc và ký kết quả cho phiếu xét nghiệm <strong className="text-sky-700">{acceptItem.maSo}</strong>:
-              </p>
+        {acceptItem && (() => {
+          const isCombo = acceptItem.loaiXetNghiem?.startsWith('combo_');
+          const type1 = acceptItem.loaiXetNghiem?.startsWith('combo_hpv20')
+            ? 'hpv20'
+            : acceptItem.loaiXetNghiem?.startsWith('combo_hpv40')
+            ? 'hpv40'
+            : acceptItem.loaiXetNghiem || 'cell';
+          const type2 = acceptItem.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
-              <div className="form-group">
-                <label className="block text-xs font-bold text-sky-800 mb-1.5">
-                  Bác sĩ đọc kết quả *
-                </label>
-                <select
-                  value={selectedDoctorForAccept}
-                  onChange={(e) => setSelectedDoctorForAccept(e.target.value)}
-                  className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 text-xs w-full py-2"
-                >
-                  <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
-                  {doctors
-                    .filter((doc) => !doc.allowedCategories || doc.allowedCategories.includes(categoryFilter))
-                    .map((doc) => (
+          const docs1 = doctors.filter(
+            (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
+          );
+          const docs2 = doctors.filter(
+            (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
+          );
+
+          const label1 = isCombo
+            ? `Bác sĩ đọc kết quả cho Phiếu 1 (${type1.toUpperCase()}) *`
+            : 'Bác sĩ đọc kết quả *';
+          const label2 = `Bác sĩ đọc kết quả cho Phiếu 2 (${type2.toUpperCase()}) *`;
+
+          return (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-150">
+              <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl border border-slate-100 space-y-4 text-left">
+                <h3 className="text-base font-bold text-sky-800 flex items-center gap-2 pb-3 border-b border-slate-100">
+                  <FileCheck className="w-5 h-5 text-sky-600" />
+                  <span>Tiếp nhận mẫu & Phân công Bác sĩ</span>
+                </h3>
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Vui lòng chọn Bác sĩ sẽ phụ trách đọc và ký kết quả cho phiếu xét nghiệm <strong className="text-sky-700">{acceptItem.maSo}</strong>:
+                </p>
+
+                <div className="form-group">
+                  <label className="block text-xs font-bold text-sky-800 mb-1.5">
+                    {label1}
+                  </label>
+                  <select
+                    value={selectedDoctorForAccept}
+                    onChange={(e) => setSelectedDoctorForAccept(e.target.value)}
+                    className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 text-xs w-full py-2"
+                  >
+                    <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
+                    {docs1.map((doc) => (
                       <option key={doc._id} value={doc.fullName}>
                         {doc.fullName}
                       </option>
                     ))}
-                </select>
-              </div>
+                  </select>
+                </div>
 
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setAcceptItem(null)}
-                  className="btn btn-secondary text-xs"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="button"
-                  onClick={handleConfirmAccept}
-                  disabled={!selectedDoctorForAccept}
-                  className="btn btn-success text-xs"
-                >
-                  Xác nhận nhận mẫu
-                </button>
+                {isCombo && (
+                  <div className="form-group">
+                    <label className="block text-xs font-bold text-purple-800 mb-1.5">
+                      {label2}
+                    </label>
+                    <select
+                      value={selectedDoctor2ForAccept}
+                      onChange={(e) => setSelectedDoctor2ForAccept(e.target.value)}
+                      className="form-select font-semibold border-purple-300 bg-purple-50/50 text-slate-800 text-xs w-full py-2"
+                    >
+                      <option value="">-- Chọn Bác sĩ đọc kết quả --</option>
+                      {docs2.map((doc) => (
+                        <option key={doc._id} value={doc.fullName}>
+                          {doc.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setAcceptItem(null)}
+                    className="btn btn-secondary text-xs"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmAccept}
+                    disabled={!selectedDoctorForAccept || (isCombo && !selectedDoctor2ForAccept)}
+                    className="btn btn-success text-xs"
+                  >
+                    Xác nhận nhận mẫu
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Export Excel Modal */}
         <ExportExcelModal

@@ -63,6 +63,7 @@ function NewResultFormContent() {
     chanDoanLamSang: '',
     nhanXetDaiThe: '',
     viTriBenhPham: '',
+    ngayNhanMau: new Date().toISOString().split('T')[0],
   });
 
   const hasCategoryPermission = (cat: string) => {
@@ -72,6 +73,9 @@ function NewResultFormContent() {
   };
 
   const availableServiceOptions = SERVICE_OPTIONS.filter((opt) => {
+    if (userRole === 'admin' || userRole === 'lab_admin') return true;
+    const userAllowed: string[] = (session?.user as any)?.allowedCategories || [];
+    if (userAllowed.includes(opt.id)) return true;
     return opt.types.every((t) => hasCategoryPermission(t));
   });
 
@@ -80,7 +84,16 @@ function NewResultFormContent() {
     availableServiceOptions[0] ||
     SERVICE_OPTIONS[0];
 
-  const targetCategory = selectedServiceObj.types[0] || 'cell';
+  const type1 = selectedServiceObj.types[0] || 'cell';
+  const type2 = selectedServiceObj.types[1] || 'cell';
+
+  const doctors1 = doctors.filter(
+    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
+  );
+
+  const doctors2 = doctors.filter(
+    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
+  );
 
   useEffect(() => {
     if (availableServiceOptions.length > 0) {
@@ -104,7 +117,7 @@ function NewResultFormContent() {
   useEffect(() => {
     async function fetchDoctors() {
       try {
-        const res = await fetch(`/api/users?role=doctor&category=${targetCategory}`);
+        const res = await fetch('/api/users?role=doctor');
         if (res.ok) {
           const data = await res.json();
           const list: DoctorUser[] = data || [];
@@ -123,7 +136,7 @@ function NewResultFormContent() {
       }
     }
     fetchDoctors();
-  }, [userRole, userName, targetCategory]);
+  }, [userRole, userName]);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -167,80 +180,26 @@ function NewResultFormContent() {
 
     setLoading(true);
     try {
-      if (!selectedServiceObj.isCombo) {
-        // SINGLE SERVICE CREATION
-        const type = selectedServiceObj.types[0];
-        const res = await fetch('/api/test-results', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            namSinh: Number(formData.namSinh),
-            loaiXetNghiem: type,
-            bacSiDoc: bacSiDoc1,
-          }),
-        });
+      const typeToSave = selectedServiceObj.id;
+      const res = await fetch('/api/test-results', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...formData,
+          namSinh: Number(formData.namSinh),
+          loaiXetNghiem: typeToSave,
+          bacSiDoc: bacSiDoc1,
+          bacSiDoc2: selectedServiceObj.isCombo ? bacSiDoc2 : '',
+        }),
+      });
 
-        if (res.ok) {
-          const newResult = await res.json();
-          toast.success(`Đã tạo phiếu thành công! Mã số: ${newResult.maSo}`);
-          router.push(`/?category=${type}`);
-        } else {
-          const errorData = await res.json();
-          toast.error(errorData.error || 'Lỗi tạo phiếu mới');
-        }
+      if (res.ok) {
+        const newResult = await res.json();
+        toast.success(`🎉 Đã tạo phiếu xét nghiệm thành công! Mã số: ${newResult.maSo}`);
+        router.push(`/?category=${typeToSave}`);
       } else {
-        // COMBO SERVICE CREATION (Creates 2 separate test results)
-        const type1 = selectedServiceObj.types[0]; // e.g. hpv20 or hpv40
-        const type2 = selectedServiceObj.types[1]; // e.g. cell or thinprep
-
-        // 1. Create first test (HPV)
-        const res1 = await fetch('/api/test-results', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            namSinh: Number(formData.namSinh),
-            loaiXetNghiem: type1,
-            loaiMau: 'Dịch',
-            bacSiDoc: bacSiDoc1,
-          }),
-        });
-
-        if (!res1.ok) {
-          const err1 = await res1.json();
-          toast.error(`Lỗi khởi tạo phiếu ${type1.toUpperCase()}: ${err1.error || ''}`);
-          setLoading(false);
-          return;
-        }
-
-        const data1 = await res1.json();
-
-        // 2. Create second test (Cell or ThinPrep)
-        const res2 = await fetch('/api/test-results', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            namSinh: Number(formData.namSinh),
-            loaiXetNghiem: type2,
-            loaiMau: 'Dịch phết',
-            bacSiDoc: bacSiDoc2,
-          }),
-        });
-
-        if (!res2.ok) {
-          const err2 = await res2.json();
-          toast.error(`Tạo phiếu ${data1.maSo} thành công nhưng lỗi phiếu 2: ${err2.error || ''}`);
-        } else {
-          const data2 = await res2.json();
-          toast.success(
-            `🎉 Đã tạo thành công Gói Combo 2 phiếu xét nghiệm:\n1. Mã ${data1.maSo} (${type1.toUpperCase()})\n2. Mã ${data2.maSo} (${type2.toUpperCase()})`,
-            { duration: 6000 }
-          );
-        }
-
-        router.push(`/?category=${type1}`);
+        const errorData = await res.json();
+        toast.error(errorData.error || 'Lỗi tạo phiếu mới');
       }
     } catch (err) {
       console.error('Submit error:', err);
@@ -251,7 +210,7 @@ function NewResultFormContent() {
   };
 
   const getDoc1Label = () => {
-    if (!selectedServiceObj.isCombo) return 'Bác sĩ đọc kết quả (Gán phiếu & Menu) *';
+    if (!selectedServiceObj.isCombo) return 'Bác sĩ đọc kết quả *';
     const type1 = selectedServiceObj.types[0].toUpperCase();
     return `Bác sĩ đọc kết quả cho Phiếu 1 (${type1}) *`;
   };
@@ -262,13 +221,13 @@ function NewResultFormContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <TopHeader />
+    <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">
+      <Sidebar />
 
-      <div className="flex flex-1 w-full">
-        <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <TopHeader />
 
-        <main className="flex-1 p-4 md:p-5 w-full overflow-hidden">
+        <main className="flex-1 p-4 md:p-5 w-full overflow-y-auto">
           <Header
             title="Tạo phiếu xét nghiệm mới"
             subtitle="Chọn dịch vụ xét nghiệm / gói combo & nhập thông tin hành chính bệnh nhân"
@@ -421,6 +380,71 @@ function NewResultFormContent() {
                   />
                 </div>
 
+                <div className="form-group mb-0">
+                  <label className="text-[11px] font-semibold text-slate-600">Ngày nhận mẫu</label>
+                  <input
+                    type="date"
+                    name="ngayNhanMau"
+                    className="form-input py-1.5 px-3 text-xs"
+                    value={formData.ngayNhanMau}
+                    onChange={handleChange}
+                  />
+                </div>
+
+                {/* DOCTOR SELECTION FIELDS (Placed next to Ngày nhận mẫu) */}
+                {userRole === 'admin' || userRole === 'lab_admin' ? (
+                  <>
+                    <div className="form-group mb-0">
+                      <label className="text-[11px] font-bold text-sky-700 truncate block">
+                        {getDoc1Label()}
+                      </label>
+                      <select
+                        value={bacSiDoc1}
+                        onChange={(e) => setBacSiDoc1(e.target.value)}
+                        className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
+                        required
+                      >
+                        <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
+                        {doctors1.map((doc) => (
+                          <option key={doc._id} value={doc.fullName}>
+                            {doc.fullName}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedServiceObj.isCombo && (
+                      <div className="form-group mb-0">
+                        <label className="text-[11px] font-bold text-purple-700 truncate block">
+                          {getDoc2Label()}
+                        </label>
+                        <select
+                          value={bacSiDoc2}
+                          onChange={(e) => setBacSiDoc2(e.target.value)}
+                          className="form-select font-semibold border-purple-300 bg-purple-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
+                          required
+                        >
+                          <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
+                          {doctors2.map((doc) => (
+                            <option key={doc._id} value={doc.fullName}>
+                              {doc.fullName}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="form-group mb-0">
+                    <label className="text-[11px] font-bold text-slate-500 block mb-1">
+                      Bác sĩ đọc kết quả
+                    </label>
+                    <div className="p-2 bg-slate-100/80 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 flex items-center justify-between">
+                      <span>Chưa phân loại</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* ROW 4 - Chỉ dành riêng cho Xét nghiệm Soi tươi */}
                 {selectedServiceObj.types.includes('soituoi') && (
                   <>
@@ -477,63 +501,6 @@ function NewResultFormContent() {
                       />
                     </div>
                   </>
-                )}
-
-                {/* DOCTOR SELECTION FIELDS */}
-                {userRole === 'admin' || userRole === 'lab_admin' ? (
-                  <>
-                    <div className={selectedServiceObj.isCombo ? 'form-group mb-0 lg:col-span-1' : 'form-group mb-0 lg:col-span-2'}>
-                      <label className="text-[11px] font-bold text-sky-700 truncate block">
-                        {getDoc1Label()}
-                      </label>
-                      <select
-                        value={bacSiDoc1}
-                        onChange={(e) => setBacSiDoc1(e.target.value)}
-                        className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
-                        required
-                      >
-                        <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
-                        {doctors.map((doc) => (
-                          <option key={doc._id} value={doc.fullName}>
-                            {doc.fullName}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {selectedServiceObj.isCombo && (
-                      <div className="form-group mb-0 lg:col-span-1">
-                        <label className="text-[11px] font-bold text-purple-700 truncate block">
-                          {getDoc2Label()}
-                        </label>
-                        <select
-                          value={bacSiDoc2}
-                          onChange={(e) => setBacSiDoc2(e.target.value)}
-                          className="form-select font-semibold border-purple-300 bg-purple-50/50 text-slate-800 py-1.5 px-3 text-xs w-full"
-                          required
-                        >
-                          <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
-                          {doctors.map((doc) => (
-                            <option key={doc._id} value={doc.fullName}>
-                              {doc.fullName}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div className="form-group mb-0 lg:col-span-2">
-                    <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                      Bác sĩ đọc kết quả
-                    </label>
-                    <div className="p-2.5 bg-slate-100/80 border border-slate-200 rounded-lg text-xs font-semibold text-slate-600 flex items-center justify-between">
-                      <span>Chưa phân loại</span>
-                      <span className="text-[11px] font-normal text-slate-400 italic">
-                        (Admin Lab sẽ phân công bác sĩ khi tiếp nhận mẫu)
-                      </span>
-                    </div>
-                  </div>
                 )}
               </div>
 
