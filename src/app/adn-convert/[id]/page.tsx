@@ -1303,7 +1303,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                           <label>Loại mẫu</label>
                           <input
                             type="text"
-                            value={sample.loaiMau || 'Máu'}
+                            value={sample.loaiMau ?? ''}
                             onChange={(e) => {
                               const updated = [...mauDanhSach];
                               updated[idx].loaiMau = e.target.value;
