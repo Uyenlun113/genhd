@@ -87,13 +87,15 @@ function NewResultFormContent() {
   const type1 = selectedServiceObj.types[0] || 'cell';
   const type2 = selectedServiceObj.types[1] || 'cell';
 
-  const doctors1 = doctors.filter(
-    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
-  );
+  const isDoctorAllowed = (d: DoctorUser, type: string) => {
+    if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
+    if (d.allowedCategories.includes(type)) return true;
+    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+    return false;
+  };
 
-  const doctors2 = doctors.filter(
-    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
-  );
+  const doctors1 = doctors.filter((d) => isDoctorAllowed(d, type1));
+  const doctors2 = doctors.filter((d) => isDoctorAllowed(d, type2));
 
   useEffect(() => {
     if (availableServiceOptions.length > 0) {

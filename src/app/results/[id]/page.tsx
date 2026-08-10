@@ -396,13 +396,15 @@ export default function TestResultDetailPage({ params }: PageProps) {
 
   const type2 = formData.loaiXetNghiem.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
-  const doctors1 = doctors.filter(
-    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
-  );
+  const isDoctorAllowed = (d: any, type: string) => {
+    if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
+    if (d.allowedCategories.includes(type)) return true;
+    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+    return false;
+  };
 
-  const doctors2 = doctors.filter(
-    (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
-  );
+  const doctors1 = doctors.filter((d) => isDoctorAllowed(d, type1));
+  const doctors2 = doctors.filter((d) => isDoctorAllowed(d, type2));
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">

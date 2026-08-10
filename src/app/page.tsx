@@ -291,12 +291,15 @@ function DashboardContent() {
       : item.loaiXetNghiem || 'cell';
     const type2 = item.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
-    const docs1 = doctors.filter(
-      (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
-    );
-    const docs2 = doctors.filter(
-      (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
-    );
+    const isDoctorAllowed = (d: any, type: string) => {
+      if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
+      if (d.allowedCategories.includes(type)) return true;
+      if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+      return false;
+    };
+
+    const docs1 = doctors.filter((d) => isDoctorAllowed(d, type1));
+    const docs2 = doctors.filter((d) => isDoctorAllowed(d, type2));
 
     setSelectedDoctorForAccept(
       item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : docs1[0]?.fullName || ''
