@@ -464,7 +464,10 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
   const deepNfc = (obj: any): any => {
     if (!obj) return obj;
-    if (typeof obj === 'string') return obj.normalize('NFC');
+    if (typeof obj === 'string') {
+      if (obj.startsWith('data:') || obj.length > 300) return obj;
+      return obj.normalize('NFC');
+    }
     if (Array.isArray(obj)) return obj.map(deepNfc);
     if (typeof obj === 'object') {
       const res: any = {};
@@ -512,37 +515,41 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           setTable2(t2);
           setTable3(t3);
 
-          // Auto generate initial live PDF preview
-          const initialPayload = {
-            loaiXetNghiemADN: d.loaiXetNghiemADN || 'phap_ly',
-            soPhieu: d.soPhieu || d.maSo || '',
-            ngayYeuCau: d.ngayYeuCau || '',
-            ngayBanHanh: d.ngayBanHanh || '',
-            nguoiYeuCau: d.nguoiYeuCau || '',
-            nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
-            boKit: d.boKit || 'A27Plex STR Detection Kit',
-            mauDanhSach: samples,
-            anhChayMauList: chartList,
-            table1: t1,
-            table2: t2,
-            table3: t3,
-            ketLuan: d.ketLuan || '',
-            doTinCay: d.doTinCay || '> 99,9999%',
-          };
-          fetch('/api/adn/export-pdf', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(initialPayload),
-          })
-            .then((r) => r.blob())
-            .then((blob) => setPdfPreviewUrl(URL.createObjectURL(blob)))
-            .catch((e) => console.error('Initial PDF preview error:', e));
+          setLoading(false);
+
+          // Auto generate initial live PDF preview asynchronously after initial UI paint
+          setTimeout(() => {
+            const initialPayload = {
+              loaiXetNghiemADN: d.loaiXetNghiemADN || 'phap_ly',
+              soPhieu: d.soPhieu || d.maSo || '',
+              ngayYeuCau: d.ngayYeuCau || '',
+              ngayBanHanh: d.ngayBanHanh || '',
+              nguoiYeuCau: d.nguoiYeuCau || '',
+              nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
+              boKit: d.boKit || 'A27Plex STR Detection Kit',
+              mauDanhSach: samples,
+              anhChayMauList: chartList,
+              table1: t1,
+              table2: t2,
+              table3: t3,
+              ketLuan: d.ketLuan || '',
+              doTinCay: d.doTinCay || '> 99,9999%',
+            };
+            fetch('/api/adn/export-pdf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(initialPayload),
+            })
+              .then((r) => r.blob())
+              .then((blob) => setPdfPreviewUrl(URL.createObjectURL(blob)))
+              .catch((e) => console.error('Initial PDF preview error:', e));
+          }, 200);
         } else {
           toast.error('Không tìm thấy đơn xét nghiệm');
+          setLoading(false);
         }
       } catch (err) {
         toast.error('Lỗi khi tải thông tin đơn xét nghiệm');
-      } finally {
         setLoading(false);
       }
     };
