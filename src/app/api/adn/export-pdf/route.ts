@@ -183,7 +183,10 @@ export async function POST(request: NextRequest) {
       canBoXetNghiem = '',
       daiDienDonVi = '',
       kiemSoatKetQua = 'TS. BS. Nguyễn Khánh Dương',
+      isGenetrust = false,
     } = body;
+
+    const isGtMode = isGenetrust || body.brand === 'genetrust';
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
@@ -200,20 +203,34 @@ export async function POST(request: NextRequest) {
     // Colors
     const primaryBlue = rgb(0.0, 0.2, 0.55);
     const darkColor = rgb(0.0, 0.0, 0.0);
-    const redColor = rgb(0.85, 0.1, 0.1);
+    const redColor = rgb(0.88, 0.0, 0.0);
 
     // ----------------------------------------------------
-    // PAGE 1: MAIN REPORT SHEET (Phiếu Kết Quả ADN HK-TECH)
+    // PAGE 1: MAIN REPORT SHEET (Phiếu Kết Quả ADN)
     // ----------------------------------------------------
     const page1 = pdfDoc.addPage([595.28, 841.89]); // A4
     const { width, height } = page1.getSize();
     const margin = 36;
 
     // 0. Watermark Overlay on Page 1
+    const logoGtPath = path.join(process.cwd(), 'public', 'Logo_Genetrust.png');
     const watermarkJpgPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
     const watermarkPngPath = path.join(process.cwd(), 'public', 'logo.png');
+
     try {
-      if (fs.existsSync(watermarkJpgPath)) {
+      if (isGtMode && fs.existsSync(logoGtPath)) {
+        const wmBytes = fs.readFileSync(logoGtPath);
+        const wmImg = await pdfDoc.embedPng(wmBytes);
+        const wmWidth = 340;
+        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+        page1.drawImage(wmImg, {
+          x: (width - wmWidth) / 2,
+          y: (height - wmHeight) / 2,
+          width: wmWidth,
+          height: wmHeight,
+          opacity: 0.14,
+        });
+      } else if (fs.existsSync(watermarkJpgPath)) {
         const wmBytes = fs.readFileSync(watermarkJpgPath);
         const wmImg = await pdfDoc.embedJpg(wmBytes);
         const wmWidth = 360;
@@ -242,23 +259,77 @@ export async function POST(request: NextRequest) {
       console.error('Page 1 watermark drawing error:', err);
     }
 
-    // 1. Logo HK-Tech (public/logo_hk.jpg)
-    const logoHkPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
-    if (fs.existsSync(logoHkPath)) {
-      const logoBytes = fs.readFileSync(logoHkPath);
-      const logoImg = await pdfDoc.embedJpg(logoBytes);
+    // 1. Top Logo Header
+    if (isGtMode && fs.existsSync(logoGtPath)) {
+      const logoBytes = fs.readFileSync(logoGtPath);
+      const logoImg = await pdfDoc.embedPng(logoBytes);
+      const targetH = 54;
+      const targetW = targetH * (logoImg.width / logoImg.height);
       page1.drawImage(logoImg, {
         x: margin,
-        y: height - margin - 55,
-        width: 75,
-        height: 55,
+        y: height - margin - targetH + 1,
+        width: targetW,
+        height: targetH,
       });
+    } else {
+      const logoHkPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
+      if (fs.existsSync(logoHkPath)) {
+        const logoBytes = fs.readFileSync(logoHkPath);
+        const logoImg = await pdfDoc.embedJpg(logoBytes);
+        page1.drawImage(logoImg, {
+          x: margin,
+          y: height - margin - 48,
+          width: 72,
+          height: 48,
+        });
+      }
     }
 
     let currentY = height - margin - 10;
-    const headerX = margin + 85;
+    const headerX = isGtMode ? margin + 102 : margin + 85;
 
-    if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+    if (isGtMode) {
+      // Header for Genetrust Brand
+      page1.drawText(nfc('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'), {
+        x: headerX,
+        y: currentY,
+        size: 10.5,
+        font: fontBold,
+        color: redColor,
+      });
+      currentY -= 12;
+      page1.drawText(nfc('Địa chỉ: 15 ngõ 5 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội'), {
+        x: headerX,
+        y: currentY,
+        size: 7.5,
+        font: fontItalic,
+        color: primaryBlue,
+      });
+      currentY -= 10;
+      page1.drawText(nfc('Email: gennetrust@gmail.com'), {
+        x: headerX,
+        y: currentY,
+        size: 7.5,
+        font: fontItalic,
+        color: primaryBlue,
+      });
+      currentY -= 10;
+      page1.drawText(nfc('Hotline: 0818.992.466'), {
+        x: headerX,
+        y: currentY,
+        size: 7.5,
+        font: fontItalic,
+        color: primaryBlue,
+      });
+      currentY -= 10;
+      page1.drawText(nfc('Website: Genetrust.vn'), {
+        x: headerX,
+        y: currentY,
+        size: 7.5,
+        font: fontItalic,
+        color: primaryBlue,
+      });
+    } else if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
       // Header for ADN Tự nguyện, Nhiễm sắc thể Y & X (Image 1, 3, 4)
       page1.drawText(nfc('VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN'), {
         x: headerX,
@@ -394,11 +465,12 @@ export async function POST(request: NextRequest) {
     // Intro text
     currentY -= 18;
     const formattedNgayYeuCau = formatDateVN(ngayYeuCau) || '...................';
+    const compName = isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty Cổ phần công nghệ và thương mại HK- Teck';
     let introStr = '';
     if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà (ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
+      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà (ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
     } else {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những người sau:`;
+      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những người sau:`;
     }
 
     const introLines = wrapText(introStr, fontRegular, 13, width - margin * 2);
@@ -631,7 +703,7 @@ export async function POST(request: NextRequest) {
         color: darkColor,
       });
       currentY -= 12;
-      page1.drawText(nfc('-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.'), {
+      page1.drawText(nfc(`-  Các ký hiệu mẫu do ${isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty cổ phần công nghệ và thương mại HK- TECK'} đặt.`), {
         x: margin,
         y: currentY,
         size: 10,

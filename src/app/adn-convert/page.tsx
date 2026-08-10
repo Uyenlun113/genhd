@@ -29,6 +29,7 @@ import {
   Plus,
   Calendar,
   MoreVertical,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -485,10 +486,22 @@ export default function AdnConvertListPage() {
   const handleDownloadPdf = async (order: AdnOrderData) => {
     setExportingPdf(true);
     try {
+      // Fetch full order data to get all images (portrait, CCCD, chart images) and loci tables
+      let fullOrder = order;
+      try {
+        const fullRes = await fetch(`/api/adn/orders/${order._id}`);
+        const fullJson = await fullRes.json();
+        if (fullJson.success && fullJson.data) {
+          fullOrder = fullJson.data;
+        }
+      } catch (e) {
+        console.error('Error fetching full order data:', e);
+      }
+
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order),
+        body: JSON.stringify(fullOrder),
       });
 
       if (res.ok) {
@@ -496,13 +509,55 @@ export default function AdnConvertListPage() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Ket_Qua_ADN_${order.soPhieu || order.maSo}.pdf`;
+        a.download = `Ket_Qua_ADN_${fullOrder.soPhieu || fullOrder.maSo}.pdf`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         toast.success('Đã tải xuống file PDF kết quả ADN!');
       } else {
         toast.error('Xuất PDF thất bại');
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tạo file PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleDownloadPdfGenetrust = async (order: AdnOrderData) => {
+    setExportingPdf(true);
+    try {
+      // Fetch full order data to get all images (portrait, CCCD, chart images) and loci tables
+      let fullOrder = order;
+      try {
+        const fullRes = await fetch(`/api/adn/orders/${order._id}`);
+        const fullJson = await fullRes.json();
+        if (fullJson.success && fullJson.data) {
+          fullOrder = fullJson.data;
+        }
+      } catch (e) {
+        console.error('Error fetching full order data:', e);
+      }
+
+      const payload = { ...fullOrder, isGenetrust: true };
+      const res = await fetch('/api/adn/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ket_Qua_ADN_Genetrust_${fullOrder.soPhieu || fullOrder.maSo}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success('Đã convert và tải file PDF kết quả Genetrust!');
+      } else {
+        toast.error('Xuất PDF Genetrust thất bại');
       }
     } catch (err) {
       toast.error('Lỗi khi tạo file PDF');
@@ -862,16 +917,28 @@ export default function AdnConvertListPage() {
                                   </Link>
 
                                   {order.trangThai === 'da_tra_ket_qua' && (
-                                    <button
-                                      onClick={() => {
-                                        setActiveMenuId(null);
-                                        handleDownloadPdf(order);
-                                      }}
-                                      className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-emerald-600 transition-colors"
-                                    >
-                                      <Download className="w-4 h-4 text-emerald-600" />
-                                      <span>Tải PDF kết quả</span>
-                                    </button>
+                                    <>
+                                      <button
+                                        onClick={() => {
+                                          setActiveMenuId(null);
+                                          handleDownloadPdf(order);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 hover:text-emerald-600 transition-colors"
+                                      >
+                                        <Download className="w-4 h-4 text-emerald-600" />
+                                        <span>Tải PDF kết quả</span>
+                                      </button>
+                                      <button
+                                        onClick={() => {
+                                          setActiveMenuId(null);
+                                          handleDownloadPdfGenetrust(order);
+                                        }}
+                                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                                      >
+                                        <Sparkles className="w-4 h-4 text-indigo-600" />
+                                        <span>Convert sang Genetrust</span>
+                                      </button>
+                                    </>
                                   )}
 
                                   <button

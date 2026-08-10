@@ -25,6 +25,7 @@ import {
   Scissors,
   X,
   Crop,
+  Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -920,6 +921,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         nguoiYeuCau,
         nguoiThuMau,
         boKit,
+        canBoXetNghiem,
         daiDienDonVi,
         kiemSoatKetQua,
         ketLuan,
@@ -949,6 +951,58 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         toast.success('Đã tải file PDF kết quả về máy!');
       } else {
         toast.error('Tạo file PDF thất bại');
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tải file PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  // Download PDF Result (Genetrust Brand)
+  const handleDownloadPdfGenetrust = async () => {
+    setExportingPdf(true);
+    try {
+      const payload = {
+        _id: id,
+        soPhieu,
+        loaiXetNghiemADN,
+        ngayYeuCau,
+        ngayBanHanh,
+        nguoiYeuCau,
+        nguoiThuMau,
+        boKit,
+        canBoXetNghiem,
+        daiDienDonVi,
+        kiemSoatKetQua,
+        ketLuan,
+        doTinCay,
+        mauDanhSach,
+        anhChayMauList,
+        table1,
+        table2,
+        table3,
+        isGenetrust: true,
+      };
+
+      const res = await fetch('/api/adn/export-pdf', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ket_Qua_ADN_Genetrust_${soPhieu}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success('Đã convert và tải file PDF kết quả Genetrust về máy!');
+      } else {
+        toast.error('Tạo file PDF Genetrust thất bại');
       }
     } catch (err) {
       toast.error('Lỗi khi tải file PDF');
@@ -1112,14 +1166,24 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                 )}
 
                 {trangThai === 'da_tra_ket_qua' && (
-                  <button
-                    onClick={() => handleSaveOrder()}
-                    disabled={saving}
-                    className="btn btn-primary"
-                  >
-                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                    <span>Lưu thay đổi</span>
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleSaveOrder()}
+                      disabled={saving}
+                      className="btn btn-secondary"
+                    >
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      <span>Lưu thay đổi</span>
+                    </button>
+                    <button
+                      onClick={handleDownloadPdfGenetrust}
+                      disabled={exportingPdf}
+                      className="btn bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                    >
+                      {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      <span>Convert kết quả sang Genetrust</span>
+                    </button>
+                  </>
                 )}
 
                 <button
