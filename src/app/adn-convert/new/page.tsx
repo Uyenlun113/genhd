@@ -36,13 +36,15 @@ export default function NewAdnOrderPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
-  const [createType, setCreateType] = useState<'phap_ly' | 'tu_nguyen'>('phap_ly');
+  const [createType, setCreateType] = useState<'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr'>('phap_ly');
   const [soPhieu, setSoPhieu] = useState('');
   const [ngayYeuCau, setNgayYeuCau] = useState(() => new Date().toISOString().split('T')[0]);
   const [ngayBanHanh, setNgayBanHanh] = useState('');
   const [nguoiYeuCau, setNguoiYeuCau] = useState('');
   const [nguoiThuMau, setNguoiThuMau] = useState('Hoàng Văn Luận');
   const [boKit, setBoKit] = useState('A27Plex STR Detection Kit');
+  const [canBoXetNghiem, setCanBoXetNghiem] = useState('');
+  const [daiDienDonVi, setDaiDienDonVi] = useState('');
   const [anhGuiMau, setAnhGuiMau] = useState('');
 
   const [mauDanhSach, setMauDanhSach] = useState<SampleItem[]>([
@@ -54,7 +56,15 @@ export default function NewAdnOrderPage() {
   useEffect(() => {
     const today = new Date();
     const yy = String(today.getFullYear()).slice(-2);
-    const tag = createType === 'phap_ly' ? 'HHK/ADN' : 'THK/ADN';
+    const tag = createType === 'phap_ly' ? 'HHK/ADN' : createType === 'y_chr' ? 'YHK/ADN' : createType === 'x_chr' ? 'XHK/ADN' : 'THK/ADN';
+
+    if (createType === 'x_chr') {
+      setBoKit('X18Plex STR Detection Kit');
+    } else if (createType === 'y_chr') {
+      setBoKit('Y27Plex STR Detection Kit');
+    } else if (boKit === 'Y27Plex STR Detection Kit' || boKit === 'X18Plex STR Detection Kit') {
+      setBoKit('A27Plex STR Detection Kit');
+    }
 
     fetch('/api/adn/orders')
       .then((res) => res.json())
@@ -123,6 +133,8 @@ export default function NewAdnOrderPage() {
           nguoiYeuCau,
           nguoiThuMau,
           boKit,
+          canBoXetNghiem,
+          daiDienDonVi,
           anhGuiMau,
           mauDanhSach: formattedMauDanhSach,
         }),
@@ -173,10 +185,10 @@ export default function NewAdnOrderPage() {
               </h3>
 
               {/* ADN Type Selector */}
-              <div className="mb-6 flex gap-4">
+              <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <label
                   onClick={() => setCreateType('phap_ly')}
-                  className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'phap_ly'
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'phap_ly'
                     ? 'border-purple-600 bg-purple-50/50 text-purple-900 shadow-sm'
                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                     }`}
@@ -195,7 +207,7 @@ export default function NewAdnOrderPage() {
 
                 <label
                   onClick={() => setCreateType('tu_nguyen')}
-                  className={`flex-1 p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'tu_nguyen'
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'tu_nguyen'
                     ? 'border-teal-600 bg-teal-50/50 text-teal-900 shadow-sm'
                     : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
                     }`}
@@ -209,6 +221,44 @@ export default function NewAdnOrderPage() {
                   />
                   <div>
                     <div className="font-bold text-sm">ADN Tự Nguyện</div>
+                  </div>
+                </label>
+
+                <label
+                  onClick={() => setCreateType('y_chr')}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'y_chr'
+                    ? 'border-sky-600 bg-sky-50/50 text-sky-900 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="adnType"
+                    checked={createType === 'y_chr'}
+                    onChange={() => setCreateType('y_chr')}
+                    className="w-4 h-4 text-sky-600"
+                  />
+                  <div>
+                    <div className="font-bold text-sm">ADN Nhiễm Sắc Thể Y</div>
+                  </div>
+                </label>
+
+                <label
+                  onClick={() => setCreateType('x_chr')}
+                  className={`p-4 rounded-xl border-2 cursor-pointer transition-all flex items-center gap-3 ${createType === 'x_chr'
+                    ? 'border-indigo-600 bg-indigo-50/50 text-indigo-900 shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                    }`}
+                >
+                  <input
+                    type="radio"
+                    name="adnType"
+                    checked={createType === 'x_chr'}
+                    onChange={() => setCreateType('x_chr')}
+                    className="w-4 h-4 text-indigo-600"
+                  />
+                  <div>
+                    <div className="font-bold text-sm">ADN Nhiễm Sắc Thể X</div>
                   </div>
                 </label>
               </div>

@@ -59,13 +59,14 @@ interface LocusItem {
 interface AdnOrderData {
   _id: string;
   maSo: string;
-  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen';
+  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen' | 'y_chr';
   soPhieu: string;
   ngayBanHanh: string;
   ngayYeuCau: string;
   nguoiYeuCau: string;
   nguoiThuMau: string;
   boKit: string;
+  canBoXetNghiem?: string;
   daiDienDonVi: string;
   kiemSoatKetQua: string;
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
@@ -368,13 +369,14 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
   // Form states
   const [soPhieu, setSoPhieu] = useState('');
-  const [loaiXetNghiemADN, setLoaiXetNghiemADN] = useState<'phap_ly' | 'tu_nguyen'>('phap_ly');
+  const [loaiXetNghiemADN, setLoaiXetNghiemADN] = useState<'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr'>('phap_ly');
   const [ngayYeuCau, setNgayYeuCau] = useState('');
   const [ngayBanHanh, setNgayBanHanh] = useState('');
   const [nguoiYeuCau, setNguoiYeuCau] = useState('');
   const [nguoiThuMau, setNguoiThuMau] = useState('Hoàng Văn Luận');
   const [boKit, setBoKit] = useState('A27Plex STR Detection Kit');
-  const [daiDienDonVi, setDaiDienDonVi] = useState('CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH');
+  const [canBoXetNghiem, setCanBoXetNghiem] = useState('CÁN BỘ XÉT NGHIỆM');
+  const [daiDienDonVi, setDaiDienDonVi] = useState('ĐẠI DIỆN ĐƠN VỊ');
   const [kiemSoatKetQua, setKiemSoatKetQua] = useState('TS. BS. Nguyễn Khánh Dương');
   const [ketLuan, setKetLuan] = useState('');
   const [doTinCay, setDoTinCay] = useState('> 99,9999%');
@@ -437,6 +439,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         nguoiYeuCau,
         nguoiThuMau,
         boKit,
+        canBoXetNghiem,
+        daiDienDonVi,
         mauDanhSach,
         anhChayMauList,
         table1,
@@ -495,7 +499,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           setNguoiYeuCau(d.nguoiYeuCau || '');
           setNguoiThuMau(d.nguoiThuMau || 'Hoàng Văn Luận');
           setBoKit(d.boKit || 'A27Plex STR Detection Kit');
-          setDaiDienDonVi(d.daiDienDonVi || 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH');
+          setCanBoXetNghiem(d.canBoXetNghiem || '');
+          setDaiDienDonVi(d.daiDienDonVi || '');
           setKiemSoatKetQua(d.kiemSoatKetQua || 'TS. BS. Nguyễn Khánh Dương');
           setKetLuan(d.ketLuan || '');
           setDoTinCay(d.doTinCay || '> 99,9999%');
@@ -527,6 +532,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               nguoiYeuCau: d.nguoiYeuCau || '',
               nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
               boKit: d.boKit || 'A27Plex STR Detection Kit',
+              canBoXetNghiem: d.canBoXetNghiem || 'CÁN BỘ XÉT NGHIỆM',
+              daiDienDonVi: d.daiDienDonVi || 'ĐẠI DIỆN ĐƠN VỊ',
               mauDanhSach: samples,
               anhChayMauList: chartList,
               table1: t1,
@@ -823,6 +830,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           nguoiYeuCau,
           nguoiThuMau,
           boKit,
+          canBoXetNghiem,
           daiDienDonVi,
           kiemSoatKetQua,
           ketLuan,
@@ -1006,7 +1014,15 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         <main className="flex-1 p-6 md:p-8 w-full">
           <Header
             title={`Phiếu xét nghiệm ADN: ${soPhieu}`}
-            subtitle={`Bệnh nhân: ${mauDanhSach[0]?.hoTen || 'Xét nghiệm ADN'} (${loaiXetNghiemADN === 'phap_ly' ? 'Mẫu ADN Pháp Lý' : 'Mẫu ADN Tự Nguyện'})`}
+            subtitle={`Bệnh nhân: ${mauDanhSach[0]?.hoTen || 'Xét nghiệm ADN'} (${
+              loaiXetNghiemADN === 'phap_ly'
+                ? 'Mẫu ADN Pháp Lý'
+                : loaiXetNghiemADN === 'y_chr'
+                ? 'Mẫu ADN Nhiễm Sắc Thể Y'
+                : loaiXetNghiemADN === 'x_chr'
+                ? 'Mẫu ADN Nhiễm Sắc Thể X'
+                : 'Mẫu ADN Tự Nguyện'
+            })`}
             action={
               <div className="flex items-center gap-3">
                 {trangThai === 'gui_mau' && (
@@ -1804,11 +1820,11 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               {renderLociEditor(table3, setTable3, 'Bảng Locus 3 (D8S1179, D5S818, D21S11, FGA...)')}
             </div>
 
-            {/* Section 4: Kết luận & Độ tin cậy */}
+            {/* Section 4: Kết luận & Chữ ký */}
             <div className="glass-card p-6 space-y-4">
               <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
                 <ShieldCheck className="w-5 h-5 text-sky-600" />
-                <span>4. Kết Luận & Độ Tin Cậy</span>
+                <span>4. Kết Luận, Độ Tin Cậy & Chữ Ký Người Ký</span>
               </h3>
 
               <div className="form-group">
@@ -1823,7 +1839,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                 />
               </div>
 
-              <div className="max-w-md">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="form-group mb-0">
                   <label>Độ tin cậy</label>
                   <input
@@ -1832,6 +1848,30 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     onChange={(e) => setDoTinCay(e.target.value)}
                     disabled={trangThai === 'da_tra_ket_qua'}
                     className="form-input disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Cán bộ xét nghiệm (Tên ký bên trái)</label>
+                  <input
+                    type="text"
+                    value={canBoXetNghiem}
+                    onChange={(e) => setCanBoXetNghiem(e.target.value)}
+                    placeholder="VD: Nguyễn Thị An"
+                    disabled={trangThai === 'da_tra_ket_qua'}
+                    className="form-input font-semibold disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Đại diện đơn vị (Tên ký bên phải)</label>
+                  <input
+                    type="text"
+                    value={daiDienDonVi}
+                    onChange={(e) => setDaiDienDonVi(e.target.value)}
+                    placeholder="VD: GĐ. Nguyễn Văn A"
+                    disabled={trangThai === 'da_tra_ket_qua'}
+                    className="form-input font-semibold disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </div>
               </div>

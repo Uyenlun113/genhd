@@ -48,6 +48,7 @@ export async function PUT(
       if (body.nguoiYeuCau !== undefined) order.nguoiYeuCau = body.nguoiYeuCau;
       if (body.nguoiThuMau !== undefined) order.nguoiThuMau = body.nguoiThuMau;
       if (body.boKit !== undefined) order.boKit = body.boKit;
+      if (body.canBoXetNghiem !== undefined) order.canBoXetNghiem = body.canBoXetNghiem;
       if (body.daiDienDonVi !== undefined) order.daiDienDonVi = body.daiDienDonVi;
       if (body.kiemSoatKetQua !== undefined) order.kiemSoatKetQua = body.kiemSoatKetQua;
       if (body.anhGuiMau !== undefined) order.anhGuiMau = body.anhGuiMau;

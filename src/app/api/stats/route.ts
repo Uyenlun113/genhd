@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
 import TestResult from '@/models/TestResult';
 import User from '@/models/User';
+import { AdnOrder } from '@/models/AdnOrder';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
@@ -79,6 +80,42 @@ export async function GET() {
       { $sort: { count: -1 } },
     ]);
 
+    // ADN Specific Statistics (Only for admin and lab_adn)
+    let adnStats = null;
+    if (userRole === 'admin' || userRole === 'lab_adn') {
+      const totalAdnOrders = await AdnOrder.countDocuments();
+      const adnGuiMau = await AdnOrder.countDocuments({ trangThai: 'gui_mau' });
+      const adnDangChay = await AdnOrder.countDocuments({ trangThai: 'dang_chay_mau' });
+      const adnDaTra = await AdnOrder.countDocuments({ trangThai: 'da_tra_ket_qua' });
+
+      const adnPhapLy = await AdnOrder.countDocuments({ loaiXetNghiemADN: 'phap_ly' });
+      const adnTuNguyen = await AdnOrder.countDocuments({ loaiXetNghiemADN: 'tu_nguyen' });
+      const adnYChr = await AdnOrder.countDocuments({ loaiXetNghiemADN: 'y_chr' });
+      const adnXChr = await AdnOrder.countDocuments({ loaiXetNghiemADN: 'x_chr' });
+
+      const sampleCountAgg = await AdnOrder.aggregate([
+        { $project: { sampleCount: { $size: { $ifNull: ['$mauDanhSach', []] } } } },
+        { $group: { _id: null, totalSamples: { $sum: '$sampleCount' } } },
+      ]);
+      const totalAdnSamples = sampleCountAgg[0]?.totalSamples || 0;
+
+      adnStats = {
+        totalOrders: totalAdnOrders,
+        totalSamples: totalAdnSamples,
+        byStatus: {
+          gui_mau: adnGuiMau,
+          dang_chay_mau: adnDangChay,
+          da_tra_ket_qua: adnDaTra,
+        },
+        byType: {
+          phap_ly: adnPhapLy,
+          tu_nguyen: adnTuNguyen,
+          y_chr: adnYChr,
+          x_chr: adnXChr,
+        },
+      };
+    }
+
     return NextResponse.json({
       totalCount,
       userRole,
@@ -103,6 +140,7 @@ export async function GET() {
         completed: item.completed,
         processing: item.processing,
       })),
+      adnStats,
     });
   } catch (error) {
     console.error('Stats API error:', error);

@@ -35,6 +35,11 @@ import {
   Cell,
   BarChart,
   Bar,
+  AreaChart,
+  Area,
+  LineChart,
+  Line,
+  CartesianGrid,
   XAxis,
   YAxis,
   Tooltip,
@@ -65,6 +70,21 @@ interface StatsData {
     completed: number;
     processing: number;
   }>;
+  adnStats?: {
+    totalOrders: number;
+    totalSamples: number;
+    byStatus: {
+      gui_mau: number;
+      dang_chay_mau: number;
+      da_tra_ket_qua: number;
+    };
+    byType: {
+      phap_ly: number;
+      tu_nguyen: number;
+      y_chr: number;
+      x_chr: number;
+    };
+  } | null;
 }
 
 export default function DashboardPage() {
@@ -614,6 +634,168 @@ export default function DashboardPage() {
                         )}
                       </tbody>
                     </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ========================================================= */}
+          {/* SEPARATE ADN STATISTICS SECTION (ONLY ADMIN & LAB_ADN)     */}
+          {/* ========================================================= */}
+          {(stats?.userRole === 'admin' || stats?.userRole === 'lab_adn') && stats?.adnStats && (
+            <div className="mt-8 pt-6 border-t-2 border-dashed border-slate-200">
+              <div className="glass-card p-6 space-y-6">
+                {/* ADN Header */}
+                <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
+                      <Dna className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span>Thống Kê Xét Nghiệm ADN</span>
+                      </h3>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Báo cáo tổng quan số lượng đơn, số mẫu và trạng thái xử lý các gói ADN
+                      </p>
+                    </div>
+                  </div>
+
+                  <Link
+                    href="/adn-convert"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs rounded-xl shadow-xs transition-all"
+                  >
+                    <span>Quản lý Đơn ADN</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                </div>
+
+                {/* KPI Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="p-4 rounded-xl bg-gradient-to-br from-indigo-600 via-sky-600 to-blue-700 text-white shadow-md shadow-indigo-500/20 space-y-1">
+                    <div className="text-[11px] font-bold text-indigo-100 uppercase tracking-wider">Tổng Đơn ADN</div>
+                    <div className="text-2xl font-black text-white">{stats.adnStats.totalOrders}</div>
+                    <div className="text-[10px] text-indigo-100/80 font-medium">Toàn bộ phiếu ADN</div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-purple-50 border border-purple-200 text-purple-900 shadow-2xs space-y-1">
+                    <div className="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Tổng Số Mẫu</div>
+                    <div className="text-2xl font-black text-purple-900">{stats.adnStats.totalSamples}</div>
+                    <div className="text-[10px] text-purple-600 font-medium">Tổng mẫu cá thể</div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 shadow-2xs space-y-1">
+                    <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Gửi Mẫu</div>
+                    <div className="text-2xl font-black text-amber-900">{stats.adnStats.byStatus.gui_mau}</div>
+                    <div className="text-[10px] text-amber-600 font-medium">Mới tiếp nhận</div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-900 shadow-2xs space-y-1">
+                    <div className="text-[11px] font-bold text-sky-700 uppercase tracking-wider">Đang Chạy Mẫu</div>
+                    <div className="text-2xl font-black text-sky-900">{stats.adnStats.byStatus.dang_chay_mau}</div>
+                    <div className="text-[10px] text-sky-600 font-medium">Đang xử lý locus</div>
+                  </div>
+
+                  <div className="p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-900 shadow-2xs space-y-1">
+                    <div className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Đã Trả Kết Quả</div>
+                    <div className="text-2xl font-black text-emerald-900">{stats.adnStats.byStatus.da_tra_ket_qua}</div>
+                    <div className="text-[10px] text-emerald-600 font-medium">Đã hoàn tất PDF</div>
+                  </div>
+                </div>
+
+                {/* Breakdown by ADN Test Type with Chart & Detailed Legend */}
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <BarChart3 className="w-4 h-4 text-indigo-600" />
+                      <span>Biểu Đồ Phân Loại Dịch Vụ Xét Nghiệm ADN</span>
+                    </h4>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      Tổng số: <b>{stats.adnStats.totalOrders}</b> đơn
+                    </span>
+                  </div>
+
+                  {/* Recharts Area/LineChart (Biểu đồ đường) */}
+                  <div className="h-56 w-full bg-white p-4 rounded-xl border border-slate-200 shadow-2xs">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart
+                        data={[
+                          { name: 'ADN Pháp Lý', count: stats.adnStats.byType.phap_ly, desc: 'Khai sinh, tòa án' },
+                          { name: 'ADN Tự Nguyện', count: stats.adnStats.byType.tu_nguyen, desc: 'Cá nhân xem biết' },
+                          { name: 'NST Y (Y-STR)', count: stats.adnStats.byType.y_chr, desc: 'Huyết thống dòng cha' },
+                          { name: 'NST X (X-STR)', count: stats.adnStats.byType.x_chr, desc: 'Huyết thống dòng mẹ/gái' },
+                        ]}
+                        margin={{ top: 15, right: 25, left: -15, bottom: 5 }}
+                      >
+                        <defs>
+                          <linearGradient id="adnLineGradient" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0284c7" stopOpacity={0.35} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis dataKey="name" tick={{ fontSize: 11, fontWeight: 600, fill: '#475569' }} axisLine={false} tickLine={false} />
+                        <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                        <Tooltip
+                          content={({ active, payload }) => {
+                            if (active && payload && payload.length) {
+                              const data = payload[0].payload;
+                              return (
+                                <div className="bg-slate-900 text-white p-3 rounded-xl text-xs shadow-xl space-y-1">
+                                  <div className="font-bold flex items-center gap-2 text-sky-400">
+                                    <Activity className="w-4 h-4 text-sky-400" />
+                                    <span>{data.name}</span>
+                                  </div>
+                                  <div className="text-[11px] text-slate-200">Số đơn: <b className="text-white text-sm">{data.count}</b> đơn</div>
+                                  <div className="text-[10px] text-slate-400 font-normal">{data.desc}</div>
+                                </div>
+                              );
+                            }
+                            return null;
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="count"
+                          stroke="#0284c7"
+                          strokeWidth={3}
+                          fillOpacity={1}
+                          fill="url(#adnLineGradient)"
+                          dot={{ r: 6, fill: '#0284c7', stroke: '#ffffff', strokeWidth: 2 }}
+                          activeDot={{ r: 8, fill: '#6366f1', stroke: '#ffffff', strokeWidth: 3 }}
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Detailed Legend / Ghi chú bên dưới */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
+                    {[
+                      { name: 'ADN Pháp Lý', count: stats.adnStats.byType.phap_ly, color: '#0284c7', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', desc: 'Khai sinh, tòa án' },
+                      { name: 'ADN Tự Nguyện', count: stats.adnStats.byType.tu_nguyen, color: '#10b981', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', desc: 'Cá nhân xem biết' },
+                      { name: 'Nhiễm Sắc Thể Y', count: stats.adnStats.byType.y_chr, color: '#6366f1', bg: 'bg-indigo-50', text: 'text-indigo-700', border: 'border-indigo-200', desc: 'Y-STR (Dòng cha)' },
+                      { name: 'Nhiễm Sắc Thể X', count: stats.adnStats.byType.x_chr, color: '#a855f7', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', desc: 'X-STR (Dòng mẹ/gái)' },
+                    ].map((item, idx) => {
+                      const pct = stats.adnStats?.totalOrders ? Math.round((item.count / stats.adnStats.totalOrders) * 100) : 0;
+                      return (
+                        <div key={idx} className={`p-3.5 rounded-xl border ${item.border} ${item.bg} flex flex-col justify-between space-y-2 shadow-2xs`}>
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-2">
+                              <span className="w-3 h-3 rounded-full shrink-0 shadow-2xs" style={{ backgroundColor: item.color }} />
+                              <span className={`text-xs font-bold ${item.text}`}>{item.name}</span>
+                            </span>
+                            <span className={`text-base font-black ${item.text}`}>
+                              {item.count}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between text-[10px] text-slate-600 font-medium">
+                            <span className="truncate">{item.desc}</span>
+                            <span className="font-bold shrink-0 ml-1">({pct}%)</span>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

@@ -163,8 +163,9 @@ export async function POST(request: NextRequest) {
       table3 = [],
       ketLuan = '',
       doTinCay = '> 99,9999%',
+      canBoXetNghiem = 'CÁN BỘ XÉT NGHIỆM',
+      daiDienDonVi = 'ĐẠI DIỆN ĐƠN VỊ',
       kiemSoatKetQua = 'TS. BS. Nguyễn Khánh Dương',
-      daiDienDonVi = 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH',
     } = body;
 
     const pdfDoc = await PDFDocument.create();
@@ -191,6 +192,39 @@ export async function POST(request: NextRequest) {
     const { width, height } = page1.getSize();
     const margin = 36;
 
+    // 0. Watermark Overlay on Page 1
+    const watermarkJpgPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
+    const watermarkPngPath = path.join(process.cwd(), 'public', 'logo.png');
+    try {
+      if (fs.existsSync(watermarkJpgPath)) {
+        const wmBytes = fs.readFileSync(watermarkJpgPath);
+        const wmImg = await pdfDoc.embedJpg(wmBytes);
+        const wmWidth = 360;
+        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+        page1.drawImage(wmImg, {
+          x: (width - wmWidth) / 2,
+          y: (height - wmHeight) / 2,
+          width: wmWidth,
+          height: wmHeight,
+          opacity: 0.14,
+        });
+      } else if (fs.existsSync(watermarkPngPath)) {
+        const wmBytes = fs.readFileSync(watermarkPngPath);
+        const wmImg = await pdfDoc.embedPng(wmBytes);
+        const wmWidth = 360;
+        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+        page1.drawImage(wmImg, {
+          x: (width - wmWidth) / 2,
+          y: (height - wmHeight) / 2,
+          width: wmWidth,
+          height: wmHeight,
+          opacity: 0.14,
+        });
+      }
+    } catch (err) {
+      console.error('Page 1 watermark drawing error:', err);
+    }
+
     // 1. Logo HK-Tech (public/logo_hk.jpg)
     const logoHkPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
     if (fs.existsSync(logoHkPath)) {
@@ -207,8 +241,8 @@ export async function POST(request: NextRequest) {
     let currentY = height - margin - 10;
     const headerX = margin + 85;
 
-    if (loaiXetNghiemADN === 'tu_nguyen') {
-      // Header for ADN Tự nguyện (Image 3)
+    if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+      // Header for ADN Tự nguyện, Nhiễm sắc thể Y & X (Image 1, 3, 4)
       page1.drawText(nfc('VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN'), {
         x: headerX,
         y: currentY,
@@ -344,8 +378,8 @@ export async function POST(request: NextRequest) {
     currentY -= 18;
     const formattedNgayYeuCau = formatDateVN(ngayYeuCau) || '...................';
     let introStr = '';
-    if (loaiXetNghiemADN === 'tu_nguyen') {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
+    if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà (ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
     } else {
       introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, Công ty Cổ phần công nghệ và thương mại HK- Teck thực hiện xét nghiệm ADN cho những người sau:`;
     }
@@ -374,8 +408,8 @@ export async function POST(request: NextRequest) {
       const sampleNgayCap = formatDateVN(sample.ngayCap) || '...................';
       const sampleType = sample.loaiMau || 'Máu';
 
-      if (loaiXetNghiemADN === 'tu_nguyen') {
-        // ADN Tự Nguyện (Image 3 format)
+      if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr') {
+        // ADN Tự Nguyện & Nhiễm sắc thể Y (Image 1 & 3 format)
         page1.drawText(nfc(`${idx + 1}.  Người có mẫu ghi tên: ${name}`), {
           x: margin + 15,
           y: currentY,
@@ -517,63 +551,141 @@ export async function POST(request: NextRequest) {
 
     // Notes Section (Khoảng cách vừa vặn với phần thông tin mẫu bên trên)
     currentY -= 6;
-    page1.drawText(nfc(`-  Người ${loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`), {
-      x: margin,
-      y: currentY,
-      size: 10,
-      font: fontItalic,
-      color: darkColor,
-    });
-    currentY -= 12;
-    page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.`), {
-      x: margin,
-      y: currentY,
-      size: 10,
-      font: fontItalic,
-      color: darkColor,
-    });
-    currentY -= 12;
-    page1.drawText(nfc('-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.'), {
-      x: margin,
-      y: currentY,
-      size: 10,
-      font: fontItalic,
-      color: darkColor,
-    });
-    currentY -= 12;
-    page1.drawText(nfc(`-  Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit ${boKit || 'A27Plex STR Detection Kit'}.`), {
-      x: margin,
-      y: currentY,
-      size: 10,
-      font: fontItalic,
-      color: darkColor,
-    });
-    currentY -= 16;
+    // Notes Section (Khoảng cách vừa vặn với phần thông tin mẫu bên trên)
+    currentY -= 6;
+    if (loaiXetNghiemADN === 'x_chr') {
+      const bullets = [
+        `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
+        '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
+        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
+        '-  Phương pháp xét nghiệm: Phân tích nhiễm sắc thể X.',
+        '-  Các mẫu được tách chiết ADN bằng bộ kit ReliaPrep gDNA Miniprep (Promega, Mỹ).',
+        `-  Mẫu ADN sau khi tách chiết được khuếch đại bằng bộ kit ${boKit || 'X18Plex STR Detection Kit'}, sử dụng máy chu trình nhiệt MultiGene OptiMax Cycler (Labnet, Mỹ).`,
+        '-  Sản phẩm PCR được điện di mao quản trên hệ thống 3500-Genetic Analyzer (Applied Biosystems, Mỹ).',
+        '-  Kết quả được xử lý bằng phần mềm GeneMapper ID-X v1.5 (Applied Biosystems, Mỹ).',
+      ];
+      for (const b of bullets) {
+        page1.drawText(nfc(b), {
+          x: margin,
+          y: currentY,
+          size: 8.5,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 10.5;
+      }
+      currentY -= 4;
+    } else if (loaiXetNghiemADN === 'y_chr') {
+      const bullets = [
+        `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
+        '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
+        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
+        '-  Phương pháp xét nghiệm: Phân tích nhiễm sắc thể Y.',
+        '-  Các mẫu được tách chiết ADN bằng bộ kit ReliaPrep gDNA Miniprep (Promega, Mỹ).',
+        `-  Mẫu ADN sau khi tách chiết được khuếch đại bằng bộ kit ${boKit || 'Y27Plex STR Detection Kit'}, sử dụng máy chu trình nhiệt MultiGene OptiMax Cycler (Labnet, Mỹ).`,
+        '-  Sản phẩm PCR được điện di mao quản trên hệ thống 3500-Genetic Analyzer (Applied Biosystems, Mỹ).',
+        '-  Kết quả được xử lý bằng phần mềm GeneMapper ID-X v1.5 (Applied Biosystems, Mỹ).',
+      ];
+      for (const b of bullets) {
+        page1.drawText(nfc(b), {
+          x: margin,
+          y: currentY,
+          size: 8.5,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 10.5;
+      }
+      currentY -= 4;
+    } else {
+      page1.drawText(nfc(`-  Người ${loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`), {
+        x: margin,
+        y: currentY,
+        size: 10,
+        font: fontItalic,
+        color: darkColor,
+      });
+      currentY -= 12;
+      page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.`), {
+        x: margin,
+        y: currentY,
+        size: 10,
+        font: fontItalic,
+        color: darkColor,
+      });
+      currentY -= 12;
+      page1.drawText(nfc('-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.'), {
+        x: margin,
+        y: currentY,
+        size: 10,
+        font: fontItalic,
+        color: darkColor,
+      });
+      currentY -= 12;
+      page1.drawText(nfc(`-  Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit ${boKit || 'A27Plex STR Detection Kit'}.`), {
+        x: margin,
+        y: currentY,
+        size: 10,
+        font: fontItalic,
+        color: darkColor,
+      });
+      currentY -= 16;
+    }
 
     // STR Loci Header
-    page1.drawText(nfc('Kết quả phân tích ADN như sau:'), {
-      x: margin,
-      y: currentY,
-      size: 13,
-      font: fontBold,
-      color: darkColor,
-    });
+    if (loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+      const yTitle = nfc('KẾT QUẢ PHÂN TÍCH ADN');
+      const yTitleW = fontBold.widthOfTextAtSize(yTitle, 13);
+      page1.drawText(yTitle, {
+        x: (width - yTitleW) / 2,
+        y: currentY,
+        size: 13,
+        font: fontBold,
+        color: primaryBlue,
+      });
+    } else {
+      page1.drawText(nfc('Kết quả phân tích ADN như sau:'), {
+        x: margin,
+        y: currentY,
+        size: 13,
+        font: fontBold,
+        color: darkColor,
+      });
+    }
     currentY -= 14;
 
     // ----------------------------------------------------
-    // RENDER THE 3 LOCI TABLES (Image 2 & Image 3 exact format)
+    // RENDER THE 3 LOCI TABLES
     // ----------------------------------------------------
     const sampleKeys = mauDanhSach.length > 0 ? mauDanhSach.map((s: any) => s.kyHieuMau || 'M1') : ['M1', 'M2'];
 
-    const lociTable1Def = ['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317'];
-    const lociTable2Def = ['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391'];
-    const lociTable3Def = ['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33'];
+    const isYchr = loaiXetNghiemADN === 'y_chr';
+    const isXchr = loaiXetNghiemADN === 'x_chr';
+    const lociTable1Def = isXchr
+      ? ['GATA172D05', 'GATA165B12', 'DXS6795', 'DXS981', 'DXS6807', 'DXS7133', 'DXS8378', 'DXS9902', 'DXS6810']
+      : isYchr
+      ? ['DYS481', 'DYS389I', 'DYS635', 'DYS389II', 'DYS391', 'DYS533', 'DYS627', 'DYS460', 'DYS458']
+      : ['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317'];
+
+    const lociTable2Def = isXchr
+      ? ['DXS10159', 'DXS7423', 'DXS7132', 'GATA31E08', 'DXS6789', 'AMEL', 'HPRTB', 'DXS6803', 'DXS101']
+      : isYchr
+      ? ['DYS19', 'DYF387S1', 'DYS456', 'DYS385', 'DYS576', 'DYS437', 'DYS439', 'DYS392', 'DYS448']
+      : ['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391'];
+
+    const lociTable3Def = isXchr
+      ? []
+      : isYchr
+      ? ['DYS518', 'DYS393', 'DYS570', 'DYS390', 'DYS438', 'Y_GATA_H4', 'DYS449']
+      : ['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33'];
 
     const drawStandard9LociTable = (lociList: string[], dataRows: any[]) => {
+      if (!lociList || lociList.length === 0) return;
+      const numCols = lociList.length;
       const rowHeight = 14;
       const firstColWidth = 78;
-      const lociColWidth = Math.floor((width - margin * 2 - firstColWidth) / 9);
-      const totalTableWidth = firstColWidth + lociColWidth * 9;
+      const lociColWidth = Math.floor((width - margin * 2 - firstColWidth) / numCols);
+      const totalTableWidth = firstColWidth + lociColWidth * numCols;
       const tableHeight = rowHeight * (1 + sampleKeys.length);
       const tableStartY = currentY;
 
@@ -583,7 +695,7 @@ export async function POST(request: NextRequest) {
         y: tableStartY - tableHeight,
         width: totalTableWidth,
         height: tableHeight,
-        borderColor: darkColor,
+        borderColor: (isYchr || isXchr) ? primaryBlue : darkColor,
         borderWidth: 0.5,
       });
 
@@ -593,7 +705,7 @@ export async function POST(request: NextRequest) {
         page1.drawLine({
           start: { x: margin, y: ry },
           end: { x: margin + totalTableWidth, y: ry },
-          color: darkColor,
+          color: (isYchr || isXchr) ? primaryBlue : darkColor,
           thickness: 0.5,
         });
       }
@@ -602,17 +714,17 @@ export async function POST(request: NextRequest) {
       page1.drawLine({
         start: { x: margin + firstColWidth, y: tableStartY },
         end: { x: margin + firstColWidth, y: tableStartY - tableHeight },
-        color: darkColor,
+        color: (isYchr || isXchr) ? primaryBlue : darkColor,
         thickness: 0.5,
       });
 
-      // Vertical lines separating each of the 9 locus columns
-      for (let lIdx = 1; lIdx <= 9; lIdx++) {
+      // Vertical lines separating each of the locus columns
+      for (let lIdx = 1; lIdx <= numCols; lIdx++) {
         const vx = margin + firstColWidth + lIdx * lociColWidth;
         page1.drawLine({
           start: { x: vx, y: tableStartY },
           end: { x: vx, y: tableStartY - tableHeight },
-          color: darkColor,
+          color: (isYchr || isXchr) ? primaryBlue : darkColor,
           thickness: 0.5,
         });
       }
@@ -621,7 +733,7 @@ export async function POST(request: NextRequest) {
       page1.drawLine({
         start: { x: margin, y: tableStartY },
         end: { x: margin + firstColWidth, y: tableStartY - rowHeight },
-        color: darkColor,
+        color: (isYchr || isXchr) ? primaryBlue : darkColor,
         thickness: 0.5,
       });
 
@@ -631,14 +743,14 @@ export async function POST(request: NextRequest) {
         y: currentY - rowHeight + 8,
         size: 7,
         font: fontBold,
-        color: darkColor,
+        color: (isYchr || isXchr) ? primaryBlue : darkColor,
       });
       page1.drawText(nfc('Mẫu'), {
         x: margin + 6,
         y: currentY - rowHeight + 2,
         size: 7,
         font: fontBold,
-        color: darkColor,
+        color: (isYchr || isXchr) ? primaryBlue : darkColor,
       });
 
       // Loci columns names
@@ -650,7 +762,7 @@ export async function POST(request: NextRequest) {
           y: currentY - rowHeight + 4,
           size: 7.5,
           font: fontBold,
-          color: darkColor,
+          color: (isYchr || isXchr) ? primaryBlue : darkColor,
         });
       });
 
@@ -742,7 +854,11 @@ export async function POST(request: NextRequest) {
         ? confidenceVal
         : `độ tin cậy ${confidenceVal}`;
 
-      if (loaiXetNghiemADN === 'tu_nguyen') {
+      if (loaiXetNghiemADN === 'x_chr') {
+        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể X'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+      } else if (loaiXetNghiemADN === 'y_chr') {
+        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể Y'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+      } else if (loaiXetNghiemADN === 'tu_nguyen') {
         conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
       } else {
         // ADN Pháp lý
@@ -750,7 +866,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const redPhraseRegex = /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
+    const redPhraseRegex = /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+X|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+Y|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
     const match = conclusionFullText.match(redPhraseRegex);
     const wordTokens: { word: string; color: any }[] = [];
 
@@ -790,26 +906,66 @@ export async function POST(request: NextRequest) {
     currentY -= 16;
 
     // Signatures
-    currentY -= 40;
-    page1.drawText(nfc('CÁN BỘ XÉT NGHIỆM'), {
-      x: margin + 35,
+    currentY -= 35;
+    const canBoTitleText = nfc('CÁN BỘ XÉT NGHIỆM');
+    const daiDienTitleText = nfc('ĐẠI DIỆN ĐƠN VỊ');
+
+    const canBoTitleWidth = fontBold.widthOfTextAtSize(canBoTitleText, 13);
+    const daiDienTitleWidth = fontBold.widthOfTextAtSize(daiDienTitleText, 13);
+
+    const canBoXPos = margin + 35;
+    const daiDienXPos = width - margin - daiDienTitleWidth - 30;
+
+    page1.drawText(canBoTitleText, {
+      x: canBoXPos,
       y: currentY,
       size: 13,
       font: fontBold,
       color: darkColor,
     });
-    page1.drawText(nfc('ĐẠI DIỆN ĐƠN VỊ'), {
-      x: width - margin - 155,
+    page1.drawText(daiDienTitleText, {
+      x: daiDienXPos,
       y: currentY,
       size: 13,
       font: fontBold,
       color: darkColor,
     });
 
+    // Render Signer Names Below Signature Area (if provided)
+    const canBoName = (canBoXetNghiem || '').trim();
+    const daiDienName = (daiDienDonVi || '').trim();
 
+    if (canBoName || daiDienName) {
+      const nameY = currentY - 75; // Expanded signature space for hand signing & stamping
+      if (canBoName) {
+        const canBoNameText = nfc(canBoName);
+        const canBoNameW = fontBold.widthOfTextAtSize(canBoNameText, 12);
+        const canBoNameX = canBoXPos + (canBoTitleWidth - canBoNameW) / 2;
+        page1.drawText(canBoNameText, {
+          x: Math.max(margin, canBoNameX),
+          y: nameY,
+          size: 12,
+          font: fontBold,
+          color: darkColor,
+        });
+      }
 
-    // Footer note for ADN Tự nguyện (Image 3)
-    if (loaiXetNghiemADN === 'tu_nguyen') {
+      if (daiDienName) {
+        const daiDienNameText = nfc(daiDienName);
+        const daiDienNameW = fontBold.widthOfTextAtSize(daiDienNameText, 12);
+        const daiDienNameX = daiDienXPos + (daiDienTitleWidth - daiDienNameW) / 2;
+        page1.drawText(daiDienNameText, {
+          x: daiDienNameX,
+          y: nameY,
+          size: 12,
+          font: fontBold,
+          color: darkColor,
+        });
+      }
+    }
+
+    // Footer note for ADN Tự nguyện & Nhiễm sắc thể Y
+    if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr') {
       page1.drawText(nfc('Ghi chú: Kết quả xét nghiệm có giá trị trên mẫu phân tích, không có giá trị trong tranh chấp, tổ tụng pháp lý'), {
         x: margin,
         y: margin + 10,

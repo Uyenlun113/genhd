@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
     await dbConnect();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const type = searchParams.get('type');
     const search = searchParams.get('search');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
@@ -14,6 +15,9 @@ export async function GET(request: NextRequest) {
     const query: any = {};
     if (status && status !== 'all') {
       query.trangThai = status;
+    }
+    if (type && type !== 'all') {
+      query.loaiXetNghiemADN = type;
     }
     if (startDate || endDate) {
       query.createdAt = {};
@@ -70,7 +74,7 @@ export async function POST(request: NextRequest) {
       createdAt: { $gte: startOfYear },
     });
     const seqStr = String(countThisYear + 1).padStart(4, '0');
-    const tag = loaiXetNghiemADN === 'tu_nguyen' ? 'THK/ADN' : 'HHK/ADN';
+    const tag = loaiXetNghiemADN === 'phap_ly' ? 'HHK/ADN' : loaiXetNghiemADN === 'y_chr' ? 'YHK/ADN' : loaiXetNghiemADN === 'x_chr' ? 'XHK/ADN' : 'THK/ADN';
 
     const generatedMaSo = `${yy}${seqStr}${tag}`;
     const maSo = soPhieu && soPhieu.trim() ? soPhieu.trim() : generatedMaSo;
@@ -103,41 +107,31 @@ export async function POST(request: NextRequest) {
         return { locus: loc, alleles };
       });
 
-    const defaultTable1 = initLoci([
-      'D3S1358',
-      'vWA',
-      'D12S391',
-      'CSF1PO',
-      'Penta E',
-      'D2S441',
-      'D16S539',
-      'D7S820',
-      'D13S317',
-    ]);
+    const isYchr = loaiXetNghiemADN === 'y_chr';
+    const isXchr = loaiXetNghiemADN === 'x_chr';
+    const finalBoKit = boKit || (isXchr ? 'X18Plex STR Detection Kit' : isYchr ? 'Y27Plex STR Detection Kit' : 'A27Plex STR Detection Kit');
 
-    const defaultTable2 = initLoci([
-      'D2S1338',
-      'Penta D',
-      'Rs199815934',
-      'AMEL',
-      'D22S1045',
-      'D19S433',
-      'D18S51',
-      'D6S1043',
-      'DYS391',
-    ]);
+    const defaultTable1 = isXchr
+      ? initLoci(['GATA172D05', 'GATA165B12', 'DXS6795', 'DXS981', 'DXS6807', 'DXS7133', 'DXS8378', 'DXS9902', 'DXS6810'])
+      : isYchr
+      ? initLoci(['DYS481', 'DYS389I', 'DYS635', 'DYS389II', 'DYS391', 'DYS533', 'DYS627', 'DYS460', 'DYS458'])
+      : initLoci(['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317']);
 
-    const defaultTable3 = initLoci([
-      'D8S1179',
-      'D5S818',
-      'D21S11',
-      'FGA',
-      'D10S1248',
-      'TH01',
-      'D1S1656',
-      'TPOX',
-      'SE33',
-    ]);
+    const defaultTable2 = isXchr
+      ? initLoci(['DXS10159', 'DXS7423', 'DXS7132', 'GATA31E08', 'DXS6789', 'AMEL', 'HPRTB', 'DXS6803', 'DXS101'])
+      : isYchr
+      ? initLoci(['DYS19', 'DYF387S1', 'DYS456', 'DYS385', 'DYS576', 'DYS437', 'DYS439', 'DYS392', 'DYS448'])
+      : initLoci(['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391']);
+
+    const defaultTable3 = isXchr
+      ? []
+      : isYchr
+      ? initLoci(['DYS518', 'DYS393', 'DYS570', 'DYS390', 'DYS438', 'Y_GATA_H4', 'DYS449'])
+      : initLoci(['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33']);
+
+    const {
+      canBoXetNghiem = 'CÁN BỘ XÉT NGHIỆM',
+    } = body;
 
     const newOrder = await AdnOrder.create({
       maSo,
@@ -147,8 +141,9 @@ export async function POST(request: NextRequest) {
       ngayYeuCau: ngayYeuCau || new Date().toISOString().split('T')[0],
       nguoiYeuCau,
       nguoiThuMau,
-      boKit,
-      daiDienDonVi,
+      boKit: finalBoKit,
+      canBoXetNghiem: canBoXetNghiem || 'CÁN BỘ XÉT NGHIỆM',
+      daiDienDonVi: daiDienDonVi || 'ĐẠI DIỆN ĐƠN VỊ',
       kiemSoatKetQua,
       trangThai: 'gui_mau', // Step 1: Gửi mẫu
       dieuKien: 'chua_xac_nhan',

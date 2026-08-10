@@ -63,13 +63,14 @@ interface LocusItem {
 interface AdnOrderData {
   _id: string;
   maSo: string;
-  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen';
+  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr';
   soPhieu: string;
   ngayBanHanh: string;
   ngayYeuCau: string;
   nguoiYeuCau: string;
   nguoiThuMau: string;
   boKit: string;
+  canBoXetNghiem?: string;
   daiDienDonVi: string;
   kiemSoatKetQua: string;
   trangThai: 'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua';
@@ -98,12 +99,7 @@ const formatDateDisplay = (dateStr?: string) => {
     }
   }
   if (dateStr.includes('/')) {
-    const parts = dateStr.split('/');
-    if (parts.length === 3) {
-      const dd = parts[0].padStart(2, '0');
-      const mm = parts[1].padStart(2, '0');
-      return `${dd}/${mm}/${parts[2]}`;
-    }
+    return dateStr;
   }
   return dateStr;
 };
@@ -115,10 +111,11 @@ const formatAllele = (v1?: string, v2?: string) => {
   return a1 || a2 || '';
 };
 
-export default function AdnConvertPage() {
+export default function AdnConvertListPage() {
   const [orders, setOrders] = useState<AdnOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -172,25 +169,27 @@ export default function AdnConvertPage() {
   };
 
   // Helper to generate default order code / ticket number (Số phiếu / Mã ca)
-  const generateDefaultSoPhieu = (type: 'phap_ly' | 'tu_nguyen') => {
+  const generateDefaultSoPhieu = (type: 'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr') => {
     const now = new Date();
     const d = String(now.getDate()).padStart(2, '0');
     const m = String(now.getMonth() + 1).padStart(2, '0');
     const y = String(now.getFullYear()).slice(-2);
-    const prefix = type === 'phap_ly' ? 'HCGT' : 'TNGT';
+    const prefix = type === 'phap_ly' ? 'HCGT' : type === 'y_chr' ? 'YCGT' : type === 'x_chr' ? 'XCGT' : 'TNGT';
     return `${prefix}-${d}${m}${y}-01`;
   };
 
   // ---------------------------------------------------------
   // Create Order Form State (Step 1)
   // ---------------------------------------------------------
-  const [createType, setCreateType] = useState<'phap_ly' | 'tu_nguyen'>('phap_ly');
+  const [createType, setCreateType] = useState<'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr'>('phap_ly');
   const [createSoPhieu, setCreateSoPhieu] = useState(generateDefaultSoPhieu('phap_ly'));
   const [createNgayYeuCau, setCreateNgayYeuCau] = useState(new Date().toLocaleDateString('vi-VN'));
   const [createNgayBanHanh, setCreateNgayBanHanh] = useState(`Hà Nội, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}.`);
   const [createNguoiYeuCau, setCreateNguoiYeuCau] = useState('');
   const [createNguoiThuMau, setCreateNguoiThuMau] = useState('Hoàng Văn Luận');
   const [createBoKit, setCreateBoKit] = useState('A27Plex STR Detection Kit');
+  const [createCanBoXetNghiem, setCreateCanBoXetNghiem] = useState('');
+  const [createDaiDienDonVi, setCreateDaiDienDonVi] = useState('');
   const [createAnhGuiMau, setCreateAnhGuiMau] = useState('');
 
   const [createSamples, setCreateSamples] = useState<SampleItem[]>([
@@ -243,6 +242,7 @@ export default function AdnConvertPage() {
     setLoading(true);
     try {
       let url = `/api/adn/orders?status=${statusFilter}`;
+      if (typeFilter && typeFilter !== 'all') url += `&type=${typeFilter}`;
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
       if (startDate) url += `&startDate=${startDate}`;
       if (endDate) url += `&endDate=${endDate}`;
@@ -260,7 +260,7 @@ export default function AdnConvertPage() {
 
   useEffect(() => {
     fetchOrders();
-  }, [statusFilter, startDate, endDate]);
+  }, [statusFilter, typeFilter, startDate, endDate]);
 
   // ---------------------------------------------------------
   // Helper functions for image file reading
@@ -324,6 +324,8 @@ export default function AdnConvertPage() {
           nguoiYeuCau: createNguoiYeuCau,
           nguoiThuMau: createNguoiThuMau,
           boKit: createBoKit,
+          canBoXetNghiem: createCanBoXetNghiem,
+          daiDienDonVi: createDaiDienDonVi,
           anhGuiMau: createAnhGuiMau,
           mauDanhSach: createSamples,
         }),
@@ -647,43 +649,66 @@ export default function AdnConvertPage() {
               </div>
             </div>
 
-            {/* Date Range Filter Row */}
+            {/* Date Range & Type Filter Row */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="font-bold text-slate-600 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-sky-600" />
-                  <span>Lọc theo ngày tạo:</span>
-                </span>
-
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Filter by ADN Type */}
                 <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-medium">Từ ngày:</span>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
-                  />
+                  <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                    <Dna className="w-4 h-4 text-indigo-600" />
+                    <span>Loại ADN:</span>
+                  </span>
+                  <select
+                    value={typeFilter}
+                    onChange={(e) => setTypeFilter(e.target.value)}
+                    className="form-select py-1 px-2.5 text-xs bg-white border border-slate-300 rounded-lg font-bold text-slate-800 cursor-pointer shadow-2xs"
+                  >
+                    <option value="all">Tất cả loại ADN</option>
+                    <option value="phap_ly">ADN Pháp Lý</option>
+                    <option value="tu_nguyen">ADN Tự Nguyện</option>
+                    <option value="y_chr">ADN Nhiễm Sắc Thể Y</option>
+                    <option value="x_chr">ADN Nhiễm Sắc Thể X</option>
+                  </select>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <span className="text-slate-500 font-medium">Đến ngày:</span>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
-                  />
+                {/* Filter by Date Created */}
+                <div className="flex items-center gap-3 border-l border-slate-200 pl-4">
+                  <span className="font-bold text-slate-600 flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-sky-600" />
+                    <span>Lọc theo ngày tạo:</span>
+                  </span>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 font-medium">Từ ngày:</span>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-500 font-medium">Đến ngày:</span>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="form-input py-1 px-2 text-xs w-36 bg-white border border-slate-200 rounded-lg"
+                    />
+                  </div>
                 </div>
 
-                {(startDate || endDate) && (
+                {(startDate || endDate || typeFilter !== 'all') && (
                   <button
                     onClick={() => {
                       setStartDate('');
                       setEndDate('');
+                      setTypeFilter('all');
                     }}
-                    className="text-xs text-red-600 hover:text-red-800 font-semibold underline ml-1 cursor-pointer"
+                    className="text-xs text-red-600 hover:text-red-800 font-semibold underline cursor-pointer"
                   >
-                    Xóa lọc ngày
+                    Xóa bộ lọc
                   </button>
                 )}
               </div>
@@ -734,10 +759,22 @@ export default function AdnConvertPage() {
                           </td>
                           <td className="p-3.5">
                             <span
-                              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${isPhapLy ? 'bg-purple-100 text-purple-700' : 'bg-teal-100 text-teal-700'
+                              className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-bold ${order.loaiXetNghiemADN === 'phap_ly'
+                                ? 'bg-purple-100 text-purple-700'
+                                : order.loaiXetNghiemADN === 'y_chr'
+                                ? 'bg-sky-100 text-sky-700'
+                                : order.loaiXetNghiemADN === 'x_chr'
+                                ? 'bg-indigo-100 text-indigo-700'
+                                : 'bg-teal-100 text-teal-700'
                                 }`}
                             >
-                              {isPhapLy ? 'ADN Pháp Lý' : 'ADN Tự Nguyện'}
+                              {order.loaiXetNghiemADN === 'phap_ly'
+                                ? 'ADN Pháp Lý'
+                                : order.loaiXetNghiemADN === 'y_chr'
+                                ? 'ADN NST Y'
+                                : order.loaiXetNghiemADN === 'x_chr'
+                                ? 'ADN NST X'
+                                : 'ADN Tự Nguyện'}
                             </span>
                           </td>
                           <td className="p-3.5 font-semibold text-slate-800">{order.nguoiYeuCau || '---'}</td>
@@ -886,21 +923,22 @@ export default function AdnConvertPage() {
 
             <form onSubmit={handleCreateOrderSubmit} className="space-y-6">
               {/* Type Selector */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
                 <button
                   type="button"
                   onClick={() => {
                     setCreateType('phap_ly');
                     setCreateSoPhieu(generateDefaultSoPhieu('phap_ly'));
+                    setCreateBoKit('A27Plex STR Detection Kit');
                   }}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'phap_ly'
                     ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/20'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                 >
-                  <div className="font-bold text-purple-900 text-base">ADN Pháp Lý (HCGT-...)</div>
+                  <div className="font-bold text-purple-900 text-sm">ADN Pháp Lý (HCGT-...)</div>
                   <div className="text-xs text-purple-700 mt-1">
-                    Sử dụng mẫu chuẩn `Phiếu trả KQ ADN PL- V2.docx`. Dùng làm thủ tục hành chính, pháp lý.
+                    Hồ sơ thủ tục hành chính, pháp lý.
                   </div>
                 </button>
 
@@ -909,15 +947,52 @@ export default function AdnConvertPage() {
                   onClick={() => {
                     setCreateType('tu_nguyen');
                     setCreateSoPhieu(generateDefaultSoPhieu('tu_nguyen'));
+                    setCreateBoKit('A27Plex STR Detection Kit');
                   }}
                   className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'tu_nguyen'
                     ? 'border-teal-600 bg-teal-50/60 ring-2 ring-teal-500/20'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                     }`}
                 >
-                  <div className="font-bold text-teal-900 text-base">ADN Tự Nguyện (TNGT-...)</div>
+                  <div className="font-bold text-teal-900 text-sm">ADN Tự Nguyện (TNGT-...)</div>
                   <div className="text-xs text-teal-700 mt-1">
-                    Sử dụng mẫu chuẩn `Phiếu trả KQ ADN TN- V1.docx`. Dùng giải tỏa nghi ngờ cá nhân.
+                    Giải tỏa nghi ngờ cá nhân.
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateType('y_chr');
+                    setCreateSoPhieu(generateDefaultSoPhieu('y_chr'));
+                    setCreateBoKit('Y27Plex STR Detection Kit');
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'y_chr'
+                    ? 'border-sky-600 bg-sky-50/60 ring-2 ring-sky-500/20'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                >
+                  <div className="font-bold text-sky-900 text-sm">ADN Nhiễm Sắc Thể Y (YCGT-...)</div>
+                  <div className="text-xs text-sky-700 mt-1">
+                    Phân tích huyết thống dòng Nam (Y-STR).
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreateType('x_chr');
+                    setCreateSoPhieu(generateDefaultSoPhieu('x_chr'));
+                    setCreateBoKit('X18Plex STR Detection Kit');
+                  }}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${createType === 'x_chr'
+                    ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/20'
+                    : 'border-slate-200 bg-white hover:border-slate-300'
+                    }`}
+                >
+                  <div className="font-bold text-indigo-900 text-sm">ADN Nhiễm Sắc Thể X (XCGT-...)</div>
+                  <div className="text-xs text-indigo-700 mt-1">
+                    Phân tích huyết thống dòng Nữ (X-STR).
                   </div>
                 </button>
               </div>
@@ -1524,21 +1599,23 @@ export default function AdnConvertPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cán bộ xét nghiệm</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Cán bộ xét nghiệm (Tên ký bên trái)</label>
                   <input
                     type="text"
                     value={resultKiemSoat}
                     onChange={(e) => setResultKiemSoat(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                    placeholder="VD: Nguyễn Thị An"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Đại diện đơn vị</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Đại diện đơn vị (Tên ký bên phải)</label>
                   <input
                     type="text"
                     value={resultDaiDien}
                     onChange={(e) => setResultDaiDien(e.target.value)}
-                    className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                    placeholder="VD: GĐ. Nguyễn Văn A"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-semibold"
                   />
                 </div>
               </div>

@@ -30,13 +30,14 @@ export interface ILocusTableItem {
 
 export interface IAdnOrder extends Document {
   maSo: string;
-  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen';
+  loaiXetNghiemADN: 'phap_ly' | 'tu_nguyen' | 'y_chr' | 'x_chr';
   soPhieu: string;
   ngayBanHanh: string;
   ngayYeuCau: string;
   nguoiYeuCau: string;
   nguoiThuMau: string; // Người thu mẫu / Người nhận mẫu
   boKit: string;
+  canBoXetNghiem?: string;
   daiDienDonVi: string;
   kiemSoatKetQua: string;
 
@@ -84,7 +85,6 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
     maSo: { type: String, unique: true, required: true },
     loaiXetNghiemADN: {
       type: String,
-      enum: ['phap_ly', 'tu_nguyen'],
       default: 'phap_ly',
     },
     soPhieu: { type: String, default: '' },
@@ -93,7 +93,8 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
     nguoiYeuCau: { type: String, default: '' },
     nguoiThuMau: { type: String, default: 'Hoàng Văn Luận' },
     boKit: { type: String, default: 'A27Plex STR Detection Kit' },
-    daiDienDonVi: { type: String, default: 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM' },
+    canBoXetNghiem: { type: String, default: '' },
+    daiDienDonVi: { type: String, default: '' },
     kiemSoatKetQua: { type: String, default: 'TS. BS. Nguyễn Khánh Dương' },
 
     trangThai: {
@@ -125,6 +126,10 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
     strict: false,
   }
 );
+
+if (mongoose.models.AdnOrder) {
+  delete (mongoose.models as any).AdnOrder;
+}
 
 export const AdnOrder: Model<IAdnOrder> =
   mongoose.models.AdnOrder || mongoose.model<IAdnOrder>('AdnOrder', AdnOrderSchema);
