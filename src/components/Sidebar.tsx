@@ -33,7 +33,7 @@ function SidebarContent() {
   const canSeeHPV20 = isAdmin || allowedCategories.includes('hpv20');
   const canSeeSoiTuoi = isAdmin || allowedCategories.includes('soituoi');
   const canSeeGiaiPhauBenh = isAdmin || allowedCategories.includes('giaiphaubenh');
-  const canSeeAdnConvert = isAdmin || userRole === 'lab_adn' || allowedCategories.includes('adn');
+  const canSeeAdnConvert = userRole === 'admin' || userRole === 'lab_adn' || allowedCategories.includes('adn');
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {

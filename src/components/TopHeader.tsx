@@ -113,21 +113,21 @@ export default function TopHeader() {
     <header className="w-full bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-40">
       {/* Left: Brand Logos & Partnership Co-Branding */}
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2.5 group">
+        <Link href="/" className="flex items-center gap-3 group">
           {/* GENETRUST Logo */}
           <Image
             src={logoGenetrust}
             alt="Genetrust Logo"
-            width={40}
-            height={40}
-            style={{ objectFit: 'contain' }}
+            width={48}
+            height={48}
+            style={{ objectFit: 'contain', width: '48px', height: '48px' }}
             className="group-hover:scale-105 transition-transform"
           />
           <div className="leading-tight">
-            <span className="text-lg font-extrabold text-[#003399] tracking-tight block">
+            <span className="text-xl font-black text-[#003399] tracking-tight block">
               GENETRUST
             </span>
-            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+            <span className="text-xs text-slate-500 font-bold uppercase tracking-wider block">
               Việt Nam
             </span>
           </div>

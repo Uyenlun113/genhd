@@ -71,31 +71,17 @@ export default function LoginPage() {
         }}
       >
         <div className="mb-6 flex flex-col items-center justify-center">
-          <div className="flex items-center justify-center gap-5 mb-2">
-            <div className="w-[72px] h-[72px] flex items-center justify-center">
-              <Image
-                src={logoImg}
-                alt="Logo GEN HD"
-                width={72}
-                height={72}
-                style={{ objectFit: 'contain', width: '72px', height: '72px' }}
-                priority
-              />
-            </div>
-            <div className="flex items-center justify-center text-amber-600 bg-amber-50 p-2.5 rounded-full border border-amber-200/80 shadow-xs">
-              <Handshake className="w-6 h-6 text-amber-600 animate-pulse" />
-            </div>
-            <div className="w-[72px] h-[72px] flex items-center justify-center">
-              <Image
-                src={logoGenetrust}
-                alt="Logo Genetrust"
-                width={72}
-                height={72}
-                style={{ objectFit: 'contain', width: '72px', height: '72px' }}
-                priority
-              />
-            </div>
+          <div className="flex items-center justify-center mb-3">
+            <Image
+              src={logoGenetrust}
+              alt="Logo Genetrust"
+              width={90}
+              height={90}
+              style={{ objectFit: 'contain', width: '90px', height: '90px' }}
+              priority
+            />
           </div>
+          <h1 className="text-2xl font-black text-[#003399] tracking-tight">GENETRUST</h1>
           <p className="text-xs text-slate-500 mt-1 font-semibold text-center">
             Hệ thống Quản lý Kết quả Xét nghiệm
           </p>
