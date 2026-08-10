@@ -65,15 +65,42 @@ function NewResultFormContent() {
     viTriBenhPham: '',
   });
 
-  const selectedServiceObj = SERVICE_OPTIONS.find((s) => s.id === serviceChoice) || SERVICE_OPTIONS[0];
+  const hasCategoryPermission = (cat: string) => {
+    if (userRole === 'admin' || userRole === 'lab_admin') return true;
+    if (userRole === 'staff' && (cat === 'soituoi' || cat === 'giaiphaubenh')) return true;
+    const userAllowed: string[] = (session?.user as any)?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
+    return userAllowed.includes(cat);
+  };
+
+  const availableServiceOptions = SERVICE_OPTIONS.filter((opt) => {
+    return opt.types.every((t) => hasCategoryPermission(t));
+  });
+
+  const selectedServiceObj =
+    availableServiceOptions.find((s) => s.id === serviceChoice) ||
+    availableServiceOptions[0] ||
+    SERVICE_OPTIONS[0];
+
   const targetCategory = selectedServiceObj.types[0] || 'cell';
 
   useEffect(() => {
-    if (searchParams.get('type')) {
-      const type = searchParams.get('type') || 'cell';
-      setServiceChoice(type);
+    if (availableServiceOptions.length > 0) {
+      const isChoiceAvailable = availableServiceOptions.some((opt) => opt.id === serviceChoice);
+      if (!isChoiceAvailable) {
+        setServiceChoice(availableServiceOptions[0].id);
+      }
     }
-  }, [searchParams]);
+  }, [availableServiceOptions, serviceChoice]);
+
+  useEffect(() => {
+    const urlType = searchParams.get('type');
+    if (urlType) {
+      const isValidChoice = availableServiceOptions.some((opt) => opt.id === urlType);
+      if (isValidChoice) {
+        setServiceChoice(urlType);
+      }
+    }
+  }, [searchParams, availableServiceOptions]);
 
   useEffect(() => {
     async function fetchDoctors() {
@@ -272,7 +299,7 @@ function NewResultFormContent() {
                     onChange={handleServiceChange}
                     className="form-select font-bold text-slate-800 border-sky-300 bg-white shadow-xs text-xs py-1.5 w-full"
                   >
-                    {SERVICE_OPTIONS.map((opt) => (
+                    {availableServiceOptions.map((opt) => (
                       <option key={opt.id} value={opt.id}>
                         {opt.label}
                       </option>
