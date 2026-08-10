@@ -375,8 +375,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [nguoiYeuCau, setNguoiYeuCau] = useState('');
   const [nguoiThuMau, setNguoiThuMau] = useState('Hoàng Văn Luận');
   const [boKit, setBoKit] = useState('A27Plex STR Detection Kit');
-  const [canBoXetNghiem, setCanBoXetNghiem] = useState('CÁN BỘ XÉT NGHIỆM');
-  const [daiDienDonVi, setDaiDienDonVi] = useState('ĐẠI DIỆN ĐƠN VỊ');
+  const [canBoXetNghiem, setCanBoXetNghiem] = useState('');
+  const [daiDienDonVi, setDaiDienDonVi] = useState('');
   const [kiemSoatKetQua, setKiemSoatKetQua] = useState('TS. BS. Nguyễn Khánh Dương');
   const [ketLuan, setKetLuan] = useState('');
   const [doTinCay, setDoTinCay] = useState('> 99,9999%');
@@ -532,8 +532,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               nguoiYeuCau: d.nguoiYeuCau || '',
               nguoiThuMau: d.nguoiThuMau || 'Hoàng Văn Luận',
               boKit: d.boKit || 'A27Plex STR Detection Kit',
-              canBoXetNghiem: d.canBoXetNghiem || 'CÁN BỘ XÉT NGHIỆM',
-              daiDienDonVi: d.daiDienDonVi || 'ĐẠI DIỆN ĐƠN VỊ',
+              canBoXetNghiem: d.canBoXetNghiem || '',
+              daiDienDonVi: d.daiDienDonVi || '',
               mauDanhSach: samples,
               anhChayMauList: chartList,
               table1: t1,

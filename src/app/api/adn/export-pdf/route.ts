@@ -163,8 +163,8 @@ export async function POST(request: NextRequest) {
       table3 = [],
       ketLuan = '',
       doTinCay = '> 99,9999%',
-      canBoXetNghiem = 'CÁN BỘ XÉT NGHIỆM',
-      daiDienDonVi = 'ĐẠI DIỆN ĐƠN VỊ',
+      canBoXetNghiem = '',
+      daiDienDonVi = '',
       kiemSoatKetQua = 'TS. BS. Nguyễn Khánh Dương',
     } = body;
 
@@ -941,12 +941,21 @@ export async function POST(request: NextRequest) {
       const nameY = currentY - 75; // Expanded signature space for hand signing & stamping
       if (canBoName) {
         const canBoNameText = nfc(canBoName);
-        const canBoNameW = fontBold.widthOfTextAtSize(canBoNameText, 12);
-        const canBoNameX = canBoXPos + (canBoTitleWidth - canBoNameW) / 2;
+        let fontSize = 11;
+        let canBoNameW = fontBold.widthOfTextAtSize(canBoNameText, fontSize);
+        let canBoNameX = canBoXPos + (canBoTitleWidth - canBoNameW) / 2;
+
+        const maxHalfW = (width / 2) - margin;
+        while (canBoNameW > maxHalfW && fontSize > 7) {
+          fontSize -= 0.5;
+          canBoNameW = fontBold.widthOfTextAtSize(canBoNameText, fontSize);
+          canBoNameX = canBoXPos + (canBoTitleWidth - canBoNameW) / 2;
+        }
+
         page1.drawText(canBoNameText, {
           x: Math.max(margin, canBoNameX),
           y: nameY,
-          size: 12,
+          size: fontSize,
           font: fontBold,
           color: darkColor,
         });
@@ -954,12 +963,24 @@ export async function POST(request: NextRequest) {
 
       if (daiDienName) {
         const daiDienNameText = nfc(daiDienName);
-        const daiDienNameW = fontBold.widthOfTextAtSize(daiDienNameText, 12);
-        const daiDienNameX = daiDienXPos + (daiDienTitleWidth - daiDienNameW) / 2;
+        let fontSize = 10;
+        let daiDienNameW = fontBold.widthOfTextAtSize(daiDienNameText, fontSize);
+        const maxRightBound = width - margin;
+
+        while (fontSize > 6.5 && (daiDienXPos + (daiDienTitleWidth - daiDienNameW) / 2 + daiDienNameW > maxRightBound)) {
+          fontSize -= 0.5;
+          daiDienNameW = fontBold.widthOfTextAtSize(daiDienNameText, fontSize);
+        }
+
+        let daiDienNameX = daiDienXPos + (daiDienTitleWidth - daiDienNameW) / 2;
+        if (daiDienNameX + daiDienNameW > maxRightBound) {
+          daiDienNameX = maxRightBound - daiDienNameW;
+        }
+
         page1.drawText(daiDienNameText, {
-          x: daiDienNameX,
+          x: Math.max(width / 2, daiDienNameX),
           y: nameY,
-          size: 12,
+          size: fontSize,
           font: fontBold,
           color: darkColor,
         });

@@ -142,8 +142,8 @@ export async function POST(request: NextRequest) {
       nguoiYeuCau,
       nguoiThuMau,
       boKit: finalBoKit,
-      canBoXetNghiem: canBoXetNghiem || 'CÁN BỘ XÉT NGHIỆM',
-      daiDienDonVi: daiDienDonVi || 'ĐẠI DIỆN ĐƠN VỊ',
+      canBoXetNghiem: canBoXetNghiem || '',
+      daiDienDonVi: daiDienDonVi || '',
       kiemSoatKetQua,
       trangThai: 'gui_mau', // Step 1: Gửi mẫu
       dieuKien: 'chua_xac_nhan',
