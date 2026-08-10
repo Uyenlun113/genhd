@@ -634,6 +634,7 @@ export async function POST(request: NextRequest) {
 
     // STR Loci Header
     if (loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+      currentY -= 8; // Clear vertical gap from bullet text above
       const yTitle = nfc('KẾT QUẢ PHÂN TÍCH ADN');
       const yTitleW = fontBold.widthOfTextAtSize(yTitle, 13);
       page1.drawText(yTitle, {
@@ -643,6 +644,7 @@ export async function POST(request: NextRequest) {
         font: fontBold,
         color: primaryBlue,
       });
+      currentY -= 16; // Clear vertical gap before loci table
     } else {
       page1.drawText(nfc('Kết quả phân tích ADN như sau:'), {
         x: margin,
@@ -651,8 +653,8 @@ export async function POST(request: NextRequest) {
         font: fontBold,
         color: darkColor,
       });
+      currentY -= 14;
     }
-    currentY -= 14;
 
     // ----------------------------------------------------
     // RENDER THE 3 LOCI TABLES

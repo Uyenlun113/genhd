@@ -822,21 +822,21 @@ export default function AdnConvertListPage() {
                               {order.trangThai === 'gui_mau' && (
                                 <button
                                   onClick={() => openReceiveModal(order)}
-                                  className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1 shrink-0"
+                                  className="btn btn-success text-xs py-1 px-2.5 inline-flex items-center gap-1.5 shrink-0"
                                 >
-                                  <PackageCheck className="w-3.5 h-3.5" />
+                                  <FileCheck className="w-3.5 h-3.5" />
                                   <span>Nhận mẫu</span>
                                 </button>
                               )}
 
-                              {/* Step 3 Action Button: Upload results ("Up kết quả") */}
+                              {/* Step 3 Action Button: Enter results ("Nhập kết quả") */}
                               {order.trangThai === 'dang_chay_mau' && (
                                 <Link
                                   href={`/adn-convert/${order._id}`}
-                                  className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-all shadow-xs active:scale-95 cursor-pointer inline-flex items-center gap-1 shrink-0"
+                                  className="btn btn-primary text-xs py-1 px-2.5 inline-flex items-center gap-1.5 shrink-0"
                                 >
-                                  <Upload className="w-3.5 h-3.5" />
-                                  <span>Up kết quả</span>
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span>Nhập kết quả</span>
                                 </Link>
                               )}
 

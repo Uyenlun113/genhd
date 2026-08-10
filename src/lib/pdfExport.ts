@@ -1593,10 +1593,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
 
     await drawFooterBlock(page2);
 
-    drawTextOnPage(page1, 'Trang 1 / 2', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));
-    drawTextOnPage(page2, 'Trang 2 / 2', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));
-  } else {
-    drawTextOnPage(page1, 'Trang 1 / 1', 510, 16, 8, false, rgb(0.5, 0.5, 0.5));
+    // Bỏ đánh số trang theo yêu cầu để tránh bị dính chữ với tiêu đề bác sĩ
   }
 
   // Draw 0.06 watermark overlay on all pages
