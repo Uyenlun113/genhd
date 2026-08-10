@@ -21,11 +21,11 @@ try:
     def optimize_image_b64(img_bytes):
         try:
             im = Image.open(io.BytesIO(img_bytes))
-            im.thumbnail((1600, 1600))
-            if im.mode in ("RGBA", "P"):
+            im.thumbnail((1400, 1400))
+            if im.mode in ("RGBA", "P", "LA", "CMYK"):
                 im = im.convert("RGB")
             out = io.BytesIO()
-            im.save(out, format="JPEG", quality=80)
+            im.save(out, format="JPEG", quality=75)
             return "data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode('utf-8')
         except Exception:
             return None
@@ -201,46 +201,85 @@ def parse_docx_file(file_path):
         if parsed_items_t2: data['table2'] = parsed_items_t2
         if parsed_items_t3: data['table3'] = parsed_items_t3
 
-        # Extract ALL embedded images from DOCX using zipfile & docx rels
+        # Extract ALL embedded images from DOCX using zipfile & docx rels in exact document order
         extracted_images = []
         import zipfile
         import base64
 
-        # Method 1: ZipFile extraction from word/media/
         try:
             with zipfile.ZipFile(file_path, 'r') as z:
-                # Sort file names numerically/alphabetically (e.g. image1.png, image2.png)
-                media_files = [f for f in z.namelist() if f.startswith('word/media/') and not f.endswith('/')]
+                namelist = z.namelist()
+
+                # 1. Map rId -> target media path from .rels files
+                rels = {}
+                for rel_path in namelist:
+                    if rel_path.startswith('word/_rels/') and rel_path.endswith('.rels'):
+                        try:
+                            rels_xml = z.read(rel_path).decode('utf-8', errors='ignore')
+                            for match in re.finditer(r'Id=["\']([^"\']+)["\'][^>]*Target=["\']([^"\']+)["\']', rels_xml):
+                                r_id, target = match.group(1), match.group(2)
+                                if 'media/' in target:
+                                    clean_target = 'word/' + target.lstrip('/') if not target.startswith('word/') else target
+                                    rels[r_id] = clean_target
+                        except Exception:
+                            pass
+
+                # 2. Find image rIds in document.xml & header/footer XMLs in exact document order
+                xml_files = [f for f in namelist if f.startswith('word/') and f.endswith('.xml') and not f.startswith('word/_rels/')]
+                xml_files.sort(key=lambda x: (0 if x == 'word/document.xml' else 1, x))
+
+                ordered_media_paths = []
+                for xml_file in xml_files:
+                    try:
+                        xml_content = z.read(xml_file).decode('utf-8', errors='ignore')
+                        for match in re.finditer(r'(?:r:embed|r:id)=["\']([^"\']+)["\']', xml_content):
+                            r_id = match.group(1)
+                            if r_id in rels:
+                                media_path = rels[r_id]
+                                if media_path in namelist:
+                                    ordered_media_paths.append(media_path)
+                    except Exception:
+                        pass
+
+                # 3. Append any remaining unreferenced media files
+                all_media = [f for f in namelist if f.startswith('word/media/') and not f.endswith('/')]
                 def sort_key(f):
                     m = re.search(r'image(\d+)', f)
                     return int(m.group(1)) if m else f
-                media_files.sort(key=sort_key)
+                all_media.sort(key=sort_key)
 
-                for fname in media_files:
-                    img_bytes = z.read(fname)
-                    if len(img_bytes) > 1000:
-                        b64_str = None
-                        if optimize_image_b64:
-                            b64_str = optimize_image_b64(img_bytes)
-                        if not b64_str:
-                            ext = fname.split('.')[-1].lower()
-                            mime = "image/jpeg" if ext in ["jpg", "jpeg"] else ("image/png" if ext == "png" else f"image/{ext}")
-                            b64_str = f"data:{mime};base64," + base64.b64encode(img_bytes).decode('utf-8')
-                        if b64_str:
-                            extracted_images.append(b64_str)
+                for m_path in all_media:
+                    if m_path not in ordered_media_paths:
+                        ordered_media_paths.append(m_path)
+
+                # 4. Extract image data for each reference
+                for fname in ordered_media_paths:
+                    try:
+                        img_bytes = z.read(fname)
+                        if len(img_bytes) > 100:
+                            b64_str = None
+                            if optimize_image_b64:
+                                b64_str = optimize_image_b64(img_bytes)
+                            if not b64_str:
+                                ext = fname.split('.')[-1].lower()
+                                mime = "image/jpeg" if ext in ["jpg", "jpeg"] else ("image/png" if ext == "png" else f"image/{ext}")
+                                b64_str = f"data:{mime};base64," + base64.b64encode(img_bytes).decode('utf-8')
+                            if b64_str:
+                                extracted_images.append(b64_str)
+                    except Exception as ie:
+                        sys.stderr.write(f"Error processing image {fname}: {ie}\n")
+
         except Exception as ze:
             sys.stderr.write(f"Zip extraction error: {ze}\n")
 
-        # Method 2: Fallback via docx rels
+        # Fallback via docx rels if nothing found
         if not extracted_images and doc:
             try:
                 for rel in doc.part.rels.values():
                     if "image" in str(rel.target_ref).lower() or "image" in str(rel.reltype).lower():
                         img_data = rel.target_part.blob
-                        if len(img_data) > 1000:
-                            b64_str = None
-                            if optimize_image_b64:
-                                b64_str = optimize_image_b64(img_data)
+                        if len(img_data) > 100:
+                            b64_str = optimize_image_b64(img_data) if optimize_image_b64 else None
                             if not b64_str:
                                 b64_str = "data:image/png;base64," + base64.b64encode(img_data).decode('utf-8')
                             if b64_str:
@@ -290,14 +329,41 @@ def parse_pdf(file_path):
                             full_ocr_text += txt + "\n"
                     except Exception:
                         pass
-
-                    for img in page.images:
-                        for psm_mode in ["3", "4", "6", "11"]:
-                            t_out = run_tesseract(img.data, psm=psm_mode)
-                            if t_out:
-                                full_ocr_text += t_out + "\n"
         except Exception as err:
             sys.stderr.write(f"Error reading PDF pages: {err}\n")
+
+    pdf_extracted_images = []
+    try:
+        import pypdfium2 as pdfium
+        import io
+        import base64
+
+        pdf_doc = pdfium.PdfDocument(file_path)
+        for page_idx in range(len(pdf_doc)):
+            p_obj = pdf_doc[page_idx]
+            bitmap = p_obj.render(scale=1.5)
+            pil_img = bitmap.to_pil()
+            pil_img.thumbnail((1400, 1400))
+            if pil_img.mode in ("RGBA", "P", "LA", "CMYK"):
+                pil_img = pil_img.convert("RGB")
+            out = io.BytesIO()
+            pil_img.save(out, format="JPEG", quality=75)
+            pdf_extracted_images.append("data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode('utf-8'))
+    except Exception as pdf_err:
+        sys.stderr.write(f"Pdfium render error: {pdf_err}\n")
+        if pypdf:
+            try:
+                import io
+                import base64
+                reader = pypdf.PdfReader(file_path)
+                for page in reader.pages:
+                    for img in page.images:
+                        b64_str = optimize_image_b64(img.data) if optimize_image_b64 else None
+                        if not b64_str:
+                            b64_str = "data:image/png;base64," + base64.b64encode(img.data).decode('utf-8')
+                        pdf_extracted_images.append(b64_str)
+            except Exception:
+                pass
 
     # Base Preset Data for GT010726
     if is_gt010726:
@@ -369,7 +435,8 @@ def parse_pdf(file_path):
             "ketLuan": "có quan hệ huyết thống mẹ - con",
             "doTinCay": "> 99,9999%",
             "kiemSoatKetQua": "TS. BS. Nguyễn Khánh Dương",
-            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH"
+            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH",
+            "images": pdf_extracted_images
         }
     else:
         # Standard default preset
@@ -439,7 +506,8 @@ def parse_pdf(file_path):
             "ketLuan": "có quan hệ huyết thống bố - con ( cha – con)",
             "doTinCay": "> 99,9999%",
             "kiemSoatKetQua": "TS. BS. Nguyễn Khánh Dương",
-            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH"
+            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH",
+            "images": pdf_extracted_images
         }
 
     print(json.dumps(data, ensure_ascii=False))

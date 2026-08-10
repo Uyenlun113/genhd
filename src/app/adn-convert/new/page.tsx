@@ -413,7 +413,7 @@ export default function NewAdnOrderPage() {
                               />
                             </div>
                             <div className="form-group mb-0">
-                              <label>Ngày cấp (Tách riêng)</label>
+                              <label>Ngày cấp</label>
                               <input
                                 type="date"
                                 value={sample.ngayCap?.includes('/') ? sample.ngayCap.split('/').reverse().join('-') : sample.ngayCap || ''}
@@ -426,7 +426,7 @@ export default function NewAdnOrderPage() {
                               />
                             </div>
                             <div className="form-group mb-0 md:col-span-2">
-                              <label>Nơi cấp (Tách riêng)</label>
+                              <label>Nơi cấp</label>
                               <input
                                 type="text"
                                 value={sample.noiCap || ''}

@@ -33,7 +33,10 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const orders = await AdnOrder.find(query).sort({ createdAt: -1 }).lean();
+    const orders = await AdnOrder.find(query)
+      .select('-anhGuiMau -anhNhanMau -anhChayMauList -table1 -table2 -table3 -mauDanhSach.anhCccdMatTruoc -mauDanhSach.anhCccdMatSau -mauDanhSach.anhChanDung -mauDanhSach.anhKetQuaChay')
+      .sort({ createdAt: -1 })
+      .lean();
     return NextResponse.json({ success: true, data: orders });
   } catch (error: any) {
     console.error('GET ADN orders error:', error);

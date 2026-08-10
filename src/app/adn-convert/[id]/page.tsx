@@ -20,6 +20,11 @@ import {
   Lock as LockIcon,
   CheckCircle2,
   Package,
+  RotateCw,
+  RotateCcw,
+  Scissors,
+  X,
+  Crop,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -76,11 +81,272 @@ interface AdnOrderData {
   anhChayMauList?: string[];
 }
 
-interface PageProps {
-  params: Promise<{ id: string }>;
+const compressBase64Image = (base64Str: string, maxWidth = 1400, quality = 0.75): Promise<string> => {
+  return new Promise((resolve) => {
+    if (!base64Str || typeof base64Str !== 'string' || !base64Str.startsWith('data:image')) {
+      return resolve(base64Str);
+    }
+    if (base64Str.length < 350000) {
+      return resolve(base64Str);
+    }
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      let width = img.width;
+      let height = img.height;
+
+      if (width > maxWidth || height > maxWidth) {
+        if (width > height) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        } else {
+          width = Math.round((width * maxWidth) / height);
+          height = maxWidth;
+        }
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return resolve(base64Str);
+
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64Str);
+    img.src = base64Str;
+  });
+};
+
+interface ImageEditorModalProps {
+  imageUrl: string;
+  title: string;
+  onClose: () => void;
+  onSave: (newImageUrl: string) => void;
 }
 
-export default function AdnOrderDetailPage({ params }: PageProps) {
+function ImageEditorModal({ imageUrl, title, onClose, onSave }: ImageEditorModalProps) {
+  const [rotation, setRotation] = useState<number>(0);
+  const [cropTop, setCropTop] = useState<number>(0);
+  const [cropBottom, setCropBottom] = useState<number>(0);
+  const [cropLeft, setCropLeft] = useState<number>(0);
+  const [cropRight, setCropRight] = useState<number>(0);
+  const [flipH, setFlipH] = useState<boolean>(false);
+  const [flipV, setFlipV] = useState<boolean>(false);
+
+  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
+  const [imgObj, setImgObj] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => setImgObj(img);
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  useEffect(() => {
+    if (!imgObj || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const imgW = imgObj.width;
+    const imgH = imgObj.height;
+
+    const cropX = (imgW * cropLeft) / 100;
+    const cropY = (imgH * cropTop) / 100;
+    const cropW = Math.max(10, imgW * (1 - (cropLeft + cropRight) / 100));
+    const cropH = Math.max(10, imgH * (1 - (cropTop + cropBottom) / 100));
+
+    const isSwapped = rotation === 90 || rotation === 270;
+    const targetW = isSwapped ? cropH : cropW;
+    const targetH = isSwapped ? cropW : cropH;
+
+    const maxDim = 1400;
+    let finalW = targetW;
+    let finalH = targetH;
+    if (finalW > maxDim || finalH > maxDim) {
+      if (finalW > finalH) {
+        finalH = Math.round((finalH * maxDim) / finalW);
+        finalW = maxDim;
+      } else {
+        finalW = Math.round((finalW * maxDim) / finalH);
+        finalH = maxDim;
+      }
+    }
+
+    canvas.width = finalW;
+    canvas.height = finalH;
+
+    ctx.save();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, finalW, finalH);
+
+    ctx.translate(finalW / 2, finalH / 2);
+    ctx.rotate((rotation * Math.PI) / 180);
+    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
+
+    const drawW = isSwapped ? finalH : finalW;
+    const drawH = isSwapped ? finalW : finalH;
+
+    ctx.drawImage(
+      imgObj,
+      cropX, cropY, cropW, cropH,
+      -drawW / 2, -drawH / 2, drawW, drawH
+    );
+
+    ctx.restore();
+  }, [imgObj, rotation, cropTop, cropBottom, cropLeft, cropRight, flipH, flipV]);
+
+  const handleApply = () => {
+    if (!canvasRef.current) return;
+    const editedB64 = canvasRef.current.toDataURL('image/jpeg', 0.85);
+    onSave(editedB64);
+    onClose();
+  };
+
+  const rotateCw = () => setRotation((prev) => (prev + 90) % 360);
+  const rotateCcw = () => setRotation((prev) => (prev + 270) % 360);
+  const resetAll = () => {
+    setRotation(0);
+    setCropTop(0);
+    setCropBottom(0);
+    setCropLeft(0);
+    setCropRight(0);
+    setFlipH(false);
+    setFlipV(false);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="p-4 bg-sky-700 text-white flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-sm">
+            <RotateCw className="w-5 h-5" />
+            <span>Chỉnh Sửa / Xoay & Cắt Ảnh: {title}</span>
+          </div>
+          <button type="button" onClick={onClose} className="hover:bg-white/20 p-1.5 rounded-lg transition-all cursor-pointer">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="space-y-5 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
+            <div>
+              <label className="font-bold text-slate-800 block mb-2">1. Xoay ảnh (Rotation)</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={rotateCw}
+                  className="btn bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 justify-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <RotateCw className="w-4 h-4" />
+                  <span>Xoay Phải 90°</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={rotateCcw}
+                  className="btn bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold py-2 justify-center gap-1.5 shadow-2xs cursor-pointer"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Xoay Trái 90°</span>
+                </button>
+              </div>
+              <div className="text-[11px] text-slate-500 font-semibold mt-1.5 text-center">Góc xoay hiện tại: {rotation}°</div>
+            </div>
+
+            <div>
+              <label className="font-bold text-slate-800 block mb-2">2. Lật ảnh (Flip)</label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFlipH(!flipH)}
+                  className={`btn text-xs font-bold py-2 justify-center cursor-pointer shadow-2xs ${flipH ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                >
+                  Lật Ngang {flipH && '✓'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setFlipV(!flipV)}
+                  className={`btn text-xs font-bold py-2 justify-center cursor-pointer shadow-2xs ${flipV ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
+                >
+                  Lật Dọc {flipV && '✓'}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-2 border-t border-slate-200">
+              <label className="font-bold text-slate-800 block">3. Cắt xén ảnh (Crop Margins)</label>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
+                  <span>Cắt Trên (Top)</span>
+                  <span>{cropTop}%</span>
+                </div>
+                <input type="range" min="0" max="40" value={cropTop} onChange={(e) => setCropTop(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
+                  <span>Cắt Dưới (Bottom)</span>
+                  <span>{cropBottom}%</span>
+                </div>
+                <input type="range" min="0" max="40" value={cropBottom} onChange={(e) => setCropBottom(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
+                  <span>Cắt Trái (Left)</span>
+                  <span>{cropLeft}%</span>
+                </div>
+                <input type="range" min="0" max="40" value={cropLeft} onChange={(e) => setCropLeft(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
+                  <span>Cắt Phải (Right)</span>
+                  <span>{cropRight}%</span>
+                </div>
+                <input type="range" min="0" max="40" value={cropRight} onChange={(e) => setCropRight(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={resetAll}
+              className="w-full text-center text-xs text-rose-600 hover:underline font-bold pt-2 cursor-pointer block"
+            >
+              Đặt lại ban đầu (Reset)
+            </button>
+          </div>
+
+          <div className="md:col-span-2 bg-slate-900 rounded-xl p-4 flex flex-col items-center justify-center min-h-[320px] shadow-inner relative overflow-hidden">
+            <span className="text-[11px] text-slate-400 font-semibold mb-2 block">XEM TRƯỚC HÌNH ẢNH SAU KHI SỬA</span>
+            <div className="max-w-full max-h-[420px] overflow-auto flex items-center justify-center p-2 border border-slate-700/50 rounded-lg bg-black/40">
+              <canvas ref={canvasRef} className="max-w-full max-h-[380px] object-contain shadow-lg rounded" />
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-end gap-3">
+          <button type="button" onClick={onClose} className="btn bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold py-2 px-4 shadow-xs cursor-pointer">
+            Hủy bỏ
+          </button>
+          <button type="button" onClick={handleApply} className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-5 shadow-sm justify-center gap-1.5 cursor-pointer">
+            <CheckCircle2 className="w-4 h-4" />
+            <span>Áp dụng & Lưu Ảnh</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
 
@@ -90,6 +356,13 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
   const [exportingPdf, setExportingPdf] = useState(false);
   const [uploadingResultFile, setUploadingResultFile] = useState(false);
   const [uploadingChartFile, setUploadingChartFile] = useState(false);
+
+  const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
+  const [editingImage, setEditingImage] = useState<{
+    url: string;
+    title: string;
+    onSave: (newUrl: string) => void;
+  } | null>(null);
 
   const [anhChayMauList, setAnhChayMauList] = useState<string[]>([]);
 
@@ -109,7 +382,6 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
   const [dieuKien, setDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan'>('chua_xac_nhan');
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveDieuKien, setReceiveDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien'>('du_dieu_kien');
-  const [zoomImage, setZoomImage] = useState<{ url: string; title?: string } | null>(null);
 
   const handleConfirmReceive = async () => {
     setSaving(true);
@@ -460,10 +732,11 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
             if (json.success && json.data && json.data.images) {
               const imgs = json.data.images;
               if (Array.isArray(imgs) && imgs.length > 0) {
-                imgs.forEach((imgB64: string, imgIdx: number) => {
+                imgs.forEach((imgB64: string) => {
                   newChartImages.push(imgB64);
-                  if (updatedSamples[imgIdx]) {
-                    updatedSamples[imgIdx].anhKetQuaChay = imgB64;
+                  const emptySample = updatedSamples.find((s) => !s.anhKetQuaChay);
+                  if (emptySample) {
+                    emptySample.anhKetQuaChay = imgB64;
                   }
                 });
                 successCount++;
@@ -514,6 +787,24 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
     });
 
     try {
+      // Compress image fields before sending to prevent MongoDB 16MB document size limit error
+      const compressedMauDanhSach = await Promise.all(
+        formattedMauDanhSach.map(async (s) => ({
+          ...s,
+          anhChanDung: s.anhChanDung ? await compressBase64Image(s.anhChanDung) : '',
+          anhCccdMatTruoc: s.anhCccdMatTruoc ? await compressBase64Image(s.anhCccdMatTruoc) : '',
+          anhCccdMatSau: s.anhCccdMatSau ? await compressBase64Image(s.anhCccdMatSau) : '',
+          anhKetQuaChay: s.anhKetQuaChay ? await compressBase64Image(s.anhKetQuaChay) : '',
+        }))
+      );
+
+      const compressedAnhChayMauList = await Promise.all(
+        anhChayMauList.map((img) => compressBase64Image(img))
+      );
+
+      const compressedAnhGuiMau = anhGuiMau ? await compressBase64Image(anhGuiMau) : '';
+      const compressedAnhNhanMau = anhNhanMau ? await compressBase64Image(anhNhanMau) : '';
+
       const res = await fetch(`/api/adn/orders/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -531,10 +822,10 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
           doTinCay,
           trangThai: newStatus,
           dieuKien,
-          anhGuiMau,
-          anhNhanMau,
-          mauDanhSach: formattedMauDanhSach,
-          anhChayMauList,
+          anhGuiMau: compressedAnhGuiMau,
+          anhNhanMau: compressedAnhNhanMau,
+          mauDanhSach: compressedMauDanhSach,
+          anhChayMauList: compressedAnhChayMauList,
           table1,
           table2,
           table3,
@@ -696,7 +987,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
     );
   }
 
-  const isReadOnly = trangThai === 'dang_chay_mau' || trangThai === 'da_tra_ket_qua';
+  const isReadOnly = trangThai === 'da_tra_ket_qua';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -993,7 +1284,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                               />
                             </div>
                             <div className="form-group mb-0">
-                              <label>Ngày cấp (Tách riêng)</label>
+                              <label>Ngày cấp</label>
                               <input
                                 type="date"
                                 value={sample.ngayCap?.includes('/') ? sample.ngayCap.split('/').reverse().join('-') : sample.ngayCap || ''}
@@ -1007,7 +1298,7 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                               />
                             </div>
                             <div className="form-group mb-0 md:col-span-2">
-                              <label>Nơi cấp (Tách riêng)</label>
+                              <label>Nơi cấp</label>
                               <input
                                 type="text"
                                 value={sample.noiCap || ''}
@@ -1081,55 +1372,115 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                   Ảnh Gửi Mẫu & Ảnh Nhận Mẫu (Hiển thị trên UI quản lý)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  {/* Ảnh Gửi Mẫu (Bước 1) */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800">Ảnh Gửi Mẫu (Bước 1):</span>
-                      <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
-                        Đổi ảnh
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
-                          className="hidden"
-                        />
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
+                          Đổi ảnh
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
+                            className="hidden"
+                          />
+                        </label>
+                        {anhGuiMau && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAnhGuiMau('');
+                              setTimeout(() => generatePdfPreview(), 300);
+                              toast.success('Đã xóa ảnh gửi mẫu');
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
+                          >
+                            Xóa
+                          </button>
+                        )}
+                      </div>
                     </div>
+
                     {anhGuiMau ? (
-                      <img
-                        src={anhGuiMau}
-                        alt="Ảnh gửi mẫu"
-                        onClick={() => setZoomImage({ url: anhGuiMau, title: 'Ảnh Gửi Mẫu (Bước 1)' })}
-                        className="h-36 object-cover rounded-lg border w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
-                      />
+                      <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+                        <div className="relative group w-36 h-36 flex items-center justify-center overflow-hidden bg-slate-900/5 rounded-xl border border-slate-200 p-1">
+                          <img
+                            src={anhGuiMau}
+                            alt="Ảnh gửi mẫu"
+                            onClick={() => setZoomImage({ url: anhGuiMau, title: 'Ảnh Gửi Mẫu (Bước 1)' })}
+                            className="w-full h-full object-contain rounded-lg cursor-pointer hover:scale-105 transition-all"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setZoomImage({ url: anhGuiMau, title: 'Ảnh Gửi Mẫu (Bước 1)' })}
+                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-600" /> Xem phóng to
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
+                      <div className="h-36 flex items-center justify-center bg-white border rounded-xl text-slate-400 text-xs italic">
                         Chưa đính kèm ảnh gửi mẫu
                       </div>
                     )}
                   </div>
 
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2">
+                  {/* Ảnh Nhận Mẫu (Bước 2) */}
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800">Ảnh Nhận Mẫu (Bước 2):</span>
-                      <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
-                        Đổi ảnh
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => handleImageUpload(e, (b64) => setAnhNhanMau(b64))}
-                          className="hidden"
-                        />
-                      </label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
+                          Đổi ảnh
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, (b64) => setAnhNhanMau(b64))}
+                            className="hidden"
+                          />
+                        </label>
+                        {anhNhanMau && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAnhNhanMau('');
+                              setTimeout(() => generatePdfPreview(), 300);
+                              toast.success('Đã xóa ảnh nhận mẫu');
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
+                          >
+                            Xóa
+                          </button>
+                        )}
+                      </div>
                     </div>
+
                     {anhNhanMau ? (
-                      <img
-                        src={anhNhanMau}
-                        alt="Ảnh nhận mẫu"
-                        onClick={() => setZoomImage({ url: anhNhanMau, title: 'Ảnh Nhận Mẫu (Bước 2)' })}
-                        className="h-36 object-cover rounded-lg border w-full cursor-pointer hover:opacity-85 hover:scale-[1.01] transition-all shadow-xs"
-                      />
+                      <div className="flex flex-col items-center justify-center p-3 bg-white rounded-xl border border-slate-200 space-y-2">
+                        <div className="relative group w-36 h-36 flex items-center justify-center overflow-hidden bg-slate-900/5 rounded-xl border border-slate-200 p-1">
+                          <img
+                            src={anhNhanMau}
+                            alt="Ảnh nhận mẫu"
+                            onClick={() => setZoomImage({ url: anhNhanMau, title: 'Ảnh Nhận Mẫu (Bước 2)' })}
+                            className="w-full h-full object-contain rounded-lg cursor-pointer hover:scale-105 transition-all"
+                          />
+                        </div>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={() => setZoomImage({ url: anhNhanMau, title: 'Ảnh Nhận Mẫu (Bước 2)' })}
+                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
+                          >
+                            <Eye className="w-3.5 h-3.5 text-slate-600" /> Xem phóng to
+                          </button>
+                        </div>
+                      </div>
                     ) : (
-                      <div className="h-28 flex items-center justify-center bg-white border rounded-lg text-slate-400 text-xs italic">
+                      <div className="h-36 flex items-center justify-center bg-white border rounded-xl text-slate-400 text-xs italic">
                         Chưa đính kèm ảnh nhận mẫu
                       </div>
                     )}
@@ -1156,13 +1507,13 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                         <span>1. Tải File Đọc Bảng Locus (DOCX, PDF)</span>
                       </h4>
                       <p className="text-xs text-slate-500 mt-1">
-                        Tự động đọc và điền dữ liệu Alil Locus. <strong className="text-red-600 font-bold">Nếu mã ca trong file không khớp với mã ca hiện tại, hệ thống sẽ báo lỗi và HỦY nạp dữ liệu ngay lập tức.</strong>
+                        Tự động đọc và điền dữ liệu Alil Locus
                       </p>
                     </div>
 
                     <label className="btn btn-primary text-xs w-full cursor-pointer justify-center py-2.5 shadow-sm">
                       {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                      <span>Tải File Đọc Bảng Loci (Check Mã Ca)</span>
+                      <span>Tải File Đọc Bảng Locus</span>
                       <input type="file" accept=".docx,.pdf" multiple onChange={handleFileUploadLoci} className="hidden" />
                     </label>
                   </div>
@@ -1198,7 +1549,11 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                     </span>
                     <button
                       type="button"
-                      onClick={() => setAnhChayMauList([])}
+                      onClick={() => {
+                        setAnhChayMauList([]);
+                        setTimeout(() => generatePdfPreview(), 300);
+                        toast.success('Đã xóa tất cả ảnh đồ thị');
+                      }}
                       className="text-[11px] text-red-600 hover:underline font-semibold cursor-pointer"
                     >
                       Xóa tất cả ảnh đồ thị
@@ -1206,14 +1561,52 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
                     {anhChayMauList.map((imgB64, imgIdx) => (
-                      <div key={imgIdx} className="relative group bg-white p-2 rounded-lg border border-purple-200 text-center shadow-xs">
+                      <div key={imgIdx} className="relative group bg-white p-2.5 rounded-xl border border-purple-200 text-center shadow-xs flex flex-col justify-between">
                         <img
                           src={imgB64}
                           alt={`Đồ thị ${imgIdx + 1}`}
                           onClick={() => setZoomImage({ url: imgB64, title: `Phụ lục Đồ thị STR Trang ${imgIdx + 1}` })}
-                          className="h-24 w-full object-cover rounded cursor-pointer hover:opacity-85 transition-all"
+                          className="h-24 w-full object-cover rounded-lg border border-purple-100 cursor-pointer hover:opacity-85 transition-all shadow-2xs"
                         />
-                        <span className="text-[10px] font-bold text-purple-800 mt-1 block">Trang phụ lục {imgIdx + 1}</span>
+                        <div className="mt-2 flex items-center justify-between gap-1">
+                          <span className="text-[10px] font-bold text-purple-800">Trang {imgIdx + 1}</span>
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingImage({
+                                  url: imgB64,
+                                  title: `Phụ lục Đồ thị STR Trang ${imgIdx + 1}`,
+                                  onSave: (newUrl) => {
+                                    const updated = [...anhChayMauList];
+                                    updated[imgIdx] = newUrl;
+                                    setAnhChayMauList(updated);
+                                    setTimeout(() => generatePdfPreview(), 300);
+                                    toast.success('Đã cập nhật ảnh đồ thị!');
+                                  },
+                                })
+                              }
+                              className="p-1 text-sky-700 hover:bg-sky-50 rounded border border-sky-200 cursor-pointer"
+                              title="Xoay / Cắt ảnh"
+                            >
+                              <RotateCw className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...anhChayMauList];
+                                updated.splice(imgIdx, 1);
+                                setAnhChayMauList(updated);
+                                setTimeout(() => generatePdfPreview(), 300);
+                                toast.success(`Đã xóa ảnh đồ thị trang ${imgIdx + 1}`);
+                              }}
+                              className="p-1 text-rose-600 hover:bg-rose-50 rounded border border-rose-200 cursor-pointer"
+                              title="Xóa ảnh này"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1248,14 +1641,60 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                         />
                       </label>
                       {sample.anhCccdMatTruoc ? (
-                        <div className="mt-2 flex items-center gap-3 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                          <img
-                            src={sample.anhCccdMatTruoc}
-                            alt="CCCD Trước"
+                        <div className="mt-2 flex items-center justify-between bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 shadow-xs">
+                          <div
+                            className="flex items-center gap-3 cursor-pointer"
                             onClick={() => setZoomImage({ url: sample.anhCccdMatTruoc!, title: `Ảnh CCCD Mặt trước - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
-                            className="h-20 rounded border border-emerald-300 object-cover cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
-                          />
-                          <span className="text-xs text-emerald-700 font-bold">✓ Đã tải ảnh CCCD Mặt trước (Bấm để xem)</span>
+                          >
+                            <img
+                              src={sample.anhCccdMatTruoc}
+                              alt="CCCD Trước"
+                              className="h-16 w-24 object-cover rounded-lg border border-emerald-300 hover:scale-105 transition-all shadow-2xs"
+                            />
+                            <div>
+                              <span className="text-xs text-emerald-800 font-bold block">✓ Đã tải ảnh CCCD Mặt trước</span>
+                              <span className="text-[11px] text-emerald-600 font-medium">Bấm để phóng to</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingImage({
+                                  url: sample.anhCccdMatTruoc!,
+                                  title: `CCCD Mặt trước - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}`,
+                                  onSave: (newUrl) => {
+                                    const updated = [...mauDanhSach];
+                                    updated[idx].anhCccdMatTruoc = newUrl;
+                                    setMauDanhSach(updated);
+                                    setTimeout(() => generatePdfPreview(), 300);
+                                    toast.success('Đã cập nhật ảnh CCCD Mặt trước!');
+                                  },
+                                })
+                              }
+                              className="px-2.5 py-1.5 bg-white hover:bg-sky-50 text-sky-700 border border-sky-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+                              title="Chỉnh sửa / Xoay / Cắt ảnh"
+                            >
+                              <RotateCw className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Xoay / Cắt</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...mauDanhSach];
+                                updated[idx].anhCccdMatTruoc = '';
+                                setMauDanhSach(updated);
+                                setTimeout(() => generatePdfPreview(), 300);
+                                toast.success('Đã xóa ảnh CCCD Mặt trước!');
+                              }}
+                              className="p-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                              title="Xóa ảnh này"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500" />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt trước</span>
@@ -1282,14 +1721,60 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
                         />
                       </label>
                       {sample.anhCccdMatSau ? (
-                        <div className="mt-2 flex items-center gap-3 bg-emerald-50 p-2 rounded-lg border border-emerald-200">
-                          <img
-                            src={sample.anhCccdMatSau}
-                            alt="CCCD Sau"
+                        <div className="mt-2 flex items-center justify-between bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 shadow-xs">
+                          <div
+                            className="flex items-center gap-3 cursor-pointer"
                             onClick={() => setZoomImage({ url: sample.anhCccdMatSau!, title: `Ảnh CCCD Mặt sau / Giấy khai sinh - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}` })}
-                            className="h-20 rounded border border-emerald-300 object-cover cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
-                          />
-                          <span className="text-xs text-emerald-700 font-bold">✓ Đã tải ảnh mặt sau / giấy khai sinh (Bấm để xem)</span>
+                          >
+                            <img
+                              src={sample.anhCccdMatSau}
+                              alt="CCCD Sau"
+                              className="h-16 w-24 object-cover rounded-lg border border-emerald-300 hover:scale-105 transition-all shadow-2xs"
+                            />
+                            <div>
+                              <span className="text-xs text-emerald-800 font-bold block">✓ Đã tải mặt sau / giấy khai sinh</span>
+                              <span className="text-[11px] text-emerald-600 font-medium">Bấm để phóng to</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingImage({
+                                  url: sample.anhCccdMatSau!,
+                                  title: `CCCD Mặt sau / Giấy khai sinh - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}`,
+                                  onSave: (newUrl) => {
+                                    const updated = [...mauDanhSach];
+                                    updated[idx].anhCccdMatSau = newUrl;
+                                    setMauDanhSach(updated);
+                                    setTimeout(() => generatePdfPreview(), 300);
+                                    toast.success('Đã cập nhật ảnh CCCD Mặt sau!');
+                                  },
+                                })
+                              }
+                              className="px-2.5 py-1.5 bg-white hover:bg-sky-50 text-sky-700 border border-sky-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
+                              title="Chỉnh sửa / Xoay / Cắt ảnh"
+                            >
+                              <RotateCw className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Xoay / Cắt</span>
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...mauDanhSach];
+                                updated[idx].anhCccdMatSau = '';
+                                setMauDanhSach(updated);
+                                setTimeout(() => generatePdfPreview(), 300);
+                                toast.success('Đã xóa ảnh mặt sau / giấy khai sinh!');
+                              }}
+                              className="p-1.5 bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 hover:border-rose-300 rounded-lg text-xs font-bold transition-all shadow-2xs cursor-pointer"
+                              title="Xóa ảnh này"
+                            >
+                              <Trash2 className="w-4 h-4 text-rose-500" />
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt sau</span>
@@ -1592,6 +2077,16 @@ export default function AdnOrderDetailPage({ params }: PageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Chỉnh Sửa / Xoay / Cắt Ảnh */}
+      {editingImage && (
+        <ImageEditorModal
+          imageUrl={editingImage.url}
+          title={editingImage.title}
+          onClose={() => setEditingImage(null)}
+          onSave={editingImage.onSave}
+        />
       )}
     </div>
   );

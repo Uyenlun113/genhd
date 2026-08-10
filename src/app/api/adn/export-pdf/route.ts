@@ -877,30 +877,90 @@ export async function POST(request: NextRequest) {
 
       let cccdY = pH - margin;
 
-      if (cccdFront) {
+      const availWidth = pW - margin * 2;
+      const availHeight = pH - margin * 2;
+
+      if (cccdFront && cccdBack) {
+        // Both Front & Back present: render stacked straight and centered with equal height allocations
+        const singleMaxH = Math.floor((availHeight - 30) / 2);
+
+        // 1. Front Image
         const imgFrontEmbed = await embedImageHelper(pdfDoc, cccdFront);
         if (imgFrontEmbed) {
-          const dims = imgFrontEmbed.scaleToFit(pW - margin * 2, cccdBack ? 360 : 740);
-          pageCccd.drawImage(imgFrontEmbed, {
-            x: margin + (pW - margin * 2 - dims.width) / 2,
-            y: cccdBack ? cccdY - dims.height : margin + (pH - margin * 2 - dims.height) / 2,
-            width: dims.width,
-            height: dims.height,
-          });
-          cccdY -= dims.height + 20;
-        }
-      }
+          const dimsFront = imgFrontEmbed.scaleToFit(availWidth, singleMaxH);
+          const imgX = margin + (availWidth - dimsFront.width) / 2;
+          const imgY = cccdY - dimsFront.height;
 
-      if (cccdBack) {
+          // Draw border frame
+          pageCccd.drawRectangle({
+            x: imgX - 2,
+            y: imgY - 2,
+            width: dimsFront.width + 4,
+            height: dimsFront.height + 4,
+            borderColor: rgb(0.8, 0.8, 0.8),
+            borderWidth: 0.5,
+          });
+
+          pageCccd.drawImage(imgFrontEmbed, {
+            x: imgX,
+            y: imgY,
+            width: dimsFront.width,
+            height: dimsFront.height,
+          });
+
+          cccdY -= dimsFront.height + 25;
+        }
+
+        // 2. Back Image
         const imgBackEmbed = await embedImageHelper(pdfDoc, cccdBack);
         if (imgBackEmbed) {
-          const dims = imgBackEmbed.scaleToFit(pW - margin * 2, cccdFront ? 360 : 740);
-          pageCccd.drawImage(imgBackEmbed, {
-            x: margin + (pW - margin * 2 - dims.width) / 2,
-            y: cccdFront ? cccdY - dims.height : margin + (pH - margin * 2 - dims.height) / 2,
-            width: dims.width,
-            height: dims.height,
+          const dimsBack = imgBackEmbed.scaleToFit(availWidth, singleMaxH);
+          const imgX = margin + (availWidth - dimsBack.width) / 2;
+          const imgY = cccdY - dimsBack.height;
+
+          // Draw border frame
+          pageCccd.drawRectangle({
+            x: imgX - 2,
+            y: imgY - 2,
+            width: dimsBack.width + 4,
+            height: dimsBack.height + 4,
+            borderColor: rgb(0.8, 0.8, 0.8),
+            borderWidth: 0.5,
           });
+
+          pageCccd.drawImage(imgBackEmbed, {
+            x: imgX,
+            y: imgY,
+            width: dimsBack.width,
+            height: dimsBack.height,
+          });
+        }
+      } else {
+        // Single Image present (Front or Back)
+        const targetImg = cccdFront || cccdBack;
+        if (targetImg) {
+          const imgEmbed = await embedImageHelper(pdfDoc, targetImg);
+          if (imgEmbed) {
+            const dims = imgEmbed.scaleToFit(availWidth, availHeight);
+            const imgX = margin + (availWidth - dims.width) / 2;
+            const imgY = margin + (availHeight - dims.height) / 2;
+
+            pageCccd.drawRectangle({
+              x: imgX - 2,
+              y: imgY - 2,
+              width: dims.width + 4,
+              height: dims.height + 4,
+              borderColor: rgb(0.8, 0.8, 0.8),
+              borderWidth: 0.5,
+            });
+
+            pageCccd.drawImage(imgEmbed, {
+              x: imgX,
+              y: imgY,
+              width: dims.width,
+              height: dims.height,
+            });
+          }
         }
       }
     }

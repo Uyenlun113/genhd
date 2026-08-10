@@ -160,15 +160,15 @@ export default function DashboardPage() {
               isDoctor
                 ? `Thống kê phiếu của Bác sĩ: ${stats?.userName || ''}`
                 : isStaff
-                ? `Thống kê phiếu của Phòng khám: ${stats?.userName || ''}`
-                : 'Thống kê & Báo cáo hệ thống'
+                  ? `Thống kê phiếu của Phòng khám: ${stats?.userName || ''}`
+                  : 'Thống kê & Báo cáo hệ thống'
             }
             subtitle={
               isDoctor
                 ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được phân công cho ${stats?.userName || ''}`
                 : isStaff
-                ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
-                : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
+                  ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
+                  : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
             }
             action={
               <button
@@ -223,7 +223,7 @@ export default function DashboardPage() {
                 <div className="bg-white p-5 rounded-2xl border border-amber-200/80 shadow-xs flex items-center justify-between bg-gradient-to-br from-amber-50/40 to-white">
                   <div>
                     <span className="text-xs font-bold text-amber-700 uppercase tracking-wider block">
-                      Nhập thông tin (Mới gán)
+                      Nhập thông tin
                     </span>
                     <span className="text-3xl font-black text-amber-600 mt-1 block">
                       {stats.byStatus.nhap_thong_tin}
