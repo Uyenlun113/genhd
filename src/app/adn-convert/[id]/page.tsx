@@ -608,14 +608,56 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
     });
   };
 
-  // Helper for image upload
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+  // Helper for image upload (convert to JPEG & upload to Cloudinary if available)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = () => {
-      callback(reader.result as string);
-      toast.success('Đã tải ảnh lên thành công!');
+    reader.onload = async () => {
+      const origB64 = reader.result as string;
+      const img = new Image();
+      img.onload = async () => {
+        // Convert any format (WebP, PNG, HEIC) to standard JPEG via Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        }
+        const jpegB64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        // Upload to Cloudinary via /api/upload
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileData: jpegB64, folder: 'adn_images', resourceType: 'image' }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.url && json.url.startsWith('http')) {
+              callback(json.url);
+              toast.success('Đã tải ảnh lên Cloudinary thành công!');
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Cloudinary upload fallback to JPEG base64:', err);
+        }
+
+        // Fallback to compressed JPEG base64 if Cloudinary keys not configured
+        callback(jpegB64);
+        toast.success('Đã tải ảnh thành công!');
+      };
+      img.onerror = () => {
+        callback(origB64);
+        toast.success('Đã tải ảnh thành công!');
+      };
+      img.src = origB64;
     };
     reader.readAsDataURL(file);
   };
@@ -1002,7 +1044,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
     );
   }
 
-  const isReadOnly = trangThai === 'da_tra_ket_qua';
+  const isReadOnly = false;
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
@@ -1069,6 +1111,17 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                   </>
                 )}
 
+                {trangThai === 'da_tra_ket_qua' && (
+                  <button
+                    onClick={() => handleSaveOrder()}
+                    disabled={saving}
+                    className="btn btn-primary"
+                  >
+                    {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    <span>Lưu thay đổi</span>
+                  </button>
+                )}
+
                 <button
                   onClick={handleDownloadPdf}
                   disabled={exportingPdf}
@@ -1082,12 +1135,12 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           />
 
           <div className="space-y-6">
-            {/* Read-Only Alert Banner */}
-            {isReadOnly && (
-              <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 font-semibold flex items-center gap-2.5 shadow-xs">
-                <LockIcon className="w-4 h-4 text-amber-600 shrink-0" />
+            {/* Status Info Banner */}
+            {trangThai === 'da_tra_ket_qua' && (
+              <div className="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 font-semibold flex items-center gap-2.5 shadow-xs">
+                <CheckCircle2 className="w-4 h-4 text-blue-600 shrink-0" />
                 <span>
-                  Đơn đang ở trạng thái <strong>{trangThai === 'da_tra_ket_qua' ? 'Đã trả kết quả' : 'Đang chạy kết quả'}</strong>. Thông tin hành chính và thông tin mẫu đã được khóa cố định, không thể chỉnh sửa.
+                  Đơn đang ở trạng thái <strong>Đã trả kết quả</strong>. Bạn vẫn có thể trực tiếp chỉnh sửa thông tin và bấm <strong>Lưu thay đổi</strong> để cập nhật file PDF.
                 </span>
               </div>
             )}
@@ -1365,6 +1418,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                                 const updated = [...mauDanhSach];
                                 updated[idx].anhChanDung = b64;
                                 setMauDanhSach(updated);
+                                setTimeout(() => generatePdfPreview(), 300);
                               })
                             }
                             className="hidden"
@@ -1520,8 +1574,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               </h3>
 
               {/* 2 Separate Upload Action Cards */}
-              {trangThai !== 'da_tra_ket_qua' && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Button 1: Tải File Đọc Bảng Locus */}
                   <div className="bg-sky-50/90 p-4 rounded-xl border border-sky-200 flex flex-col justify-between space-y-3 shadow-xs">
                     <div>
@@ -1560,7 +1613,6 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     </label>
                   </div>
                 </div>
-              )}
 
               {/* Display Extracted Chart Images Gallery (Appended to PDF) */}
               {anhChayMauList.length > 0 && (
@@ -1658,6 +1710,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               const updated = [...mauDanhSach];
                               updated[idx].anhCccdMatTruoc = b64;
                               setMauDanhSach(updated);
+                              setTimeout(() => generatePdfPreview(), 300);
                             })
                           }
                           className="hidden"
@@ -1738,6 +1791,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               const updated = [...mauDanhSach];
                               updated[idx].anhCccdMatSau = b64;
                               setMauDanhSach(updated);
+                              setTimeout(() => generatePdfPreview(), 300);
                             })
                           }
                           className="hidden"

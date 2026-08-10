@@ -13,6 +13,7 @@ import {
   Download,
   CheckCircle,
   Save,
+  Loader2,
   FileCheck,
   Dna,
   Lock,
@@ -390,10 +391,16 @@ export default function TestResultDetailPage({ params }: PageProps) {
                 )}
 
                 {formData.trangThai === 'da_tra_ket_qua' && (
-                  <button onClick={handleExportPDF} className="btn btn-primary">
-                    <Download className="w-4 h-4" />
-                    <span>Download PDF kết quả</span>
-                  </button>
+                  <>
+                    <button onClick={handleSave} disabled={saving} className="btn btn-primary flex items-center gap-1.5">
+                      {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      <span>Lưu thay đổi</span>
+                    </button>
+                    <button onClick={handleExportPDF} className="btn btn-secondary flex items-center gap-1.5">
+                      <Download className="w-4 h-4" />
+                      <span>Download PDF kết quả</span>
+                    </button>
+                  </>
                 )}
               </div>
             }
@@ -416,7 +423,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.hoTen}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -430,7 +437,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     onChange={handleInputChange}
                     min={1900}
                     max={new Date().getFullYear()}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -441,7 +448,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-select disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.gioiTinh}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   >
                     <option value="Nữ">Nữ</option>
                     <option value="Nam">Nam</option>
@@ -456,7 +463,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.soDienThoai}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -468,7 +475,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.diaChi}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -480,7 +487,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.loaiMau}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -492,7 +499,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.donVi}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -504,7 +511,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.bacSiChiDinh}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                   />
                 </div>
 
@@ -515,7 +522,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     className="form-select font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600"
                     value={formData.bacSiDoc}
                     onChange={handleInputChange}
-                    disabled={userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin'}
+                    disabled={userRole === 'doctor'}
                     required
                   >
                     <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
@@ -528,10 +535,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                 </div>
               </div>
 
-              {userRole === 'doctor' || userRole === 'lab_admin' || formData.trangThai !== 'nhap_thong_tin' ? (
+              {userRole === 'doctor' ? (
                 <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
                   <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 inline-flex items-center gap-1.5">
-                    <Lock className='inline-block w-4 h-4' /> Thông tin hành chính bệnh nhân được khóa cố định đối với Bác sĩ / Admin phòng Lab / Phiếu đã nhận mẫu.
+                    <Lock className='inline-block w-4 h-4' /> Thông tin hành chính bệnh nhân được khóa đối với tài khoản Bác sĩ đọc.
                   </span>
                 </div>
               ) : (
@@ -636,7 +643,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập chẩn đoán lâm sàng..."
                           value={formData.chanDoanLamSang || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
 
@@ -649,7 +656,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập vị trí bệnh phẩm..."
                           value={formData.viTriBenhPham || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -667,7 +674,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập mô tả đại thể..."
                           value={formData.daiThe || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
 
@@ -683,7 +690,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập mô tả vi thể..."
                           value={formData.viThe || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
 
@@ -699,7 +706,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập kết luận giải phẫu bệnh..."
                           value={formData.ketLuan}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           required
                         />
                       </div>
@@ -731,7 +738,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập chẩn đoán lâm sàng..."
                           value={formData.chanDoanLamSang || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
 
@@ -744,7 +751,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           placeholder="Nhập nhận xét đại thể..."
                           value={formData.nhanXetDaiThe || ''}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -773,7 +780,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiBachCau || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                                 placeholder="Âm tính / + / ++..."
                               />
                             </td>
@@ -785,7 +792,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiGhiChuBachCau || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                               />
                             </td>
                           </tr>
@@ -801,7 +808,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiNam || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                                 placeholder="Âm tính / Dương tính..."
                               />
                             </td>
@@ -813,7 +820,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiGhiChuNam || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                               />
                             </td>
                           </tr>
@@ -829,7 +836,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiTapKhuan || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                                 placeholder="Âm tính / + / ++..."
                               />
                             </td>
@@ -841,7 +848,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiGhiChuTapKhuan || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                               />
                             </td>
                           </tr>
@@ -857,7 +864,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiTeBaoBieuMo || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                                 placeholder="Ít / Vừa / Nhiều..."
                               />
                             </td>
@@ -869,7 +876,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiGhiChuTeBaoBieuMo || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                               />
                             </td>
                           </tr>
@@ -885,7 +892,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiTrichomonas || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                                 placeholder="Âm tính / Dương tính..."
                               />
                             </td>
@@ -897,7 +904,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 className="form-input w-full text-xs py-1 disabled:bg-slate-100"
                                 value={formData.soiTuoiGhiChuTrichomonas || ''}
                                 onChange={handleInputChange}
-                                disabled={isCompleted}
+                                disabled={false}
                               />
                             </td>
                           </tr>
@@ -915,7 +922,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea font-bold text-emerald-900 bg-emerald-50/30 border-emerald-200 disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.ketLuan}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           required
                         />
                       </div>
@@ -928,7 +935,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.khuyenNghi}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -962,7 +969,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             value="dat"
                             checked={formData.tinhChatBenhPham === 'dat'}
                             onChange={handleInputChange}
-                            disabled={isCompleted}
+                            disabled={false}
                           />
                           <span className="text-sm font-bold text-slate-800">Đạt tiêu chuẩn đánh giá</span>
                         </label>
@@ -974,7 +981,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             value="khongDat"
                             checked={formData.tinhChatBenhPham === 'khongDat'}
                             onChange={handleInputChange}
-                            disabled={isCompleted}
+                            disabled={false}
                           />
                           <span className="text-sm font-bold text-slate-800">Không đạt tiêu chuẩn</span>
                         </label>
@@ -988,7 +995,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-input mt-2 text-xs"
                           value={formData.lyDoKhongDat}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       )}
                     </div>
@@ -1001,7 +1008,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           name="khongTonThuong"
                           checked={formData.khongTonThuong}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                         <span className="text-xs font-bold text-slate-700">
                           Không tổn thương trong biểu mô hay ác tính
@@ -1014,7 +1021,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           name="batThuongKhac"
                           checked={formData.batThuongKhac}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                         <span className="text-xs font-bold text-slate-700">Tế bào bất thường khác</span>
                       </label>
@@ -1025,7 +1032,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           name="teBaoNoiMac"
                           checked={formData.teBaoNoiMac}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                         <span className="text-xs font-bold text-slate-700">
                           Tế bào nội mạc tử cung ở phụ nữ &ge; 45 tuổi
@@ -1045,7 +1052,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               type="checkbox"
                               checked={formData.bienDoiViSinh.includes(opt.value)}
                               onChange={() => handleArrayCheckbox('bienDoiViSinh', opt.value)}
-                              disabled={isCompleted}
+                              disabled={false}
                             />
                             <span className={`text-xs font-medium ${opt.value === 'hpv' || opt.value === 'tapKhuan' ? '' : 'italic'}`}>
                               {opt.label}
@@ -1067,7 +1074,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               type="checkbox"
                               checked={formData.bienDoiKhac.includes(opt.value)}
                               onChange={() => handleArrayCheckbox('bienDoiKhac', opt.value)}
-                              disabled={isCompleted}
+                              disabled={false}
                             />
                             <span className="text-xs">{opt.label}</span>
                           </label>
@@ -1087,7 +1094,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               type="checkbox"
                               checked={formData.batThuongVay.includes(opt.value)}
                               onChange={() => handleArrayCheckbox('batThuongVay', opt.value)}
-                              disabled={isCompleted}
+                              disabled={false}
                             />
                             <span className="text-xs">{opt.label}</span>
                           </label>
@@ -1107,7 +1114,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               type="checkbox"
                               checked={formData.batThuongTuyen.includes(opt.value)}
                               onChange={() => handleArrayCheckbox('batThuongTuyen', opt.value)}
-                              disabled={isCompleted}
+                              disabled={false}
                             />
                             <span className="text-xs">{opt.label}</span>
                           </label>
@@ -1127,7 +1134,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea font-bold text-sky-900 bg-sky-50/30 border-sky-200 disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.ketLuan}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           required
                         />
                       </div>
@@ -1140,7 +1147,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.khuyenNghi}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -1177,7 +1184,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
                           value={formData.hpvHighRiskResult}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           placeholder="Âm tính / Dương tính..."
                         />
                       </div>
@@ -1197,7 +1204,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
                           value={formData.hpvHighRiskOtherResult}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           placeholder="Âm tính / Dương tính..."
                         />
                       </div>
@@ -1215,7 +1222,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-input w-full sm:w-48 text-xs font-bold text-sky-700 border-sky-200 bg-sky-50/50 disabled:bg-slate-100"
                           value={formData.hpvLowRiskResult}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           placeholder="Âm tính / Dương tính..."
                         />
                       </div>
@@ -1236,7 +1243,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             className="form-input w-full sm:w-48 text-xs font-bold text-slate-700 bg-white disabled:bg-slate-100"
                             value={formData.hpvOtherTypesResult}
                             onChange={handleInputChange}
-                            disabled={isCompleted}
+                            disabled={false}
                             placeholder="Âm tính / Dương tính..."
                           />
                         </div>
@@ -1255,7 +1262,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea font-bold text-indigo-900 bg-indigo-50/30 border-indigo-200 disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.ketLuan}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                           required
                         />
                       </div>
@@ -1268,7 +1275,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
                           value={formData.khuyenNghi}
                           onChange={handleInputChange}
-                          disabled={isCompleted}
+                          disabled={false}
                         />
                       </div>
                     </div>
@@ -1286,7 +1293,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         className="form-input disabled:bg-slate-100"
                         value={formData.ngayXetNghiem}
                         onChange={handleInputChange}
-                        disabled={isCompleted}
+                        disabled={false}
                       />
                     </div>
 
@@ -1350,21 +1357,32 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         label={isHPV ? 'Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR' : 'Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)'}
                         value={formData.anhTeBao}
                         isImage={true}
-                        disabled={isCompleted}
+                        disabled={false}
                         onChange={handleImageUpload}
                       />
                     </div>
 
-                    {!isCompleted && (userRole === 'admin' || userRole === 'lab_admin') && (
-                      <div className="flex justify-center mt-4">
+                    {(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'doctor') && (
+                      <div className="flex justify-center items-center gap-4 mt-4">
                         <button
-                          onClick={handleDeliver}
+                          onClick={handleSave}
                           disabled={saving}
-                          className="btn btn-success px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                          className="btn btn-primary px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
                         >
-                          <Send className="w-4 h-4" />
-                          <span>{saving ? 'Đang xử lý...' : 'Trả kết quả'}</span>
+                          <Save className="w-4 h-4" />
+                          <span>{saving ? 'Đang lưu...' : 'Lưu kết quả & Thay đổi'}</span>
                         </button>
+
+                        {!isCompleted && (
+                          <button
+                            onClick={handleDeliver}
+                            disabled={saving}
+                            className="btn btn-success px-8 py-2.5 text-sm font-bold shadow-md hover:shadow-lg transition-all"
+                          >
+                            <Send className="w-4 h-4" />
+                            <span>{saving ? 'Đang xử lý...' : 'Trả kết quả'}</span>
+                          </button>
+                        )}
                       </div>
                     )}
                   </div>

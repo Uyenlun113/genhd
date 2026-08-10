@@ -75,17 +75,26 @@ async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
     let imageBytes: Uint8Array | null = null;
     let isPng = false;
 
-    if (imgStr.startsWith('data:image/png;base64,')) {
+    if (imgStr.startsWith('http://') || imgStr.startsWith('https://')) {
+      const resp = await fetch(imgStr);
+      if (!resp.ok) return null;
+      const arrayBuffer = await resp.arrayBuffer();
+      imageBytes = new Uint8Array(arrayBuffer);
+      const contentType = resp.headers.get('content-type') || '';
+      isPng = contentType.includes('png') || imgStr.toLowerCase().endsWith('.png');
+    } else if (imgStr.startsWith('data:image/png;base64,')) {
       isPng = true;
       imageBytes = Buffer.from(imgStr.replace('data:image/png;base64,', ''), 'base64');
     } else if (imgStr.startsWith('data:image/jpeg;base64,') || imgStr.startsWith('data:image/jpg;base64,')) {
       isPng = false;
       imageBytes = Buffer.from(imgStr.replace(/^data:image\/(jpeg|jpg);base64,/, ''), 'base64');
     } else if (imgStr.startsWith('data:')) {
-      const base64Data = imgStr.split(',')[1];
+      const parts = imgStr.split(',');
+      const header = parts[0] || '';
+      const base64Data = parts[1];
       if (base64Data) {
         imageBytes = Buffer.from(base64Data, 'base64');
-        isPng = imgStr.includes('png');
+        isPng = header.includes('png');
       }
     } else if (imgStr.startsWith('/')) {
       const publicPath = path.join(process.cwd(), 'public', imgStr);
@@ -101,9 +110,17 @@ async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
     if (!imageBytes) return null;
 
     if (isPng) {
-      return await pdfDoc.embedPng(imageBytes);
+      try {
+        return await pdfDoc.embedPng(imageBytes);
+      } catch {
+        return await pdfDoc.embedJpg(imageBytes);
+      }
     } else {
-      return await pdfDoc.embedJpg(imageBytes);
+      try {
+        return await pdfDoc.embedJpg(imageBytes);
+      } catch {
+        return await pdfDoc.embedPng(imageBytes);
+      }
     }
   } catch (err) {
     console.error('Image embedding error:', err);
@@ -436,7 +453,7 @@ export async function POST(request: NextRequest) {
         currentY -= 16;
       } else {
         // ADN Pháp Lý (Image 2 format with Portrait Avatar Photo on left)
-        const portraitImgStr = sample.anhChanDung || sample.anhCccdMatTruoc;
+        const portraitImgStr = sample.anhChanDung || sample.photoUrl || sample.anhCccdMatTruoc;
         let drawnAvatarWidth = 0;
 
         if (portraitImgStr) {

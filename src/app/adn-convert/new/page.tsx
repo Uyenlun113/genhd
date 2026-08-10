@@ -84,14 +84,56 @@ export default function NewAdnOrderPage() {
     setNgayBanHanh(`Hà Nội, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`);
   }, [createType]);
 
-  // Image Upload Helper
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+  // Image Upload Helper (convert to JPEG & upload to Cloudinary if available)
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = () => {
-      callback(reader.result as string);
-      toast.success('Đã tải ảnh lên thành công!');
+    reader.onload = async () => {
+      const origB64 = reader.result as string;
+      const img = new Image();
+      img.onload = async () => {
+        // Convert any format (WebP, PNG, HEIC) to standard JPEG via Canvas
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0);
+        }
+        const jpegB64 = canvas.toDataURL('image/jpeg', 0.85);
+
+        // Upload to Cloudinary via /api/upload
+        try {
+          const res = await fetch('/api/upload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ fileData: jpegB64, folder: 'adn_images', resourceType: 'image' }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.url && json.url.startsWith('http')) {
+              callback(json.url);
+              toast.success('Đã tải ảnh lên Cloudinary thành công!');
+              return;
+            }
+          }
+        } catch (err) {
+          console.warn('Cloudinary upload fallback to JPEG base64:', err);
+        }
+
+        // Fallback to compressed JPEG base64 if Cloudinary keys not configured
+        callback(jpegB64);
+        toast.success('Đã tải ảnh thành công!');
+      };
+      img.onerror = () => {
+        callback(origB64);
+        toast.success('Đã tải ảnh thành công!');
+      };
+      img.src = origB64;
     };
     reader.readAsDataURL(file);
   };
