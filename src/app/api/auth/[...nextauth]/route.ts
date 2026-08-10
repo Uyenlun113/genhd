@@ -79,7 +79,7 @@ export const authOptions: AuthOptions = {
           name: user.fullName,
           email: user.username,
           role: user.role,
-          allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'],
+          allowedCategories: user.allowedCategories !== undefined ? user.allowedCategories : ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'],
         } as any;
       },
     }),
@@ -93,7 +93,7 @@ export const authOptions: AuthOptions = {
       if (user) {
         token.role = (user as any).role;
         token.id = user.id;
-        token.allowedCategories = (user as any).allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
+        token.allowedCategories = (user as any).allowedCategories !== undefined ? (user as any).allowedCategories : ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'];
       }
       return token;
     },
@@ -101,7 +101,7 @@ export const authOptions: AuthOptions = {
       if (session.user) {
         (session.user as any).role = token.role as string;
         (session.user as any).id = token.id as string;
-        (session.user as any).allowedCategories = (token.allowedCategories as string[]) || ['cell', 'thinprep', 'hpv40', 'hpv20'];
+        (session.user as any).allowedCategories = token.allowedCategories !== undefined ? token.allowedCategories : ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'];
       }
       return session;
     },

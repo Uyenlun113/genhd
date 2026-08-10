@@ -19,7 +19,7 @@ export async function GET() {
     const userName = session.user?.name;
     const userId = (session.user as { role?: string; id?: string })?.id;
 
-    let allowedCategories: string[] = ['cell', 'thinprep', 'hpv40', 'hpv20'];
+    let allowedCategories: string[] = (session.user as any)?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
 
     // Filter stats for Doctor or Staff role
     const filter: Record<string, unknown> = {};
@@ -28,7 +28,7 @@ export async function GET() {
 
       // Get doctor's allowed categories from DB
       const docUser = await User.findOne({ fullName: userName }).lean();
-      if (docUser && docUser.allowedCategories && docUser.allowedCategories.length > 0) {
+      if (docUser && docUser.allowedCategories !== undefined) {
         allowedCategories = docUser.allowedCategories;
       }
     } else if (userRole === 'staff' && userId) {
@@ -36,9 +36,11 @@ export async function GET() {
 
       // Get staff's allowed categories from DB
       const staffUser = await User.findById(userId).lean();
-      if (staffUser && staffUser.allowedCategories && staffUser.allowedCategories.length > 0) {
+      if (staffUser && staffUser.allowedCategories !== undefined) {
         allowedCategories = staffUser.allowedCategories;
       }
+    } else if (userRole === 'admin' || userRole === 'lab_admin') {
+      allowedCategories = ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'];
     }
 
     const totalCount = await TestResult.countDocuments(filter);

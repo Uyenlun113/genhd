@@ -24,15 +24,16 @@ function SidebarContent() {
   const user = session?.user as { name?: string; role?: string; allowedCategories?: string[] } | undefined;
   const userRole = user?.role;
   const userName = user?.name;
-  const allowedCategories = user?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'];
+  const allowedCategories = user?.allowedCategories || [];
+  const isAdmin = userRole === 'admin' || userRole === 'lab_admin';
 
-  const canSeeCell = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('cell');
-  const canSeeThinPrep = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('thinprep');
-  const canSeeHPV40 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv40');
-  const canSeeHPV20 = userRole === 'admin' || userRole === 'lab_admin' || allowedCategories.includes('hpv20');
-  const canSeeSoiTuoi = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('soituoi');
-  const canSeeGiaiPhauBenh = userRole === 'admin' || userRole === 'lab_admin' || userRole === 'staff' || allowedCategories.includes('giaiphaubenh');
-  const canSeeAdnConvert = userRole === 'admin' || userRole === 'lab_adn' || allowedCategories.includes('adn');
+  const canSeeCell = isAdmin || allowedCategories.includes('cell');
+  const canSeeThinPrep = isAdmin || allowedCategories.includes('thinprep');
+  const canSeeHPV40 = isAdmin || allowedCategories.includes('hpv40');
+  const canSeeHPV20 = isAdmin || allowedCategories.includes('hpv20');
+  const canSeeSoiTuoi = isAdmin || allowedCategories.includes('soituoi');
+  const canSeeGiaiPhauBenh = isAdmin || allowedCategories.includes('giaiphaubenh');
+  const canSeeAdnConvert = isAdmin || userRole === 'lab_adn' || allowedCategories.includes('adn');
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {

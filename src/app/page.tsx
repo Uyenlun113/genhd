@@ -186,6 +186,12 @@ function DashboardContent() {
   });
 
   useEffect(() => {
+    if (userRole === 'lab_adn') {
+      router.push('/adn-convert');
+    }
+  }, [userRole, router]);
+
+  useEffect(() => {
     async function fetchUsersData() {
       try {
         const docRes = await fetch('/api/users?role=doctor');

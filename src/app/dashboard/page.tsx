@@ -118,13 +118,14 @@ export default function DashboardPage() {
 
   const isDoctor = stats?.userRole === 'doctor';
   const isStaff = stats?.userRole === 'staff';
-  const allowedCats = stats?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
-  const canSeeCell = allowedCats.includes('cell');
-  const canSeeThinPrep = allowedCats.includes('thinprep');
-  const canSeeHPV40 = allowedCats.includes('hpv40');
-  const canSeeHPV20 = allowedCats.includes('hpv20');
-  const canSeeSoiTuoi = allowedCats.includes('soituoi') || isDoctor || isStaff || stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
-  const canSeeGiaiPhauBenh = allowedCats.includes('giaiphaubenh') || isDoctor || isStaff || stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
+  const isAdmin = stats?.userRole === 'admin' || stats?.userRole === 'lab_admin';
+  const allowedCats = stats?.allowedCategories || [];
+  const canSeeCell = isAdmin || allowedCats.includes('cell');
+  const canSeeThinPrep = isAdmin || allowedCats.includes('thinprep');
+  const canSeeHPV40 = isAdmin || allowedCats.includes('hpv40');
+  const canSeeHPV20 = isAdmin || allowedCats.includes('hpv20');
+  const canSeeSoiTuoi = isAdmin || allowedCats.includes('soituoi');
+  const canSeeGiaiPhauBenh = isAdmin || allowedCats.includes('giaiphaubenh');
 
   const total = stats?.totalCount || 0;
   const cellCount = stats?.byCategory.cell || 0;
@@ -177,27 +178,33 @@ export default function DashboardPage() {
         <main className="flex-1 p-5 md:p-6 w-full overflow-y-auto max-h-[calc(100vh-61px)]">
           <Header
             title={
-              isDoctor
+              stats?.userRole === 'lab_adn'
+                ? 'Thống kê & Báo cáo Xét nghiệm ADN'
+                : isDoctor
                 ? `Thống kê phiếu của Bác sĩ: ${stats?.userName || ''}`
                 : isStaff
-                  ? `Thống kê phiếu của Phòng khám: ${stats?.userName || ''}`
-                  : 'Thống kê & Báo cáo hệ thống'
+                ? `Thống kê phiếu của Phòng khám: ${stats?.userName || ''}`
+                : 'Thống kê & Báo cáo hệ thống'
             }
             subtitle={
-              isDoctor
+              stats?.userRole === 'lab_adn'
+                ? 'Tổng quan chỉ số hoạt động và số lượng đơn ADN GenHD'
+                : isDoctor
                 ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được phân công cho ${stats?.userName || ''}`
                 : isStaff
-                  ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
-                  : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
+                ? `Tổng quan cá nhân chỉ số phiếu xét nghiệm được tạo bởi ${stats?.userName || ''}`
+                : 'Tổng quan chỉ số hoạt động xét nghiệm tế bào & HPV GenHD'
             }
             action={
-              <button
-                onClick={() => setIsExportModalOpen(true)}
-                className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm hover:shadow-md hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98]"
-              >
-                <FileSpreadsheet className="w-4 h-4 shrink-0 text-white" />
-                <span>Xuất Excel Tất Cả Dịch Vụ</span>
-              </button>
+              stats?.userRole !== 'lab_adn' ? (
+                <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-sm hover:shadow-md hover:from-emerald-500 hover:to-teal-500 active:scale-[0.98]"
+                >
+                  <FileSpreadsheet className="w-4 h-4 shrink-0 text-white" />
+                  <span>Xuất Excel Tất Cả Dịch Vụ</span>
+                </button>
+              ) : undefined
             }
           />
 
@@ -219,7 +226,10 @@ export default function DashboardPage() {
             <div className="py-20 text-center text-red-500">Không thể tải dữ liệu thống kê</div>
           ) : (
             <div className="space-y-6">
-              {/* Top Workflow Status & Total KPI Bar */}
+              {/* General Medical Test Result Stats (Hidden for lab_adn role) */}
+              {stats.userRole !== 'lab_adn' && (
+                <>
+                  {/* Top Workflow Status & Total KPI Bar */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* Total Cards */}
                 <div className="bg-white p-5 rounded-2xl border border-rose-200/80 shadow-xs flex items-center justify-between bg-gradient-to-br from-rose-50/40 to-white">
@@ -637,7 +647,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* ========================================================= */}
@@ -801,6 +811,8 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
+        </div>
+      )}
 
           {/* Export Excel Modal */}
           <ExportExcelModal

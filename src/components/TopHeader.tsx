@@ -13,6 +13,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Handshake,
+  Dna,
 } from 'lucide-react';
 import Image from 'next/image';
 import logoImg from '../../public/logo.png';
@@ -112,45 +113,23 @@ export default function TopHeader() {
     <header className="w-full bg-white border-b border-slate-200 px-6 py-3.5 flex items-center justify-between shadow-xs sticky top-0 z-40">
       {/* Left: Brand Logos & Partnership Co-Branding */}
       <div className="flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-4 group">
-          {/* GEN HD Logo */}
-          <div className="flex items-center gap-2">
-            <Image
-              src={logoImg}
-              alt="Logo GEN HD"
-              width={40}
-              height={40}
-              style={{ objectFit: 'contain' }}
-              className="group-hover:scale-105 transition-transform"
-            />
-            <span className="text-xl font-extrabold text-sky-600 tracking-tight leading-none">
-              GEN HD
+        <Link href="/" className="flex items-center gap-2.5 group">
+          {/* GENETRUST Logo */}
+          <Image
+            src={logoGenetrust}
+            alt="Genetrust Logo"
+            width={40}
+            height={40}
+            style={{ objectFit: 'contain' }}
+            className="group-hover:scale-105 transition-transform"
+          />
+          <div className="leading-tight">
+            <span className="text-lg font-extrabold text-[#003399] tracking-tight block">
+              GENETRUST
             </span>
-          </div>
-
-          {/* Partnership Handshake Icon */}
-          <div className="flex items-center justify-center text-amber-600 bg-amber-50 p-2 rounded-full border border-amber-200/80 shadow-xs">
-            <Handshake className="w-5 h-5 text-amber-600 animate-pulse" />
-          </div>
-
-          {/* GENETRUST Co-Brand Logo */}
-          <div className="flex items-center gap-2.5">
-            <Image
-              src={logoGenetrust}
-              alt="Genetrust Logo"
-              width={40}
-              height={40}
-              style={{ objectFit: 'contain' }}
-              className="group-hover:scale-105 transition-transform"
-            />
-            <div className="leading-tight">
-              <span className="text-base font-extrabold text-[#003399] tracking-tight block">
-                GENETRUST
-              </span>
-              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
-                Việt Nam
-              </span>
-            </div>
+            <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">
+              Việt Nam
+            </span>
           </div>
         </Link>
       </div>
@@ -253,6 +232,10 @@ export default function TopHeader() {
           <div className="w-8 h-8 rounded-full bg-slate-100 border border-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">
             {userRole === 'admin' ? (
               <ShieldCheck className="w-4 h-4 text-purple-600" />
+            ) : userRole === 'lab_admin' ? (
+              <ShieldCheck className="w-4 h-4 text-indigo-600" />
+            ) : userRole === 'lab_adn' ? (
+              <Dna className="w-4 h-4 text-sky-600" />
             ) : userRole === 'doctor' ? (
               <Stethoscope className="w-4 h-4 text-sky-600" />
             ) : (
@@ -262,8 +245,16 @@ export default function TopHeader() {
 
           <div className="hidden md:block">
             <div className="text-xs font-bold text-slate-800 leading-tight">{userName}</div>
-            <div className="text-[11px] text-slate-500 font-medium capitalize">
-              {userRole === 'admin' ? 'Quản trị viên' : userRole === 'doctor' ? 'Bác sĩ' : 'Nhân viên'}
+            <div className="text-[11px] text-slate-500 font-medium">
+              {userRole === 'admin'
+                ? 'Quản trị viên'
+                : userRole === 'lab_admin'
+                ? 'Quản lý Lab'
+                : userRole === 'lab_adn'
+                ? 'Admin Lab ADN'
+                : userRole === 'doctor'
+                ? 'Bác sĩ'
+                : 'Nhân viên'}
             </div>
           </div>
 

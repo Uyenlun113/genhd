@@ -67,8 +67,7 @@ function NewResultFormContent() {
 
   const hasCategoryPermission = (cat: string) => {
     if (userRole === 'admin' || userRole === 'lab_admin') return true;
-    if (userRole === 'staff' && (cat === 'soituoi' || cat === 'giaiphaubenh')) return true;
-    const userAllowed: string[] = (session?.user as any)?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
+    const userAllowed: string[] = (session?.user as any)?.allowedCategories || [];
     return userAllowed.includes(cat);
   };
 
