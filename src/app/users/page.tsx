@@ -491,40 +491,6 @@ export default function UserManagementPage() {
                           />
                           <span className="text-xs font-bold text-indigo-700">XÉT NGHIỆM ADN</span>
                         </label>
-
-                        {/* COMBO PERMISSIONS */}
-                        <label className="checkbox-item bg-orange-50/80 border-orange-200 col-span-1 sm:col-span-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.allowedCategories.includes('combo_hpv20_cell')}
-                            onChange={() => handleCategoryToggle('combo_hpv20_cell')}
-                          />
-                          <span className="text-xs font-bold text-orange-700">🔥 COMBO: HPV 20 + CELL</span>
-                        </label>
-                        <label className="checkbox-item bg-rose-50/80 border-rose-200 col-span-1 sm:col-span-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.allowedCategories.includes('combo_hpv40_cell')}
-                            onChange={() => handleCategoryToggle('combo_hpv40_cell')}
-                          />
-                          <span className="text-xs font-bold text-rose-700">🔥 COMBO: HPV 40 + CELL</span>
-                        </label>
-                        <label className="checkbox-item bg-purple-50/80 border-purple-200 col-span-1 sm:col-span-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.allowedCategories.includes('combo_hpv20_thinprep')}
-                            onChange={() => handleCategoryToggle('combo_hpv20_thinprep')}
-                          />
-                          <span className="text-xs font-bold text-purple-700">🔥 COMBO: HPV 20 + THINPREP</span>
-                        </label>
-                        <label className="checkbox-item bg-red-50/80 border-red-200 col-span-1 sm:col-span-2">
-                          <input
-                            type="checkbox"
-                            checked={formData.allowedCategories.includes('combo_hpv40_thinprep')}
-                            onChange={() => handleCategoryToggle('combo_hpv40_thinprep')}
-                          />
-                          <span className="text-xs font-bold text-red-700">🔥 COMBO: HPV 40 + THINPREP</span>
-                        </label>
                       </div>
                     </div>
                   )}

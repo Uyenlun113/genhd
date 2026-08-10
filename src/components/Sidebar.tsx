@@ -51,10 +51,10 @@ function SidebarContent() {
   const canSeeGiaiPhauBenh = isAdmin || allowedCategories.includes('giaiphaubenh');
   const canSeeAdnConvert = userRole === 'admin' || userRole === 'lab_adn' || allowedCategories.includes('adn');
 
-  const canSeeComboHpv20Cell = isAdmin || allowedCategories.includes('combo_hpv20_cell') || (canSeeHPV20 && canSeeCell);
-  const canSeeComboHpv40Cell = isAdmin || allowedCategories.includes('combo_hpv40_cell') || (canSeeHPV40 && canSeeCell);
-  const canSeeComboHpv20Thinprep = isAdmin || allowedCategories.includes('combo_hpv20_thinprep') || (canSeeHPV20 && canSeeThinPrep);
-  const canSeeComboHpv40Thinprep = isAdmin || allowedCategories.includes('combo_hpv40_thinprep') || (canSeeHPV40 && canSeeThinPrep);
+  const canSeeComboHpv20Cell = isAdmin || canSeeHPV20 || canSeeCell;
+  const canSeeComboHpv40Cell = isAdmin || canSeeHPV40 || canSeeCell;
+  const canSeeComboHpv20Thinprep = isAdmin || canSeeHPV20 || canSeeThinPrep;
+  const canSeeComboHpv40Thinprep = isAdmin || canSeeHPV40 || canSeeThinPrep;
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {
