@@ -260,14 +260,16 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Top Logo Header
+    let logoGtWidth = 0;
     if (isGtMode && fs.existsSync(logoGtPath)) {
       const logoBytes = fs.readFileSync(logoGtPath);
       const logoImg = await pdfDoc.embedPng(logoBytes);
-      const targetH = 54;
+      const targetH = 78;
       const targetW = targetH * (logoImg.width / logoImg.height);
+      logoGtWidth = targetW;
       page1.drawImage(logoImg, {
         x: margin,
-        y: height - margin - targetH + 1,
+        y: height - 18 - targetH,
         width: targetW,
         height: targetH,
       });
@@ -285,19 +287,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let currentY = height - margin - 10;
-    const headerX = isGtMode ? margin + 102 : margin + 85;
+    let currentY = isGtMode ? height - 22 : height - margin - 8;
+    const headerX = isGtMode
+      ? margin + (logoGtWidth ? logoGtWidth + 10 : 75)
+      : margin + 85;
 
     if (isGtMode) {
       // Header for Genetrust Brand
       page1.drawText(nfc('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'), {
         x: headerX,
         y: currentY,
-        size: 10.5,
+        size: 11,
         font: fontBold,
-        color: redColor,
+        color: primaryBlue,
       });
-      currentY -= 12;
+      currentY -= 13;
       page1.drawText(nfc('Địa chỉ: 15 ngõ 5 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội'), {
         x: headerX,
         y: currentY,
@@ -305,7 +309,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 10;
+      currentY -= 11;
       page1.drawText(nfc('Email: gennetrust@gmail.com'), {
         x: headerX,
         y: currentY,
@@ -313,7 +317,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 10;
+      currentY -= 11;
       page1.drawText(nfc('Hotline: 0818.992.466'), {
         x: headerX,
         y: currentY,
@@ -321,7 +325,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 10;
+      currentY -= 11;
       page1.drawText(nfc('Website: Genetrust.vn'), {
         x: headerX,
         y: currentY,
@@ -329,6 +333,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
+      currentY = height - 90; // Ensure currentY ends right above blue bar line (height - 98)
     } else if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
       // Header for ADN Tự nguyện, Nhiễm sắc thể Y & X (Image 1, 3, 4)
       page1.drawText(nfc('VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN'), {

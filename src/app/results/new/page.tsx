@@ -5,7 +5,7 @@ import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { UserPlus, ArrowLeft, Save, Sparkles, Stethoscope } from 'lucide-react';
+import { UserPlus, ArrowLeft, Save, Sparkles, Check, Flame } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
 
@@ -22,17 +22,20 @@ interface ServiceOption {
   types: string[];
 }
 
-const SERVICE_OPTIONS: ServiceOption[] = [
+const SINGLE_SERVICE_OPTIONS: ServiceOption[] = [
   { id: 'cell', label: 'Cell', isCombo: false, types: ['cell'] },
   { id: 'thinprep', label: 'ThinPrep', isCombo: false, types: ['thinprep'] },
   { id: 'hpv40', label: 'HPV 40', isCombo: false, types: ['hpv40'] },
   { id: 'hpv20', label: 'HPV 20', isCombo: false, types: ['hpv20'] },
   { id: 'soituoi', label: 'Soi tươi', isCombo: false, types: ['soituoi'] },
   { id: 'giaiphaubenh', label: 'Giải Phẫu Bệnh', isCombo: false, types: ['giaiphaubenh'] },
-  { id: 'combo_hpv20_cell', label: '🔥 Gói Combo: HPV 20 + Cell', isCombo: true, types: ['hpv20', 'cell'] },
-  { id: 'combo_hpv40_cell', label: '🔥 Gói Combo: HPV 40 + Cell', isCombo: true, types: ['hpv40', 'cell'] },
-  { id: 'combo_hpv20_thinprep', label: '🔥 Gói Combo: HPV 20 + ThinPrep', isCombo: true, types: ['hpv20', 'thinprep'] },
-  { id: 'combo_hpv40_thinprep', label: '🔥 Gói Combo: HPV 40 + ThinPrep', isCombo: true, types: ['hpv40', 'thinprep'] },
+];
+
+const COMBO_SERVICE_OPTIONS: ServiceOption[] = [
+  { id: 'combo_hpv20_cell', label: 'Gói Combo: HPV 20 + Cell', isCombo: true, types: ['hpv20', 'cell'] },
+  { id: 'combo_hpv40_cell', label: 'Gói Combo: HPV 40 + Cell', isCombo: true, types: ['hpv40', 'cell'] },
+  { id: 'combo_hpv20_thinprep', label: 'Gói Combo: HPV 20 + ThinPrep', isCombo: true, types: ['hpv20', 'thinprep'] },
+  { id: 'combo_hpv40_thinprep', label: 'Gói Combo: HPV 40 + ThinPrep', isCombo: true, types: ['hpv40', 'thinprep'] },
 ];
 
 function NewResultFormContent() {
@@ -47,7 +50,13 @@ function NewResultFormContent() {
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState<DoctorUser[]>([]);
 
-  const [serviceChoice, setServiceChoice] = useState<string>(paramType);
+  // Service mode state:
+  // If true => Combo mode (single combo package chosen)
+  // If false => Single Services mode (can choose 1 or MULTIPLE single services simultaneously!)
+  const [isComboMode, setIsComboMode] = useState<boolean>(paramType.startsWith('combo_'));
+  const [selectedComboId, setSelectedComboId] = useState<string>(paramType.startsWith('combo_') ? paramType : 'combo_hpv20_cell');
+  const [selectedSingleServices, setSelectedSingleServices] = useState<string[]>(!paramType.startsWith('combo_') ? [paramType] : ['cell']);
+
   const [bacSiDoc1, setBacSiDoc1] = useState('Chưa phân loại');
   const [bacSiDoc2, setBacSiDoc2] = useState('Chưa phân loại');
 
@@ -72,20 +81,25 @@ function NewResultFormContent() {
     return userAllowed.includes(cat);
   };
 
-  const availableServiceOptions = SERVICE_OPTIONS.filter((opt) => {
+  const availableSingleServices = SINGLE_SERVICE_OPTIONS.filter((opt) => {
     if (userRole === 'admin' || userRole === 'lab_admin') return true;
     const userAllowed: string[] = (session?.user as any)?.allowedCategories || [];
-    if (userAllowed.includes(opt.id)) return true;
-    return opt.types.every((t) => hasCategoryPermission(t));
+    return userAllowed.includes(opt.id) || opt.types.some((t) => hasCategoryPermission(t));
   });
 
-  const selectedServiceObj =
-    availableServiceOptions.find((s) => s.id === serviceChoice) ||
-    availableServiceOptions[0] ||
-    SERVICE_OPTIONS[0];
+  const availableComboServices = COMBO_SERVICE_OPTIONS.filter((opt) => {
+    if (userRole === 'admin' || userRole === 'lab_admin') return true;
+    const userAllowed: string[] = (session?.user as any)?.allowedCategories || [];
+    return userAllowed.includes(opt.id) || opt.types.some((t) => hasCategoryPermission(t));
+  });
 
-  const type1 = selectedServiceObj.types[0] || 'cell';
-  const type2 = selectedServiceObj.types[1] || 'cell';
+  const selectedComboObj =
+    availableComboServices.find((s) => s.id === selectedComboId) ||
+    availableComboServices[0] ||
+    COMBO_SERVICE_OPTIONS[0];
+
+  const type1 = isComboMode ? selectedComboObj.types[0] || 'cell' : selectedSingleServices[0] || 'cell';
+  const type2 = isComboMode ? selectedComboObj.types[1] || 'cell' : 'cell';
 
   const isDoctorAllowed = (d: DoctorUser, type: string) => {
     if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
@@ -98,23 +112,17 @@ function NewResultFormContent() {
   const doctors2 = doctors.filter((d) => isDoctorAllowed(d, type2));
 
   useEffect(() => {
-    if (availableServiceOptions.length > 0) {
-      const isChoiceAvailable = availableServiceOptions.some((opt) => opt.id === serviceChoice);
-      if (!isChoiceAvailable) {
-        setServiceChoice(availableServiceOptions[0].id);
-      }
-    }
-  }, [availableServiceOptions, serviceChoice]);
-
-  useEffect(() => {
     const urlType = searchParams.get('type');
     if (urlType) {
-      const isValidChoice = availableServiceOptions.some((opt) => opt.id === urlType);
-      if (isValidChoice) {
-        setServiceChoice(urlType);
+      if (urlType.startsWith('combo_')) {
+        setIsComboMode(true);
+        setSelectedComboId(urlType);
+      } else {
+        setIsComboMode(false);
+        setSelectedSingleServices([urlType]);
       }
     }
-  }, [searchParams, availableServiceOptions]);
+  }, [searchParams]);
 
   useEffect(() => {
     async function fetchDoctors() {
@@ -147,15 +155,29 @@ function NewResultFormContent() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleServiceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
-    setServiceChoice(val);
+  const toggleSingleService = (id: string) => {
+    setIsComboMode(false);
+    setSelectedSingleServices((prev) => {
+      if (prev.includes(id)) {
+        if (prev.length > 1) {
+          return prev.filter((s) => s !== id);
+        }
+        return prev;
+      } else {
+        return [...prev, id];
+      }
+    });
 
-    const isCellOrThinPrep = val === 'cell' || val === 'thinprep';
+    const isCellOrThinPrep = id === 'cell' || id === 'thinprep';
     setFormData((prev) => ({
       ...prev,
       loaiMau: isCellOrThinPrep ? 'Dịch phết' : 'Dịch',
     }));
+  };
+
+  const selectComboPackage = (id: string) => {
+    setIsComboMode(true);
+    setSelectedComboId(id);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -175,33 +197,76 @@ function NewResultFormContent() {
       toast.error('Vui lòng chọn Bác sĩ đọc kết quả');
       return;
     }
-    if ((userRole === 'admin' || userRole === 'lab_admin') && selectedServiceObj.isCombo && !bacSiDoc2) {
-      toast.error('Vui lòng chọn Bác sĩ đọc kết quả thứ 2 cho gói Combo');
-      return;
+
+    if (isComboMode) {
+      if ((userRole === 'admin' || userRole === 'lab_admin') && !bacSiDoc2) {
+        toast.error('Vui lòng chọn Bác sĩ đọc kết quả thứ 2 cho gói Combo');
+        return;
+      }
+    } else {
+      if (selectedSingleServices.length === 0) {
+        toast.error('Vui lòng chọn ít nhất 1 dịch vụ xét nghiệm');
+        return;
+      }
     }
 
     setLoading(true);
     try {
-      const typeToSave = selectedServiceObj.id;
-      const res = await fetch('/api/test-results', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          namSinh: Number(formData.namSinh),
-          loaiXetNghiem: typeToSave,
-          bacSiDoc: bacSiDoc1,
-          bacSiDoc2: selectedServiceObj.isCombo ? bacSiDoc2 : '',
-        }),
-      });
+      if (isComboMode) {
+        const typeToSave = selectedComboId;
+        const res = await fetch('/api/test-results', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            namSinh: Number(formData.namSinh),
+            loaiXetNghiem: typeToSave,
+            bacSiDoc: bacSiDoc1,
+            bacSiDoc2: bacSiDoc2,
+          }),
+        });
 
-      if (res.ok) {
-        const newResult = await res.json();
-        toast.success(`🎉 Đã tạo phiếu xét nghiệm thành công! Mã số: ${newResult.maSo}`);
-        router.push(`/?category=${typeToSave}`);
+        if (res.ok) {
+          const newResult = await res.json();
+          toast.success(`🎉 Đã tạo gói Combo thành công! Mã số: ${newResult.maSo}`);
+          router.push(`/?category=${typeToSave}`);
+        } else {
+          const errorData = await res.json();
+          toast.error(errorData.error || 'Lỗi tạo phiếu mới');
+        }
       } else {
-        const errorData = await res.json();
-        toast.error(errorData.error || 'Lỗi tạo phiếu mới');
+        const createdResults: any[] = [];
+        for (const srvId of selectedSingleServices) {
+          const res = await fetch('/api/test-results', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ...formData,
+              namSinh: Number(formData.namSinh),
+              loaiXetNghiem: srvId,
+              bacSiDoc: bacSiDoc1,
+              bacSiDoc2: '',
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            createdResults.push(data);
+          } else {
+            const errorData = await res.json();
+            toast.error(`Lỗi tạo phiếu (${srvId}): ${errorData.error || 'Lỗi hệ thống'}`);
+          }
+        }
+
+        if (createdResults.length > 0) {
+          if (createdResults.length === 1) {
+            toast.success(`🎉 Đã tạo phiếu xét nghiệm thành công! Mã số: ${createdResults[0].maSo}`);
+          } else {
+            const maSoList = createdResults.map((r) => r.maSo).join(', ');
+            toast.success(`🎉 Đã tạo thành công ${createdResults.length} phiếu xét nghiệm! (Mã: ${maSoList})`);
+          }
+          router.push(`/?category=${selectedSingleServices[0]}`);
+        }
       }
     } catch (err) {
       console.error('Submit error:', err);
@@ -212,15 +277,23 @@ function NewResultFormContent() {
   };
 
   const getDoc1Label = () => {
-    if (!selectedServiceObj.isCombo) return 'Bác sĩ đọc kết quả *';
-    const type1 = selectedServiceObj.types[0].toUpperCase();
-    return `Bác sĩ đọc kết quả cho Phiếu 1 (${type1}) *`;
+    if (!isComboMode) return 'Bác sĩ đọc kết quả *';
+    const t1 = selectedComboObj.types[0].toUpperCase();
+    return `Bác sĩ đọc kết quả cho Phiếu 1 (${t1}) *`;
   };
 
   const getDoc2Label = () => {
-    const type2 = selectedServiceObj.types[1] === 'cell' ? 'CELL' : 'THINPREP';
-    return `Bác sĩ đọc kết quả cho Phiếu 2 (${type2}) *`;
+    const t2 = selectedComboObj.types[1] === 'cell' ? 'CELL' : 'THINPREP';
+    return `Bác sĩ đọc kết quả cho Phiếu 2 (${t2}) *`;
   };
+
+  const showSoiTuoiFields = isComboMode
+    ? selectedComboObj.types.includes('soituoi')
+    : selectedSingleServices.includes('soituoi');
+
+  const showGiaiPhauBenhFields = isComboMode
+    ? selectedComboObj.types.includes('giaiphaubenh')
+    : selectedSingleServices.includes('giaiphaubenh');
 
   return (
     <div className="min-h-screen bg-slate-50 flex overflow-hidden h-screen">
@@ -232,7 +305,7 @@ function NewResultFormContent() {
         <main className="flex-1 p-4 md:p-5 w-full overflow-y-auto">
           <Header
             title="Tạo phiếu xét nghiệm mới"
-            subtitle="Chọn dịch vụ xét nghiệm / gói combo & nhập thông tin hành chính bệnh nhân"
+            subtitle="Chọn 1 hoặc nhiều dịch vụ xét nghiệm đơn lẻ / gói combo & nhập thông tin hành chính bệnh nhân"
             action={
               <button
                 type="button"
@@ -246,32 +319,87 @@ function NewResultFormContent() {
           />
 
           <div className="glass-card p-4 md:p-5 w-full shadow-xs">
-            <form onSubmit={handleSubmit} className="space-y-3.5">
-              {/* SERVICE SELECTION CARD - HORIZONTAL COMPACT */}
-              <div className="p-3 bg-gradient-to-r from-sky-50 via-indigo-50/50 to-purple-50/40 rounded-xl border border-sky-200/80 flex flex-wrap md:flex-nowrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2 text-xs font-bold text-sky-800 shrink-0">
-                  <Sparkles className="w-4 h-4 text-sky-600" />
-                  <span>CHỌN DỊCH VỤ / GÓI XÉT NGHIỆM *</span>
-                </div>
-                <div className="flex-1 min-w-[280px]">
-                  <select
-                    value={serviceChoice}
-                    onChange={handleServiceChange}
-                    className="form-select font-bold text-slate-800 border-sky-300 bg-white shadow-xs text-xs py-1.5 w-full"
-                  >
-                    {availableServiceOptions.map((opt) => (
-                      <option key={opt.id} value={opt.id}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* SERVICE SELECTION CONTAINER WITH MULTI-SELECT SUPPORT */}
+              <div className="p-4 bg-gradient-to-r from-sky-50/90 via-indigo-50/60 to-purple-50/50 rounded-2xl border border-sky-200/90 shadow-xs space-y-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-sky-100/90 pb-2.5">
+                  <div className="flex items-center gap-2 text-xs font-extrabold text-sky-900 uppercase tracking-wide">
+                    <span>CHỌN DỊCH VỤ / GÓI XÉT NGHIỆM *</span>
+                  </div>
+
+                  <div>
+                    {!isComboMode ? (
+                      <span className="text-[11px] font-bold text-emerald-800 bg-emerald-100/80 px-3 py-1 rounded-lg border border-emerald-200 shadow-2xs flex items-center gap-1.5">
+                        <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
+                        <span>Đã chọn {selectedSingleServices.length} dịch vụ đơn lẻ</span>
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-bold text-purple-800 bg-purple-100/80 px-3 py-1 rounded-lg border border-purple-200 shadow-2xs flex items-center gap-1.5">
+                        <Flame className="w-3.5 h-3.5 text-purple-600 fill-purple-600" />
+                        <span>Đã chọn Gói Combo (Khởi tạo 2 phiếu tự động)</span>
+                      </span>
+                    )}
+                  </div>
                 </div>
 
-                {selectedServiceObj.isCombo && (
-                  <div className="text-[11px] font-semibold text-indigo-700 bg-indigo-100/70 px-2.5 py-1 rounded-md border border-indigo-200 shrink-0">
-                    💡 Khởi tạo <b>2 phiếu riêng biệt</b> tự động
+                {/* 1. DỊCH VỤ ĐƠN LẺ (CHỌN NHIỀU CÙNG 1 LÚC) */}
+                <div>
+                  <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <span>1. Dịch vụ đơn lẻ (Có thể tích chọn nhiều loại cùng lúc):</span>
                   </div>
-                )}
+                  <div className="flex flex-wrap gap-2">
+                    {availableSingleServices.map((opt) => {
+                      const isSelected = !isComboMode && selectedSingleServices.includes(opt.id);
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => toggleSingleService(opt.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-2 cursor-pointer shadow-2xs ${isSelected
+                            ? 'bg-sky-600 text-white border-sky-600 shadow-sky-200 shadow-md ring-2 ring-sky-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:border-sky-300'
+                            }`}
+                        >
+                          <span
+                            className={`w-4 h-4 rounded-md flex items-center justify-center text-[10px] transition-all ${isSelected
+                              ? 'bg-white text-sky-600 font-black shadow-xs'
+                              : 'border border-slate-300 bg-slate-50'
+                              }`}
+                          >
+                            {isSelected ? '✓' : ''}
+                          </span>
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 2. GÓI COMBO (CHỌN 1 GÓI CỐ ĐỊNH) */}
+                <div className="pt-2.5 border-t border-sky-100/90">
+                  <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
+                    <span>2. Hoặc chọn Gói Combo (Cố định 2 trong 1):</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {availableComboServices.map((opt) => {
+                      const isSelected = isComboMode && selectedComboId === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => selectComboPackage(opt.id)}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all border flex items-center gap-1.5 cursor-pointer shadow-2xs ${isSelected
+                            ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-indigo-600 shadow-indigo-200 shadow-md ring-2 ring-indigo-300'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-indigo-50/70 hover:border-indigo-300'
+                            }`}
+                        >
+                          <Flame className={`w-3.5 h-3.5 ${isSelected ? 'text-amber-300 fill-amber-300' : 'text-orange-500'}`} />
+                          <span>{opt.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center gap-2 text-xs font-bold text-sky-700 pb-1.5 border-b border-slate-100 uppercase tracking-wider">
@@ -393,7 +521,7 @@ function NewResultFormContent() {
                   />
                 </div>
 
-                {/* DOCTOR SELECTION FIELDS (Placed next to Ngày nhận mẫu) */}
+                {/* DOCTOR SELECTION FIELDS */}
                 {userRole === 'admin' || userRole === 'lab_admin' ? (
                   <>
                     <div className="form-group mb-0">
@@ -415,7 +543,7 @@ function NewResultFormContent() {
                       </select>
                     </div>
 
-                    {selectedServiceObj.isCombo && (
+                    {isComboMode && (
                       <div className="form-group mb-0">
                         <label className="text-[11px] font-bold text-purple-700 truncate block">
                           {getDoc2Label()}
@@ -448,7 +576,7 @@ function NewResultFormContent() {
                 )}
 
                 {/* ROW 4 - Chỉ dành riêng cho Xét nghiệm Soi tươi */}
-                {selectedServiceObj.types.includes('soituoi') && (
+                {showSoiTuoiFields && (
                   <>
                     <div className="form-group mb-0">
                       <label className="text-[11px] font-bold text-emerald-700">Chẩn đoán lâm sàng</label>
@@ -477,7 +605,7 @@ function NewResultFormContent() {
                 )}
 
                 {/* ROW 4 - Chỉ dành riêng cho Xét nghiệm Giải Phẫu Bệnh */}
-                {selectedServiceObj.types.includes('giaiphaubenh') && (
+                {showGiaiPhauBenhFields && (
                   <>
                     <div className="form-group mb-0">
                       <label className="text-[11px] font-bold text-amber-700">Chẩn đoán lâm sàng</label>
@@ -523,9 +651,11 @@ function NewResultFormContent() {
                   <span>
                     {loading
                       ? 'Đang khởi tạo...'
-                      : selectedServiceObj.isCombo
+                      : isComboMode
                         ? 'Khởi tạo Combo 2 phiếu mới'
-                        : 'Tạo phiếu mới'}
+                        : selectedSingleServices.length > 1
+                          ? `Tạo ${selectedSingleServices.length} phiếu xét nghiệm cùng lúc`
+                          : 'Tạo phiếu mới'}
                   </span>
                 </button>
               </div>

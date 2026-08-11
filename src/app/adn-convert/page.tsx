@@ -238,6 +238,11 @@ export default function AdnConvertListPage() {
   const [resultTable2, setResultTable2] = useState<LocusItem[]>([]);
   const [resultTable3, setResultTable3] = useState<LocusItem[]>([]);
 
+  // Genetrust Convert Modal State
+  const [gtConvertOrder, setGtConvertOrder] = useState<AdnOrderData | null>(null);
+  const [gtCanBoName, setGtCanBoName] = useState('');
+  const [gtDaiDienName, setGtDaiDienName] = useState('');
+
   // Fetch orders list
   const fetchOrders = async () => {
     setLoading(true);
@@ -524,7 +529,7 @@ export default function AdnConvertListPage() {
     }
   };
 
-  const handleDownloadPdfGenetrust = async (order: AdnOrderData) => {
+  const handleDownloadPdfGenetrust = async (order: AdnOrderData, customCanBo?: string, customDaiDien?: string) => {
     setExportingPdf(true);
     try {
       // Fetch full order data to get all images (portrait, CCCD, chart images) and loci tables
@@ -539,7 +544,12 @@ export default function AdnConvertListPage() {
         console.error('Error fetching full order data:', e);
       }
 
-      const payload = { ...fullOrder, isGenetrust: true };
+      const payload = {
+        ...fullOrder,
+        canBoXetNghiem: customCanBo !== undefined ? customCanBo : fullOrder.canBoXetNghiem,
+        daiDienDonVi: customDaiDien !== undefined ? customDaiDien : fullOrder.daiDienDonVi,
+        isGenetrust: true,
+      };
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -931,7 +941,9 @@ export default function AdnConvertListPage() {
                                       <button
                                         onClick={() => {
                                           setActiveMenuId(null);
-                                          handleDownloadPdfGenetrust(order);
+                                          setGtConvertOrder(order);
+                                          setGtCanBoName(order.canBoXetNghiem || '');
+                                          setGtDaiDienName(order.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
                                         }}
                                         className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
                                       >
@@ -1981,6 +1993,84 @@ export default function AdnConvertListPage() {
         onConfirm={handleDeleteOrderConfirm}
         onCancel={() => setDeleteOrderModal(null)}
       />
+
+      {/* Modal Convert Sang Genetrust */}
+      {gtConvertOrder && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Convert kết quả sang Genetrust</h3>
+                  <p className="text-xs text-slate-500">Mã đơn: <span className="font-semibold text-slate-700">{gtConvertOrder.soPhieu || gtConvertOrder.maSo}</span></p>
+                </div>
+              </div>
+              <button
+                onClick={() => setGtConvertOrder(null)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tên Cán bộ xét nghiệm (Ký bên trái)
+                </label>
+                <input
+                  type="text"
+                  value={gtCanBoName}
+                  onChange={(e) => setGtCanBoName(e.target.value)}
+                  placeholder="VD: NGUYỄN VĂN AN"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tên Đại diện đơn vị (Ký bên phải)
+                </label>
+                <input
+                  type="text"
+                  value={gtDaiDienName}
+                  onChange={(e) => setGtDaiDienName(e.target.value)}
+                  placeholder="VD: ĐỖ VĂN TÌNH hoặc CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setGtConvertOrder(null)}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetOrder = gtConvertOrder;
+                  const canBo = gtCanBoName;
+                  const daiDien = gtDaiDienName;
+                  setGtConvertOrder(null);
+                  handleDownloadPdfGenetrust(targetOrder, canBo, daiDien);
+                }}
+                disabled={exportingPdf}
+                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all"
+              >
+                {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>Xác nhận Convert & Tải PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

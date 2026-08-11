@@ -386,6 +386,11 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveDieuKien, setReceiveDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien'>('du_dieu_kien');
 
+  // Genetrust Convert Modal State
+  const [showGtModal, setShowGtModal] = useState(false);
+  const [gtCanBo, setGtCanBo] = useState('');
+  const [gtDaiDien, setGtDaiDien] = useState('');
+
   const handleConfirmReceive = async () => {
     setSaving(true);
     try {
@@ -960,9 +965,15 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   };
 
   // Download PDF Result (Genetrust Brand)
-  const handleDownloadPdfGenetrust = async () => {
+  const handleDownloadPdfGenetrust = async (overrideCanBo?: string, overrideDaiDien?: string) => {
     setExportingPdf(true);
     try {
+      const finalCanBo = overrideCanBo !== undefined ? overrideCanBo : canBoXetNghiem;
+      const finalDaiDien = overrideDaiDien !== undefined ? overrideDaiDien : daiDienDonVi;
+
+      if (overrideCanBo !== undefined) setCanBoXetNghiem(overrideCanBo);
+      if (overrideDaiDien !== undefined) setDaiDienDonVi(overrideDaiDien);
+
       const payload = {
         _id: id,
         soPhieu,
@@ -972,8 +983,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         nguoiYeuCau,
         nguoiThuMau,
         boKit,
-        canBoXetNghiem,
-        daiDienDonVi,
+        canBoXetNghiem: finalCanBo,
+        daiDienDonVi: finalDaiDien,
         kiemSoatKetQua,
         ketLuan,
         doTinCay,
@@ -1176,7 +1187,11 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                       <span>Lưu thay đổi</span>
                     </button>
                     <button
-                      onClick={handleDownloadPdfGenetrust}
+                      onClick={() => {
+                        setGtCanBo(canBoXetNghiem || '');
+                        setGtDaiDien(daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+                        setShowGtModal(true);
+                      }}
                       disabled={exportingPdf}
                       className="btn bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
@@ -1975,9 +1990,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     type="text"
                     value={canBoXetNghiem}
                     onChange={(e) => setCanBoXetNghiem(e.target.value)}
-                    placeholder="VD: Nguyễn Thị An"
-                    disabled={trangThai === 'da_tra_ket_qua'}
-                    className="form-input font-semibold disabled:bg-slate-100 disabled:text-slate-500"
+                    placeholder="VD: NGUYỄN VĂN AN"
+                    className="form-input font-semibold"
                   />
                 </div>
 
@@ -1987,9 +2001,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     type="text"
                     value={daiDienDonVi}
                     onChange={(e) => setDaiDienDonVi(e.target.value)}
-                    placeholder="VD: GĐ. Nguyễn Văn A"
-                    disabled={trangThai === 'da_tra_ket_qua'}
-                    className="form-input font-semibold disabled:bg-slate-100 disabled:text-slate-500"
+                    placeholder="VD: ĐỖ VĂN TÌNH hoặc CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM"
+                    className="form-input font-semibold"
                   />
                 </div>
               </div>
@@ -2252,6 +2265,83 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           onClose={() => setEditingImage(null)}
           onSave={editingImage.onSave}
         />
+      )}
+
+      {/* Modal Convert Sang Genetrust */}
+      {showGtModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 border border-slate-200 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-800">Convert kết quả sang Genetrust</h3>
+                  <p className="text-xs text-slate-500">Mã phiếu: <span className="font-semibold text-slate-700">{soPhieu}</span></p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowGtModal(false)}
+                className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center font-bold text-sm cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tên Cán bộ xét nghiệm (Ký bên trái)
+                </label>
+                <input
+                  type="text"
+                  value={gtCanBo}
+                  onChange={(e) => setGtCanBo(e.target.value)}
+                  placeholder="VD: NGUYỄN VĂN AN"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Tên Đại diện đơn vị (Ký bên phải)
+                </label>
+                <input
+                  type="text"
+                  value={gtDaiDien}
+                  onChange={(e) => setGtDaiDien(e.target.value)}
+                  placeholder="VD: ĐỖ VĂN TÌNH hoặc CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM"
+                  className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setShowGtModal(false)}
+                className="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const canBo = gtCanBo;
+                  const daiDien = gtDaiDien;
+                  setShowGtModal(false);
+                  handleDownloadPdfGenetrust(canBo, daiDien);
+                }}
+                disabled={exportingPdf}
+                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all"
+              >
+                {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                <span>Xác nhận Convert & Tải PDF</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
