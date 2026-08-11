@@ -279,12 +279,12 @@ function NewResultFormContent() {
   const getDoc1Label = () => {
     if (!isComboMode) return 'Bác sĩ đọc kết quả *';
     const t1 = selectedComboObj.types[0].toUpperCase();
-    return `Bác sĩ đọc kết quả cho Phiếu 1 (${t1}) *`;
+    return `Bác sĩ đọc kết quả phần (${t1}) *`;
   };
 
   const getDoc2Label = () => {
     const t2 = selectedComboObj.types[1] === 'cell' ? 'CELL' : 'THINPREP';
-    return `Bác sĩ đọc kết quả cho Phiếu 2 (${t2}) *`;
+    return `Bác sĩ đọc kết quả phần (${t2}) *`;
   };
 
   const showSoiTuoiFields = isComboMode
@@ -336,13 +336,13 @@ function NewResultFormContent() {
                     ) : (
                       <span className="text-[11px] font-bold text-purple-800 bg-purple-100/80 px-3 py-1 rounded-lg border border-purple-200 shadow-2xs flex items-center gap-1.5">
                         <Flame className="w-3.5 h-3.5 text-purple-600 fill-purple-600" />
-                        <span>Đã chọn Gói Combo (Khởi tạo 2 phiếu tự động)</span>
+                        <span>Đã chọn Gói Combo xét nghiệm</span>
                       </span>
                     )}
                   </div>
                 </div>
 
-                {/* 1. DỊCH VỤ ĐƠN LẺ (CHỌN NHIỀU CÙNG 1 LÚC) */}
+                {/* 1. DỊCH VỤ ĐƠN LẺ (CHỌN NHIỀU CÙNG LÚC) */}
                 <div>
                   <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
                     <span>1. Dịch vụ đơn lẻ (Có thể tích chọn nhiều loại cùng lúc):</span>
@@ -378,7 +378,7 @@ function NewResultFormContent() {
                 {/* 2. GÓI COMBO (CHỌN 1 GÓI CỐ ĐỊNH) */}
                 <div className="pt-2.5 border-t border-sky-100/90">
                   <div className="text-[11px] font-bold text-slate-700 mb-2 flex items-center gap-1.5">
-                    <span>2. Hoặc chọn Gói Combo (Cố định 2 trong 1):</span>
+                    <span>2. Hoặc chọn Gói Combo (2 xét nghiệm trong 1 phiếu):</span>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {availableComboServices.map((opt) => {
@@ -652,7 +652,7 @@ function NewResultFormContent() {
                     {loading
                       ? 'Đang khởi tạo...'
                       : isComboMode
-                        ? 'Khởi tạo Combo 2 phiếu mới'
+                        ? 'Tạo phiếu Combo mới'
                         : selectedSingleServices.length > 1
                           ? `Tạo ${selectedSingleServices.length} phiếu xét nghiệm cùng lúc`
                           : 'Tạo phiếu mới'}
