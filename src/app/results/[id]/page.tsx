@@ -849,6 +849,68 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             />
                           </div>
                         </div>
+
+                        {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN GIẢI PHẪU BỆNH */}
+                        <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-wrap items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <span className="text-xs text-amber-800 font-bold block mb-1">
+                                Bác sĩ đọc kết quả:
+                              </span>
+                              {userRole === 'admin' || userRole === 'lab_admin' ? (
+                                <select
+                                  name="bacSiDoc"
+                                  value={formData.bacSiDoc}
+                                  onChange={handleInputChange}
+                                  className="form-select text-xs py-1.5 px-3 font-bold text-amber-700 rounded-lg border-amber-300 bg-white shadow-2xs"
+                                >
+                                  {doctors1.map((d) => (
+                                    <option key={d._id} value={d.fullName}>
+                                      {d.fullName}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-xs font-bold text-amber-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                              )}
+                            </div>
+
+                            {formData.daKy && (
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                <PenLine className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>ĐÃ KÝ DUYỆT</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="btn btn-secondary text-xs py-1.5 px-3"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>{saving ? 'Đang lưu...' : 'Lưu kết quả GPB'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSignPart(1)}
+                                disabled={saving}
+                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
+                                  formData.daKy
+                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                }`}
+                              >
+                                <PenLine className="w-3.5 h-3.5" />
+                                <span>{formData.daKy ? 'Hủy chữ ký GPB' : 'Lưu & Ký duyệt (GPB)'}</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -1096,6 +1158,68 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           disabled={false}
                         />
                       </div>
+                    </div>
+
+                    {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN SOI TƯƠI */}
+                    <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 flex flex-wrap items-center justify-between gap-4 mt-6">
+                      <div className="flex items-center gap-4">
+                        <div>
+                          <span className="text-xs text-emerald-800 font-bold block mb-1">
+                            Bác sĩ đọc kết quả:
+                          </span>
+                          {userRole === 'admin' || userRole === 'lab_admin' ? (
+                            <select
+                              name="bacSiDoc"
+                              value={formData.bacSiDoc}
+                              onChange={handleInputChange}
+                              className="form-select text-xs py-1.5 px-3 font-bold text-emerald-700 rounded-lg border-emerald-300 bg-white shadow-2xs"
+                            >
+                              {doctors1.map((d) => (
+                                <option key={d._id} value={d.fullName}>
+                                  {d.fullName}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <span className="text-xs font-bold text-emerald-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                          )}
+                        </div>
+
+                        {formData.daKy && (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                            <PenLine className="w-3.5 h-3.5 text-emerald-600" />
+                            <span>ĐÃ KÝ DUYỆT</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={handleSave}
+                            disabled={saving}
+                            className="btn btn-secondary text-xs py-1.5 px-3"
+                          >
+                            <Save className="w-3.5 h-3.5" />
+                            <span>{saving ? 'Đang lưu...' : 'Lưu kết quả Soi tươi'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSignPart(1)}
+                            disabled={saving}
+                            className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
+                              formData.daKy
+                                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                            }`}
+                          >
+                            <PenLine className="w-3.5 h-3.5" />
+                            <span>{formData.daKy ? 'Hủy chữ ký Soi tươi' : 'Lưu & Ký duyệt (Soi tươi)'}</span>
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </>
                 )}
