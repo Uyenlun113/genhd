@@ -59,6 +59,8 @@ export async function PUT(
       if (body.table3) order.table3 = body.table3;
       if (body.ketLuan !== undefined) order.ketLuan = body.ketLuan;
       if (body.doTinCay !== undefined) order.doTinCay = body.doTinCay;
+      if (body.totalLikelihoodRatio !== undefined) order.totalLikelihoodRatio = body.totalLikelihoodRatio;
+      if (body.probabilityOfPaternity !== undefined) order.probabilityOfPaternity = body.probabilityOfPaternity;
       if (body.anhChayMauList) order.anhChayMauList = body.anhChayMauList;
       if (body.trangThai) order.trangThai = body.trangThai;
     }

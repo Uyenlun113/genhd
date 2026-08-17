@@ -56,6 +56,8 @@ export interface IAdnOrder extends Document {
 
   ketLuan: string;
   doTinCay: string;
+  totalLikelihoodRatio?: string;
+  probabilityOfPaternity?: string;
   anhChayMauList?: string[];
 
   createdAt: Date;
@@ -119,6 +121,8 @@ const AdnOrderSchema = new Schema<IAdnOrder>(
 
     ketLuan: { type: String, default: '' },
     doTinCay: { type: String, default: '> 99,9999%' },
+    totalLikelihoodRatio: { type: String, default: '23109010868637.6' },
+    probabilityOfPaternity: { type: String, default: '99.9999999999957%' },
     anhChayMauList: { type: [String], default: [] },
   },
   {

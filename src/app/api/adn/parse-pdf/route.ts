@@ -79,6 +79,8 @@ export async function POST(request: NextRequest) {
       ],
       ketLuan: 'có quan hệ huyết thống bố - con ( cha – con)',
       doTinCay: '> 99,9999%',
+      totalLikelihoodRatio: '23109010868637.6',
+      probabilityOfPaternity: '99.9999999999957%',
       kiemSoatKetQua: 'TS. BS. Nguyễn Khánh Dương',
       daiDienDonVi: 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM',
     };

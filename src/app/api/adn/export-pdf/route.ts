@@ -180,6 +180,8 @@ export async function POST(request: NextRequest) {
       table3 = [],
       ketLuan = '',
       doTinCay = '> 99,9999%',
+      totalLikelihoodRatio = '23109010868637.6',
+      probabilityOfPaternity = '99.9999999999957%',
       canBoXetNghiem = '',
       daiDienDonVi = '',
       kiemSoatKetQua = 'TS. BS. Nguyễn Khánh Dương',
@@ -917,6 +919,88 @@ export async function POST(request: NextRequest) {
     drawStandard9LociTable(lociTable1Def, table1);
     drawStandard9LociTable(lociTable2Def, table2);
     drawStandard9LociTable(lociTable3Def, table3);
+
+    // Summary Row for Total Likelyhood Ratio (LR) & Probability of paternity (POP)
+    const lrRowH = 15;
+    const lrRowY = currentY;
+    const fullTableW = width - margin * 2;
+
+    const col1W = 145;
+    const col2W = 115;
+    const col3W = 150;
+    const col4W = fullTableW - (col1W + col2W + col3W);
+
+    const tableColor = (isYchr || isXchr) ? primaryBlue : darkColor;
+
+    // Draw outer box for the row
+    page1.drawRectangle({
+      x: margin,
+      y: lrRowY - lrRowH,
+      width: fullTableW,
+      height: lrRowH,
+      borderColor: tableColor,
+      borderWidth: 0.5,
+    });
+
+    // Vertical dividers between columns
+    page1.drawLine({
+      start: { x: margin + col1W, y: lrRowY },
+      end: { x: margin + col1W, y: lrRowY - lrRowH },
+      color: tableColor,
+      thickness: 0.5,
+    });
+
+    page1.drawLine({
+      start: { x: margin + col1W + col2W, y: lrRowY },
+      end: { x: margin + col1W + col2W, y: lrRowY - lrRowH },
+      color: tableColor,
+      thickness: 0.5,
+    });
+
+    page1.drawLine({
+      start: { x: margin + col1W + col2W + col3W, y: lrRowY },
+      end: { x: margin + col1W + col2W + col3W, y: lrRowY - lrRowH },
+      color: tableColor,
+      thickness: 0.5,
+    });
+
+    // Cell 1: Total Likelyhood Ratio (LR)
+    page1.drawText(nfc('Total Likelyhood Ratio (LR)'), {
+      x: margin + 5,
+      y: lrRowY - lrRowH + 4,
+      size: 7.5,
+      font: fontBold,
+      color: tableColor,
+    });
+
+    // Cell 2: LR Value
+    page1.drawText(nfc(totalLikelihoodRatio || '23109010868637.6'), {
+      x: margin + col1W + 5,
+      y: lrRowY - lrRowH + 4,
+      size: 7.5,
+      font: fontBold,
+      color: darkColor,
+    });
+
+    // Cell 3: Probability of paternity (POP)
+    page1.drawText(nfc('Probability of paternity (POP)'), {
+      x: margin + col1W + col2W + 5,
+      y: lrRowY - lrRowH + 4,
+      size: 7.5,
+      font: fontBold,
+      color: tableColor,
+    });
+
+    // Cell 4: POP Value
+    page1.drawText(nfc(probabilityOfPaternity || '99.9999999999957%'), {
+      x: margin + col1W + col2W + col3W + 5,
+      y: lrRowY - lrRowH + 4,
+      size: 7.5,
+      font: fontBold,
+      color: darkColor,
+    });
+
+    currentY -= (lrRowH + 3);
 
     // Conclusion Section
     currentY -= 10;

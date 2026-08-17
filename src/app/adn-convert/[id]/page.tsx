@@ -80,6 +80,8 @@ interface AdnOrderData {
   table3: LocusItem[];
   ketLuan: string;
   doTinCay: string;
+  totalLikelihoodRatio?: string;
+  probabilityOfPaternity?: string;
   anhChayMauList?: string[];
 }
 
@@ -381,6 +383,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [kiemSoatKetQua, setKiemSoatKetQua] = useState('TS. BS. Nguyễn Khánh Dương');
   const [ketLuan, setKetLuan] = useState('');
   const [doTinCay, setDoTinCay] = useState('> 99,9999%');
+  const [totalLikelihoodRatio, setTotalLikelihoodRatio] = useState('23109010868637.6');
+  const [probabilityOfPaternity, setProbabilityOfPaternity] = useState('99.9999999999957%');
   const [trangThai, setTrangThai] = useState<'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua'>('gui_mau');
   const [dieuKien, setDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan'>('chua_xac_nhan');
   const [showReceiveModal, setShowReceiveModal] = useState(false);
@@ -454,6 +458,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         table3,
         ketLuan,
         doTinCay,
+        totalLikelihoodRatio,
+        probabilityOfPaternity,
       };
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
@@ -510,6 +516,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           setKiemSoatKetQua(d.kiemSoatKetQua || 'TS. BS. Nguyễn Khánh Dương');
           setKetLuan(d.ketLuan || '');
           setDoTinCay(d.doTinCay || '> 99,9999%');
+          setTotalLikelihoodRatio(d.totalLikelihoodRatio || '23109010868637.6');
+          setProbabilityOfPaternity(d.probabilityOfPaternity || '99.9999999999957%');
           setTrangThai(d.trangThai || 'gui_mau');
           setDieuKien(d.dieuKien || 'chua_xac_nhan');
           setAnhGuiMau(d.anhGuiMau || '');
@@ -547,6 +555,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               table3: t3,
               ketLuan: d.ketLuan || '',
               doTinCay: d.doTinCay || '> 99,9999%',
+              totalLikelihoodRatio: d.totalLikelihoodRatio || '23109010868637.6',
+              probabilityOfPaternity: d.probabilityOfPaternity || '99.9999999999957%',
             };
             fetch('/api/adn/export-pdf', {
               method: 'POST',
@@ -707,6 +717,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
             if (hasTable3) setTable3(normalizeLociTable(d.table3, mauDanhSach));
             if (d.ketLuan) setKetLuan(d.ketLuan);
             if (d.doTinCay) setDoTinCay(d.doTinCay);
+            if (d.totalLikelihoodRatio) setTotalLikelihoodRatio(d.totalLikelihoodRatio);
+            if (d.probabilityOfPaternity) setProbabilityOfPaternity(d.probabilityOfPaternity);
 
             successCount++;
 
@@ -883,6 +895,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           kiemSoatKetQua,
           ketLuan,
           doTinCay,
+          totalLikelihoodRatio,
+          probabilityOfPaternity,
           trangThai: newStatus,
           dieuKien,
           anhGuiMau: compressedAnhGuiMau,
@@ -931,6 +945,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         kiemSoatKetQua,
         ketLuan,
         doTinCay,
+        totalLikelihoodRatio,
+        probabilityOfPaternity,
         mauDanhSach,
         anhChayMauList,
         table1,
@@ -988,6 +1004,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         kiemSoatKetQua,
         ketLuan,
         doTinCay,
+        totalLikelihoodRatio,
+        probabilityOfPaternity,
         mauDanhSach,
         anhChayMauList,
         table1,
@@ -1970,6 +1988,32 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                   disabled={trangThai === 'da_tra_ket_qua'}
                   className="form-textarea font-bold text-red-600 disabled:bg-slate-100 disabled:text-slate-500"
                 />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="form-group mb-0">
+                  <label>Total Likelyhood Ratio (LR)</label>
+                  <input
+                    type="text"
+                    value={totalLikelihoodRatio}
+                    onChange={(e) => setTotalLikelihoodRatio(e.target.value)}
+                    disabled={trangThai === 'da_tra_ket_qua'}
+                    placeholder="VD: 23109010868637.6"
+                    className="form-input font-medium disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <label>Probability of paternity (POP)</label>
+                  <input
+                    type="text"
+                    value={probabilityOfPaternity}
+                    onChange={(e) => setProbabilityOfPaternity(e.target.value)}
+                    disabled={trangThai === 'da_tra_ket_qua'}
+                    placeholder="VD: 99.9999999999957%"
+                    className="form-input font-medium disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

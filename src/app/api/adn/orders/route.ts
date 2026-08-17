@@ -154,6 +154,8 @@ export async function POST(request: NextRequest) {
       table3: defaultTable3,
       ketLuan: '',
       doTinCay: '> 99,9999%',
+      totalLikelihoodRatio: body.totalLikelihoodRatio || '23109010868637.6',
+      probabilityOfPaternity: body.probabilityOfPaternity || '99.9999999999957%',
     });
 
     return NextResponse.json({ success: true, data: newOrder });

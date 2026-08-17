@@ -84,6 +84,8 @@ interface AdnOrderData {
   table3: LocusItem[];
   ketLuan: string;
   doTinCay: string;
+  totalLikelihoodRatio?: string;
+  probabilityOfPaternity?: string;
   createdAt?: string;
 }
 
@@ -231,6 +233,8 @@ export default function AdnConvertListPage() {
   // ---------------------------------------------------------
   const [resultKetLuan, setResultKetLuan] = useState('');
   const [resultDoTinCay, setResultDoTinCay] = useState('> 99,9999%');
+  const [resultTotalLikelihoodRatio, setResultTotalLikelihoodRatio] = useState('23109010868637.6');
+  const [resultProbabilityOfPaternity, setResultProbabilityOfPaternity] = useState('99.9999999999957%');
   const [resultKiemSoat, setResultKiemSoat] = useState('TS. BS. Nguyễn Khánh Dương');
   const [resultDaiDien, setResultDaiDien] = useState('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
   const [resultSamples, setResultSamples] = useState<SampleItem[]>([]);
@@ -398,6 +402,8 @@ export default function AdnConvertListPage() {
     setActiveOrder(order);
     setResultKetLuan(order.ketLuan || '');
     setResultDoTinCay(order.doTinCay || '> 99,9999%');
+    setResultTotalLikelihoodRatio(order.totalLikelihoodRatio || '23109010868637.6');
+    setResultProbabilityOfPaternity(order.probabilityOfPaternity || '99.9999999999957%');
     setResultKiemSoat(order.kiemSoatKetQua || 'TS. BS. Nguyễn Khánh Dương');
     setResultDaiDien(order.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
     setResultSamples(order.mauDanhSach || []);
@@ -431,6 +437,8 @@ export default function AdnConvertListPage() {
           if (d.table3) setResultTable3(d.table3);
           if (d.ketLuan) setResultKetLuan(d.ketLuan);
           if (d.doTinCay) setResultDoTinCay(d.doTinCay);
+          if (d.totalLikelihoodRatio) setResultTotalLikelihoodRatio(d.totalLikelihoodRatio);
+          if (d.probabilityOfPaternity) setResultProbabilityOfPaternity(d.probabilityOfPaternity);
           toast.success(`Đã tự động giải mã dữ liệu bảng Locus từ file ${file.name}!`);
         }
       } else {
@@ -458,6 +466,8 @@ export default function AdnConvertListPage() {
           table3: resultTable3,
           ketLuan: resultKetLuan,
           doTinCay: resultDoTinCay,
+          totalLikelihoodRatio: resultTotalLikelihoodRatio,
+          probabilityOfPaternity: resultProbabilityOfPaternity,
           kiemSoatKetQua: resultKiemSoat,
           daiDienDonVi: resultDaiDien,
         }),
@@ -1666,6 +1676,28 @@ export default function AdnConvertListPage() {
                   placeholder="VD: có quan hệ huyết thống bố - con ( cha – con) độ tin cậy > 99,9999%"
                   className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-red-600"
                 />
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Total Likelyhood Ratio (LR)</label>
+                  <input
+                    type="text"
+                    value={resultTotalLikelihoodRatio}
+                    onChange={(e) => setResultTotalLikelihoodRatio(e.target.value)}
+                    placeholder="VD: 23109010868637.6"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Probability of paternity (POP)</label>
+                  <input
+                    type="text"
+                    value={resultProbabilityOfPaternity}
+                    onChange={(e) => setResultProbabilityOfPaternity(e.target.value)}
+                    placeholder="VD: 99.9999999999957%"
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
