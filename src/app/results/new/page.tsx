@@ -27,6 +27,7 @@ const SINGLE_SERVICE_OPTIONS: ServiceOption[] = [
   { id: 'thinprep', label: 'ThinPrep', isCombo: false, types: ['thinprep'] },
   { id: 'hpv40', label: 'HPV 40', isCombo: false, types: ['hpv40'] },
   { id: 'hpv20', label: 'HPV 20', isCombo: false, types: ['hpv20'] },
+  { id: 'hpv23', label: 'HPV 23', isCombo: false, types: ['hpv23'] },
   { id: 'soituoi', label: 'Soi tươi', isCombo: false, types: ['soituoi'] },
   { id: 'giaiphaubenh', label: 'Giải Phẫu Bệnh', isCombo: false, types: ['giaiphaubenh'] },
 ];
@@ -104,7 +105,7 @@ function NewResultFormContent() {
   const isDoctorAllowed = (d: DoctorUser, type: string) => {
     if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
     if (d.allowedCategories.includes(type)) return true;
-    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv23') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
     return false;
   };
 

@@ -19,7 +19,7 @@ export async function GET() {
     const userName = session.user?.name;
     const userId = (session.user as { role?: string; id?: string })?.id;
 
-    let allowedCategories: string[] = (session.user as any)?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh'];
+    let allowedCategories: string[] = (session.user as any)?.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh'];
 
     // Filter stats for Doctor or Staff role
     const filter: Record<string, unknown> = {};
@@ -40,7 +40,7 @@ export async function GET() {
         allowedCategories = staffUser.allowedCategories;
       }
     } else if (userRole === 'admin' || userRole === 'lab_admin') {
-      allowedCategories = ['cell', 'thinprep', 'hpv40', 'hpv20', 'soituoi', 'giaiphaubenh', 'adn'];
+      allowedCategories = ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'adn'];
     }
 
     const totalCount = await TestResult.countDocuments(filter);
@@ -50,6 +50,7 @@ export async function GET() {
     const thinprepCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'thinprep' });
     const hpv40Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv40' });
     const hpv20Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv20' });
+    const hpv23Count = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'hpv23' });
     const soituoiCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'soituoi' });
     const giaiphaubenhCount = await TestResult.countDocuments({ ...filter, loaiXetNghiem: 'giaiphaubenh' });
 
@@ -128,6 +129,7 @@ export async function GET() {
         thinprep: thinprepCount,
         hpv40: hpv40Count,
         hpv20: hpv20Count,
+        hpv23: hpv23Count,
         soituoi: soituoiCount,
         giaiphaubenh: giaiphaubenhCount,
       },

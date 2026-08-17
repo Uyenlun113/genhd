@@ -273,6 +273,13 @@ function DashboardContent() {
   const [selectedDoctorForAccept, setSelectedDoctorForAccept] = useState('');
   const [selectedDoctor2ForAccept, setSelectedDoctor2ForAccept] = useState('');
 
+  const isDoctorAllowed = (d: any, type: string) => {
+    if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
+    if (d.allowedCategories.includes(type)) return true;
+    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv23') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+    return false;
+  };
+
   const handleAcceptClick = (item: { _id: string; maSo: string; loaiXetNghiem?: string; bacSiDoc?: string; bacSiDoc2?: string }) => {
     setActiveMenuId(null);
     setAcceptItem({
@@ -290,13 +297,6 @@ function DashboardContent() {
       ? 'hpv40'
       : item.loaiXetNghiem || 'cell';
     const type2 = item.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
-
-    const isDoctorAllowed = (d: any, type: string) => {
-      if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
-      if (d.allowedCategories.includes(type)) return true;
-      if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
-      return false;
-    };
 
     const docs1 = doctors.filter((d) => isDoctorAllowed(d, type1));
     const docs2 = doctors.filter((d) => isDoctorAllowed(d, type2));
@@ -388,9 +388,11 @@ function DashboardContent() {
                     ? 'Quản lý workflow xét nghiệm Tế bào học ThinPrep GenHD'
                     : categoryFilter === 'hpv40'
                       ? 'Quản lý workflow xét nghiệm HPV 40 Types GenHD'
-                      : categoryFilter === 'hpv20'
-                        ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
-                        : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
+                      : categoryFilter === 'hpv23'
+                        ? 'Quản lý workflow xét nghiệm HPV 23 Types GenHD'
+                        : categoryFilter === 'hpv20'
+                          ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
+                          : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
             }
             action={
               <div className="flex items-center gap-2.5">
@@ -1009,12 +1011,8 @@ function DashboardContent() {
             : acceptItem.loaiXetNghiem || 'cell';
           const type2 = acceptItem.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
-          const docs1 = doctors.filter(
-            (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type1)
-          );
-          const docs2 = doctors.filter(
-            (d) => !d.allowedCategories || d.allowedCategories.length === 0 || d.allowedCategories.includes(type2)
-          );
+          const docs1 = doctors.filter((d) => isDoctorAllowed(d, type1));
+          const docs2 = doctors.filter((d) => isDoctorAllowed(d, type2));
 
           const label1 = isCombo
             ? `Bác sĩ đọc kết quả cho Phiếu 1 (${type1.toUpperCase()}) *`

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       password: hashedPassword,
       fullName,
       role,
-      allowedCategories: allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20'],
+      allowedCategories: allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23'],
       title: title || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
     });
 

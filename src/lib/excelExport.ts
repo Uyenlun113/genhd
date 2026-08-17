@@ -43,6 +43,7 @@ function formatGoiXetNghiem(loai?: string): string {
   if (l === 'thinprep') return 'ThinPrep';
   if (l === 'hpv40') return 'HPV 40';
   if (l === 'hpv20') return 'HPV 20';
+  if (l === 'hpv23') return 'HPV 23';
   if (l === 'soituoi') return 'Soi tươi';
   if (l === 'giaiphaubenh') return 'Giải Phẫu Bệnh';
   return loai.toUpperCase();

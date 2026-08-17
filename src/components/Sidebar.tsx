@@ -47,6 +47,7 @@ function SidebarContent() {
   const canSeeThinPrep = isAdmin || allowedCategories.includes('thinprep');
   const canSeeHPV40 = isAdmin || allowedCategories.includes('hpv40');
   const canSeeHPV20 = isAdmin || allowedCategories.includes('hpv20');
+  const canSeeHPV23 = isAdmin || allowedCategories.includes('hpv23');
   const canSeeSoiTuoi = isAdmin || allowedCategories.includes('soituoi');
   const canSeeGiaiPhauBenh = isAdmin || allowedCategories.includes('giaiphaubenh');
   const canSeeAdnConvert = userRole === 'admin' || userRole === 'lab_adn' || allowedCategories.includes('adn');
@@ -114,6 +115,16 @@ function SidebarContent() {
       show: canSeeHPV20,
       activeColor: 'text-teal-600 bg-teal-50/90 font-bold',
       iconActive: 'text-teal-600',
+    },
+    {
+      id: 'hpv23',
+      label: 'Xét nghiệm HPV 23',
+      href: getCategoryHref('hpv23'),
+      icon: TestTube,
+      isActive: pathname === '/' && selectedCategory === 'hpv23',
+      show: canSeeHPV23,
+      activeColor: 'text-cyan-600 bg-cyan-50/90 font-bold',
+      iconActive: 'text-cyan-600',
     },
     {
       id: 'soituoi',

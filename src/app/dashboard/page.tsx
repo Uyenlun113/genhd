@@ -56,6 +56,7 @@ interface StatsData {
     thinprep?: number;
     hpv40: number;
     hpv20: number;
+    hpv23?: number;
     soituoi?: number;
     giaiphaubenh?: number;
   };
@@ -99,8 +100,8 @@ export default function DashboardPage() {
         const data = await res.json();
         setStats(data);
       }
-    } catch (err) {
-      console.error('Fetch stats error:', err);
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
     } finally {
       setLoading(false);
     }
@@ -110,10 +111,8 @@ export default function DashboardPage() {
     fetchStats();
   }, []);
 
-  useWebSocket((event) => {
-    if (event.type === 'REFRESH_TEST_RESULTS') {
-      fetchStats();
-    }
+  useWebSocket(() => {
+    fetchStats();
   });
 
   const isDoctor = stats?.userRole === 'doctor';
@@ -124,6 +123,7 @@ export default function DashboardPage() {
   const canSeeThinPrep = isAdmin || allowedCats.includes('thinprep');
   const canSeeHPV40 = isAdmin || allowedCats.includes('hpv40');
   const canSeeHPV20 = isAdmin || allowedCats.includes('hpv20');
+  const canSeeHPV23 = isAdmin || allowedCats.includes('hpv23');
   const canSeeSoiTuoi = isAdmin || allowedCats.includes('soituoi');
   const canSeeGiaiPhauBenh = isAdmin || allowedCats.includes('giaiphaubenh');
 
@@ -132,6 +132,7 @@ export default function DashboardPage() {
   const thinprepCount = stats?.byCategory.thinprep || 0;
   const hpv40Count = stats?.byCategory.hpv40 || 0;
   const hpv20Count = stats?.byCategory.hpv20 || 0;
+  const hpv23Count = stats?.byCategory.hpv23 || 0;
   const soituoiCount = stats?.byCategory.soituoi || 0;
   const giaiphaubenhCount = stats?.byCategory.giaiphaubenh || 0;
 
@@ -139,6 +140,7 @@ export default function DashboardPage() {
   const thinprepPct = total > 0 ? Math.round((thinprepCount / total) * 100) : 0;
   const hpv40Pct = total > 0 ? Math.round((hpv40Count / total) * 100) : 0;
   const hpv20Pct = total > 0 ? Math.round((hpv20Count / total) * 100) : 0;
+  const hpv23Pct = total > 0 ? Math.round((hpv23Count / total) * 100) : 0;
   const soituoiPct = total > 0 ? Math.round((soituoiCount / total) * 100) : 0;
   const giaiphaubenhPct = total > 0 ? Math.round((giaiphaubenhCount / total) * 100) : 0;
 
@@ -148,6 +150,7 @@ export default function DashboardPage() {
     { name: 'ThinPrep', value: thinprepCount, color: '#9333ea', pct: thinprepPct, show: canSeeThinPrep },
     { name: 'HPV 40', value: hpv40Count, color: '#4f46e5', pct: hpv40Pct, show: canSeeHPV40 },
     { name: 'HPV 20', value: hpv20Count, color: '#0d9488', pct: hpv20Pct, show: canSeeHPV20 },
+    { name: 'HPV 23', value: hpv23Count, color: '#0891b2', pct: hpv23Pct, show: canSeeHPV23 },
     { name: 'Soi tươi', value: soituoiCount, color: '#059669', pct: soituoiPct, show: canSeeSoiTuoi },
     { name: 'Giải Phẫu Bệnh', value: giaiphaubenhCount, color: '#d97706', pct: giaiphaubenhPct, show: canSeeGiaiPhauBenh },
   ].filter((item) => item.show && item.value > 0);
@@ -157,6 +160,7 @@ export default function DashboardPage() {
     { name: 'ThinPrep', 'Số phiếu': thinprepCount, color: '#9333ea', show: canSeeThinPrep },
     { name: 'HPV 40', 'Số phiếu': hpv40Count, color: '#4f46e5', show: canSeeHPV40 },
     { name: 'HPV 20', 'Số phiếu': hpv20Count, color: '#0d9488', show: canSeeHPV20 },
+    { name: 'HPV 23', 'Số phiếu': hpv23Count, color: '#0891b2', show: canSeeHPV23 },
     { name: 'Soi tươi', 'Số phiếu': soituoiCount, color: '#059669', show: canSeeSoiTuoi },
     { name: 'GPB', 'Số phiếu': giaiphaubenhCount, color: '#d97706', show: canSeeGiaiPhauBenh },
   ].filter((item) => item.show);
@@ -376,6 +380,23 @@ export default function DashboardPage() {
                       </div>
                       <span className="text-2xl font-extrabold text-teal-600 block">{hpv20Count}</span>
                       <span className="text-[10px] text-slate-500 font-medium block mt-0.5">{hpv20Pct}% tổng số</span>
+                    </Link>
+                  )}
+
+                  {/* HPV 23 */}
+                  {canSeeHPV23 && (
+                    <Link
+                      href={isDoctor ? `/?category=hpv23&doctor=${encodeURIComponent(stats.userName || '')}` : '/?category=hpv23'}
+                      className="bg-white p-4 rounded-xl border border-slate-200/80 hover:border-cyan-300 hover:shadow-md transition-all group block"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[11px] font-bold text-slate-600">HPV 23</span>
+                        <div className="w-7 h-7 rounded-lg bg-cyan-50 text-cyan-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                          <TestTube className="w-4 h-4" />
+                        </div>
+                      </div>
+                      <span className="text-2xl font-extrabold text-cyan-600 block">{hpv23Count}</span>
+                      <span className="text-[10px] text-slate-500 font-medium block mt-0.5">{hpv23Pct}% tổng số</span>
                     </Link>
                   )}
 

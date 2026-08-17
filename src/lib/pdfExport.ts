@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -764,15 +764,20 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
   }
 
   // -------------------------------------------------------------
-  // BRANCH 1 & 2: HPV 40 TYPES / HPV 20 TYPES
+  // BRANCH 1 & 2 & 3: HPV 40 TYPES / HPV 23 TYPES / HPV 20 TYPES
   // -------------------------------------------------------------
-  if (loaiXetNghiem === 'hpv40' || loaiXetNghiem === 'hpv20') {
+  if (loaiXetNghiem === 'hpv40' || loaiXetNghiem === 'hpv20' || loaiXetNghiem === 'hpv23') {
     const isHPV40 = loaiXetNghiem === 'hpv40';
+    const isHPV23 = loaiXetNghiem === 'hpv23';
     const titleStr = isHPV40
       ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 40 TYPES'
+      : isHPV23
+      ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 23 TYPES'
       : 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 20 TYPES';
     const subTitleStr = isHPV40
       ? '(Kỹ thuật Real-time PCR / Genotyping định danh 40 chủng HPV)'
+      : isHPV23
+      ? '(Kỹ thuật Real-time PCR / Genotyping định danh 23 chủng HPV)'
       : '(Kỹ thuật Real-time PCR / Genotyping định danh 20 chủng HPV)';
 
     drawCenteredText(page1, titleStr, 35, 560, 735, 14, true, primaryBlue);
@@ -866,44 +871,81 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
     const methodStr = isHPV40
       ? 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 40 chủng HPV.'
+      : isHPV23
+      ? 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 23 chủng HPV.'
       : 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 20 chủng HPV.';
     drawTextOnPage(page1, methodStr, tableX + 8, methodY + 4, 8.5, true, primaryBlue);
 
     // Genotype Table with explicit row heights per row to prevent line overlaps
     const gTableY = 550;
 
-    const hpvRowsData = [
-      {
-        group: 'HPV Nguy Cơ Cao\n(Type 16, 18)',
-        types: '16, 18',
-        result: data.hpvHighRiskResult || 'Âm tính',
-        color: redColor,
-        height: isHPV40 ? 28 : 32,
-      },
-      {
-        group: 'HPV Nguy Cơ Cao Khác\n(16 Types)',
-        types: '26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82',
-        result: data.hpvHighRiskOtherResult || 'Âm tính',
-        color: redColor,
-        height: isHPV40 ? 38 : 42,
-      },
-      {
-        group: 'HPV Nguy Cơ Thấp\n(2 Types)',
-        types: '6, 11',
-        result: data.hpvLowRiskResult || 'Âm tính',
-        color: primaryBlue,
-        height: isHPV40 ? 28 : 32,
-      },
-    ];
+    let hpvRowsData: Array<{ group: string; types: string; result: string; color: any; height: number }> = [];
 
-    if (isHPV40) {
-      hpvRowsData.push({
-        group: 'Các Type HPV Khác\n(20 Types)',
-        types: '30, 32, 34, 40, 42, 43, 44, 54, 55, 61, 62, 67, 71, 72, 74, 81, 83, 84, 87, 90',
-        result: data.hpvOtherTypesResult || 'Âm tính',
-        color: rgb(0.3, 0.3, 0.3),
-        height: 38,
-      });
+    if (isHPV23) {
+      hpvRowsData = [
+        {
+          group: 'HPV Nguy Cơ Cao\n(Type 16, 18)',
+          types: '16, 18',
+          result: data.hpvHighRiskResult || 'Âm tính',
+          color: redColor,
+          height: 30,
+        },
+        {
+          group: 'HPV Nguy Cơ Cao Khác\n(10 Types)',
+          types: '31, 33, 35, 39, 45, 51, 52, 56, 58, 59',
+          result: data.hpvHighRiskOtherResult || 'Âm tính',
+          color: redColor,
+          height: 30,
+        },
+        {
+          group: 'Các Type HPV khác (9 Types)',
+          types: '66,68,42,43,44,53,81,82,73',
+          result: data.hpvOtherTypesResult || 'Âm tính',
+          color: redColor,
+          height: 30,
+        },
+        {
+          group: 'HPV Nguy Cơ Thấp (2 Types)',
+          types: '6, 11',
+          result: data.hpvLowRiskResult || 'Âm tính',
+          color: primaryBlue,
+          height: 30,
+        },
+      ];
+    } else {
+      hpvRowsData = [
+        {
+          group: 'HPV Nguy Cơ Cao\n(Type 16, 18)',
+          types: '16, 18',
+          result: data.hpvHighRiskResult || 'Âm tính',
+          color: redColor,
+          height: isHPV40 ? 28 : 32,
+        },
+        {
+          group: 'HPV Nguy Cơ Cao Khác\n(16 Types)',
+          types: '26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82',
+          result: data.hpvHighRiskOtherResult || 'Âm tính',
+          color: redColor,
+          height: isHPV40 ? 38 : 42,
+        },
+        {
+          group: 'HPV Nguy Cơ Thấp\n(2 Types)',
+          types: '6, 11',
+          result: data.hpvLowRiskResult || 'Âm tính',
+          color: primaryBlue,
+          height: isHPV40 ? 28 : 32,
+        },
+      ];
+
+      if (isHPV40) {
+        hpvRowsData.push({
+          group: 'Các Type HPV Khác\n(20 Types)',
+          types: '30, 32, 34, 40, 42, 43, 44, 54, 55, 61, 62, 67, 71, 72, 74, 81, 83, 84, 87, 90',
+          result: data.hpvOtherTypesResult || 'Âm tính',
+          color: rgb(0.3, 0.3, 0.3),
+          height: 38,
+        });
+      }
     }
 
     const totalBodyH = hpvRowsData.reduce((sum, r) => sum + r.height, 0);
@@ -920,7 +962,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     drawCenteredText(page1, 'NHÓM GENOTYPE HPV', tableX, tableX + 140, gTableY + 5, 9, true, whiteColor);
     drawCenteredText(
       page1,
-      isHPV40 ? 'CÁC TYPE HPV KHẢO SÁT (40 TYPES)' : 'CÁC TYPE HPV KHẢO SÁT (20 TYPES)',
+      isHPV40 ? 'CÁC TYPE HPV KHẢO SÁT (40 TYPES)' : isHPV23 ? 'CÁC TYPE HPV KHẢO SÁT (23 TYPES)' : 'CÁC TYPE HPV KHẢO SÁT (20 TYPES)',
       tableX + 140,
       tableX + 410,
       gTableY + 5,

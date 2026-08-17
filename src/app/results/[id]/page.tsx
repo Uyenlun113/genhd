@@ -71,7 +71,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     _id: '',
     maSo: '',
-    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep',
+    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep',
     hoTen: '',
     namSinh: 1990,
     gioiTinh: 'Nữ',
@@ -382,8 +382,9 @@ export default function TestResultDetailPage({ params }: PageProps) {
   }
 
   const isCombo = formData.loaiXetNghiem.startsWith('combo_');
-  const isHPV = formData.loaiXetNghiem === 'hpv40' || formData.loaiXetNghiem === 'hpv20' || isCombo;
+  const isHPV = formData.loaiXetNghiem === 'hpv40' || formData.loaiXetNghiem === 'hpv20' || formData.loaiXetNghiem === 'hpv23' || isCombo;
   const isHPV40 = formData.loaiXetNghiem === 'hpv40' || formData.loaiXetNghiem === 'combo_hpv40_cell' || formData.loaiXetNghiem === 'combo_hpv40_thinprep';
+  const isHPV23 = formData.loaiXetNghiem === 'hpv23';
   const isThinPrep = formData.loaiXetNghiem === 'thinprep' || formData.loaiXetNghiem === 'combo_hpv20_thinprep' || formData.loaiXetNghiem === 'combo_hpv40_thinprep';
   const isCell = formData.loaiXetNghiem === 'cell' || formData.loaiXetNghiem === 'combo_hpv20_cell' || formData.loaiXetNghiem === 'combo_hpv40_cell';
   const isCompleted = formData.trangThai === 'da_tra_ket_qua';
@@ -399,7 +400,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const isDoctorAllowed = (d: any, type: string) => {
     if (!d.allowedCategories || d.allowedCategories.length === 0) return true;
     if (d.allowedCategories.includes(type)) return true;
-    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
+    if (type.startsWith('hpv') && (d.allowedCategories.includes('hpv20') || d.allowedCategories.includes('hpv23') || d.allowedCategories.includes('hpv40') || d.allowedCategories.includes('hpv'))) return true;
     return false;
   };
 
@@ -425,6 +426,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                 ? 'Mẫu HPV 40'
                 : formData.loaiXetNghiem === 'hpv20'
                 ? 'Mẫu HPV 20'
+                : formData.loaiXetNghiem === 'hpv23'
+                ? 'Mẫu HPV 23'
                 : formData.loaiXetNghiem === 'soituoi'
                 ? 'Mẫu Soi tươi'
                 : formData.loaiXetNghiem === 'giaiphaubenh'
@@ -1236,7 +1239,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           <div className="flex items-center gap-2">
                             <Dna className="w-5 h-5 text-indigo-600" />
                             <span>
-                              KẾT QUẢ XÉT NGHIỆM {isHPV40 ? 'HPV 40 TYPES' : 'HPV 20 TYPES'} (REAL-TIME PCR)
+                              KẾT QUẢ XÉT NGHIỆM {isHPV40 ? 'HPV 40 TYPES' : isHPV23 ? 'HPV 23 TYPES' : 'HPV 20 TYPES'} (REAL-TIME PCR)
                             </span>
                           </div>
                           <div className="flex items-center gap-3">
@@ -1263,6 +1266,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         {showHpvSection && (
                           <>
                             <div className="space-y-4 mb-6">
+                          {/* Row 1: High Risk 16, 18 */}
                           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div>
                               <span className="text-xs font-bold text-red-700 uppercase block">
@@ -1281,13 +1285,16 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             />
                           </div>
 
+                          {/* Row 2: High Risk Others */}
                           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div>
                               <span className="text-xs font-bold text-red-700 uppercase block">
-                                2. NHÓM HPV NGUY CƠ CAO KHÁC (16 TYPES)
+                                2. NHÓM HPV NGUY CƠ CAO KHÁC ({isHPV23 ? '10 TYPES' : '16 TYPES'})
                               </span>
                               <span className="text-xs text-slate-500">
-                                Khảo sát 16 chủng: 26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82
+                                {isHPV23
+                                  ? 'Khảo sát 10 chủng: 31, 33, 35, 39, 45, 51, 52, 56, 58, 59'
+                                  : 'Khảo sát 16 chủng: 26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82'}
                               </span>
                             </div>
                             <input
@@ -1301,10 +1308,34 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             />
                           </div>
 
+                          {/* If HPV 23: Row 3 is Other Types (9 Types) */}
+                          {isHPV23 && (
+                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                              <div>
+                                <span className="text-xs font-bold text-red-700 uppercase block">
+                                  3. CÁC TYPE HPV KHÁC (9 TYPES)
+                                </span>
+                                <span className="text-xs text-slate-500">
+                                  Khảo sát 9 chủng: 66, 68, 42, 43, 44, 53, 81, 82, 73
+                                </span>
+                              </div>
+                              <input
+                                type="text"
+                                name="hpvOtherTypesResult"
+                                className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
+                                value={formData.hpvOtherTypesResult}
+                                onChange={handleInputChange}
+                                disabled={false}
+                                placeholder="Âm tính / Dương tính..."
+                              />
+                            </div>
+                          )}
+
+                          {/* Low Risk 6, 11 */}
                           <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                             <div>
                               <span className="text-xs font-bold text-sky-700 uppercase block">
-                                3. NHÓM HPV NGUY CƠ THẤP (2 TYPES)
+                                {isHPV23 ? '4. NHÓM HPV NGUY CƠ THẤP (2 TYPES)' : '3. NHÓM HPV NGUY CƠ THẤP (2 TYPES)'}
                               </span>
                               <span className="text-xs text-slate-500">Khảo sát 2 chủng: 6, 11</span>
                             </div>
@@ -1319,6 +1350,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             />
                           </div>
 
+                          {/* If HPV 40: 20 Other Types */}
                           {isHPV40 && (
                             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                               <div>
