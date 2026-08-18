@@ -653,7 +653,7 @@ function DashboardContent() {
                             {item.loaiXetNghiem?.startsWith('combo_') ? (
                               (() => {
                                 const lxn = item.loaiXetNghiem || '';
-                                const part1Name = lxn.includes('hpv20') ? 'HPV 20' : 'HPV 40';
+                                const part1Name = lxn.includes('hpv20') ? 'HPV 20' : lxn.includes('hpv23') ? 'HPV 23' : 'HPV 40';
                                 const part2Name = lxn.includes('thinprep') ? 'ThinPrep' : 'Cell';
                                 const doc1Name = item.bacSiDoc && item.bacSiDoc !== 'Chưa phân loại' ? item.bacSiDoc : 'Chưa phân loại';
                                 const doc2Name = (item.bacSiDoc2 || item.bacSiDoc) && (item.bacSiDoc2 || item.bacSiDoc) !== 'Chưa phân loại' ? (item.bacSiDoc2 || item.bacSiDoc) : 'Chưa phân loại';
