@@ -141,6 +141,12 @@ export default function ExportExcelModal({
               <option value="hpv23">Xét nghiệm HPV 23 Types</option>
               <option value="soituoi">Xét nghiệm Soi Tươi</option>
               <option value="giaiphaubenh">Giải Phẫu Bệnh</option>
+              <option value="combo_hpv20_cell">Combo HPV 20 + Cell</option>
+              <option value="combo_hpv40_cell">Combo HPV 40 + Cell</option>
+              <option value="combo_hpv23_cell">Combo HPV 23 + Cell</option>
+              <option value="combo_hpv20_thinprep">Combo HPV 20 + ThinPrep</option>
+              <option value="combo_hpv40_thinprep">Combo HPV 40 + ThinPrep</option>
+              <option value="combo_hpv23_thinprep">Combo HPV 23 + ThinPrep</option>
             </select>
           </div>
 

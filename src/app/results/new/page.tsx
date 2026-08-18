@@ -35,8 +35,10 @@ const SINGLE_SERVICE_OPTIONS: ServiceOption[] = [
 const COMBO_SERVICE_OPTIONS: ServiceOption[] = [
   { id: 'combo_hpv20_cell', label: 'Gói Combo: HPV 20 + Cell', isCombo: true, types: ['hpv20', 'cell'] },
   { id: 'combo_hpv40_cell', label: 'Gói Combo: HPV 40 + Cell', isCombo: true, types: ['hpv40', 'cell'] },
+  { id: 'combo_hpv23_cell', label: 'Gói Combo: HPV 23 + Cell', isCombo: true, types: ['hpv23', 'cell'] },
   { id: 'combo_hpv20_thinprep', label: 'Gói Combo: HPV 20 + ThinPrep', isCombo: true, types: ['hpv20', 'thinprep'] },
   { id: 'combo_hpv40_thinprep', label: 'Gói Combo: HPV 40 + ThinPrep', isCombo: true, types: ['hpv40', 'thinprep'] },
+  { id: 'combo_hpv23_thinprep', label: 'Gói Combo: HPV 23 + ThinPrep', isCombo: true, types: ['hpv23', 'thinprep'] },
 ];
 
 function NewResultFormContent() {

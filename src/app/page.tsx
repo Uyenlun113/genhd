@@ -295,6 +295,8 @@ function DashboardContent() {
       ? 'hpv20'
       : item.loaiXetNghiem?.startsWith('combo_hpv40')
       ? 'hpv40'
+      : item.loaiXetNghiem?.startsWith('combo_hpv23')
+      ? 'hpv23'
       : item.loaiXetNghiem || 'cell';
     const type2 = item.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
@@ -392,7 +394,19 @@ function DashboardContent() {
                         ? 'Quản lý workflow xét nghiệm HPV 23 Types GenHD'
                         : categoryFilter === 'hpv20'
                           ? 'Quản lý workflow xét nghiệm HPV 20 Types GenHD'
-                          : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
+                          : categoryFilter === 'combo_hpv20_cell'
+                            ? 'Quản lý workflow Combo HPV 20 + Cell GenHD'
+                            : categoryFilter === 'combo_hpv40_cell'
+                              ? 'Quản lý workflow Combo HPV 40 + Cell GenHD'
+                              : categoryFilter === 'combo_hpv23_cell'
+                                ? 'Quản lý workflow Combo HPV 23 + Cell GenHD'
+                                : categoryFilter === 'combo_hpv20_thinprep'
+                                  ? 'Quản lý workflow Combo HPV 20 + ThinPrep GenHD'
+                                  : categoryFilter === 'combo_hpv40_thinprep'
+                                    ? 'Quản lý workflow Combo HPV 40 + ThinPrep GenHD'
+                                    : categoryFilter === 'combo_hpv23_thinprep'
+                                      ? 'Quản lý workflow Combo HPV 23 + ThinPrep GenHD'
+                                      : 'Quản lý workflow xét nghiệm Tế bào cổ tử cung (CELL) GenHD'
             }
             action={
               <div className="flex items-center gap-2.5">
@@ -1008,6 +1022,8 @@ function DashboardContent() {
             ? 'hpv20'
             : acceptItem.loaiXetNghiem?.startsWith('combo_hpv40')
             ? 'hpv40'
+            : acceptItem.loaiXetNghiem?.startsWith('combo_hpv23')
+            ? 'hpv23'
             : acceptItem.loaiXetNghiem || 'cell';
           const type2 = acceptItem.loaiXetNghiem?.endsWith('_thinprep') ? 'thinprep' : 'cell';
 

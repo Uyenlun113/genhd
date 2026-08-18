@@ -15,7 +15,7 @@ export {
 
 export interface ITestResult extends Document {
   maSo: string;
-  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
+  loaiXetNghiem: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv23_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep' | 'combo_hpv23_thinprep';
   bacSiDoc2?: string;
 
   // Thông tin bệnh nhân
@@ -108,7 +108,7 @@ const TestResultSchema = new Schema<ITestResult>(
     maSo: { type: String, unique: true, required: true },
     loaiXetNghiem: {
       type: String,
-      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'combo_hpv20_cell', 'combo_hpv40_cell', 'combo_hpv20_thinprep', 'combo_hpv40_thinprep'],
+      enum: ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'combo_hpv20_cell', 'combo_hpv40_cell', 'combo_hpv23_cell', 'combo_hpv20_thinprep', 'combo_hpv40_thinprep', 'combo_hpv23_thinprep'],
       default: 'cell',
     },
 
@@ -199,8 +199,10 @@ export async function generateMaSo(loaiXetNghiem = 'cell'): Promise<string> {
   else if (loaiXetNghiem === 'giaiphaubenh') prefix = 'GTHD-GP';
   else if (loaiXetNghiem === 'combo_hpv20_cell') prefix = 'GTHD-CB20C';
   else if (loaiXetNghiem === 'combo_hpv40_cell') prefix = 'GTHD-CB40C';
+  else if (loaiXetNghiem === 'combo_hpv23_cell') prefix = 'GTHD-CB23C';
   else if (loaiXetNghiem === 'combo_hpv20_thinprep') prefix = 'GTHD-CB20TP';
   else if (loaiXetNghiem === 'combo_hpv40_thinprep') prefix = 'GTHD-CB40TP';
+  else if (loaiXetNghiem === 'combo_hpv23_thinprep') prefix = 'GTHD-CB23TP';
 
   let uniqueMaSo = '';
   let isUnique = false;

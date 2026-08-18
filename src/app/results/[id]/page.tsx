@@ -71,7 +71,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const [formData, setFormData] = useState({
     _id: '',
     maSo: '',
-    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep',
+    loaiXetNghiem: 'cell' as 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv23_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep' | 'combo_hpv23_thinprep',
     hoTen: '',
     namSinh: 1990,
     gioiTinh: 'Nữ',
@@ -384,15 +384,17 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const isCombo = formData.loaiXetNghiem.startsWith('combo_');
   const isHPV = formData.loaiXetNghiem === 'hpv40' || formData.loaiXetNghiem === 'hpv20' || formData.loaiXetNghiem === 'hpv23' || isCombo;
   const isHPV40 = formData.loaiXetNghiem === 'hpv40' || formData.loaiXetNghiem === 'combo_hpv40_cell' || formData.loaiXetNghiem === 'combo_hpv40_thinprep';
-  const isHPV23 = formData.loaiXetNghiem === 'hpv23';
-  const isThinPrep = formData.loaiXetNghiem === 'thinprep' || formData.loaiXetNghiem === 'combo_hpv20_thinprep' || formData.loaiXetNghiem === 'combo_hpv40_thinprep';
-  const isCell = formData.loaiXetNghiem === 'cell' || formData.loaiXetNghiem === 'combo_hpv20_cell' || formData.loaiXetNghiem === 'combo_hpv40_cell';
+  const isHPV23 = formData.loaiXetNghiem === 'hpv23' || formData.loaiXetNghiem === 'combo_hpv23_cell' || formData.loaiXetNghiem === 'combo_hpv23_thinprep';
+  const isThinPrep = formData.loaiXetNghiem === 'thinprep' || formData.loaiXetNghiem === 'combo_hpv20_thinprep' || formData.loaiXetNghiem === 'combo_hpv40_thinprep' || formData.loaiXetNghiem === 'combo_hpv23_thinprep';
+  const isCell = formData.loaiXetNghiem === 'cell' || formData.loaiXetNghiem === 'combo_hpv20_cell' || formData.loaiXetNghiem === 'combo_hpv40_cell' || formData.loaiXetNghiem === 'combo_hpv23_cell';
   const isCompleted = formData.trangThai === 'da_tra_ket_qua';
 
   const type1 = formData.loaiXetNghiem.startsWith('combo_hpv20')
     ? 'hpv20'
     : formData.loaiXetNghiem.startsWith('combo_hpv40')
     ? 'hpv40'
+    : formData.loaiXetNghiem.startsWith('combo_hpv23')
+    ? 'hpv23'
     : formData.loaiXetNghiem;
 
   const type2 = formData.loaiXetNghiem.endsWith('_thinprep') ? 'thinprep' : 'cell';

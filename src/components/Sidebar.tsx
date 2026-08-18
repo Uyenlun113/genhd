@@ -54,8 +54,10 @@ function SidebarContent() {
 
   const canSeeComboHpv20Cell = isAdmin || canSeeHPV20 || canSeeCell;
   const canSeeComboHpv40Cell = isAdmin || canSeeHPV40 || canSeeCell;
+  const canSeeComboHpv23Cell = isAdmin || canSeeHPV23 || canSeeCell;
   const canSeeComboHpv20Thinprep = isAdmin || canSeeHPV20 || canSeeThinPrep;
   const canSeeComboHpv40Thinprep = isAdmin || canSeeHPV40 || canSeeThinPrep;
+  const canSeeComboHpv23Thinprep = isAdmin || canSeeHPV23 || canSeeThinPrep;
 
   // Doctor links auto-filter by doctor name if logged in as doctor
   const getCategoryHref = (cat: string) => {
@@ -167,6 +169,16 @@ function SidebarContent() {
       iconActive: 'text-rose-600',
     },
     {
+      id: 'combo_hpv23_cell',
+      label: 'Combo: HPV 23 + Cell',
+      href: getCategoryHref('combo_hpv23_cell'),
+      icon: Flame,
+      isActive: pathname === '/' && selectedCategory === 'combo_hpv23_cell',
+      show: canSeeComboHpv23Cell,
+      activeColor: 'text-amber-600 bg-amber-50/90 font-bold',
+      iconActive: 'text-amber-600',
+    },
+    {
       id: 'combo_hpv20_thinprep',
       label: 'Combo: HPV 20 + ThinPrep',
       href: getCategoryHref('combo_hpv20_thinprep'),
@@ -185,6 +197,16 @@ function SidebarContent() {
       show: canSeeComboHpv40Thinprep,
       activeColor: 'text-red-600 bg-red-50/90 font-bold',
       iconActive: 'text-red-600',
+    },
+    {
+      id: 'combo_hpv23_thinprep',
+      label: 'Combo: HPV 23 + ThinPrep',
+      href: getCategoryHref('combo_hpv23_thinprep'),
+      icon: Flame,
+      isActive: pathname === '/' && selectedCategory === 'combo_hpv23_thinprep',
+      show: canSeeComboHpv23Thinprep,
+      activeColor: 'text-pink-600 bg-pink-50/90 font-bold',
+      iconActive: 'text-pink-600',
     },
     {
       id: 'adn-convert',

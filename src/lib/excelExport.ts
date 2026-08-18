@@ -46,6 +46,12 @@ function formatGoiXetNghiem(loai?: string): string {
   if (l === 'hpv23') return 'HPV 23';
   if (l === 'soituoi') return 'Soi tươi';
   if (l === 'giaiphaubenh') return 'Giải Phẫu Bệnh';
+  if (l === 'combo_hpv20_cell') return 'Combo HPV 20 + Cell';
+  if (l === 'combo_hpv40_cell') return 'Combo HPV 40 + Cell';
+  if (l === 'combo_hpv23_cell') return 'Combo HPV 23 + Cell';
+  if (l === 'combo_hpv20_thinprep') return 'Combo HPV 20 + ThinPrep';
+  if (l === 'combo_hpv40_thinprep') return 'Combo HPV 40 + ThinPrep';
+  if (l === 'combo_hpv23_thinprep') return 'Combo HPV 23 + ThinPrep';
   return loai.toUpperCase();
 }
 

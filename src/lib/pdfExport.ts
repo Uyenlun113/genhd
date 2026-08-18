@@ -5,7 +5,7 @@ import path from 'path';
 
 export interface ITestResultData {
   maSo: string;
-  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep';
+  loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv23_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep' | 'combo_hpv23_thinprep';
   hoTen: string;
   namSinh: number;
   gioiTinh: string;
@@ -1654,10 +1654,11 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
 
 export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
   if (data.loaiXetNghiem && data.loaiXetNghiem.startsWith('combo_')) {
-    let type1: 'hpv20' | 'hpv40' = 'hpv20';
+    let type1: 'hpv20' | 'hpv40' | 'hpv23' = 'hpv20';
     let type2: 'cell' | 'thinprep' = 'cell';
 
     if (data.loaiXetNghiem.includes('hpv40')) type1 = 'hpv40';
+    else if (data.loaiXetNghiem.includes('hpv23')) type1 = 'hpv23';
     if (data.loaiXetNghiem.includes('thinprep')) type2 = 'thinprep';
 
     const pdfBytes1 = await generateSingleTestPDF({
