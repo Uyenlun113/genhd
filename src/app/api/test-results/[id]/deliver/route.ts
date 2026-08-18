@@ -57,15 +57,13 @@ export async function POST(request: NextRequest, { params }: Params) {
       return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
     }
 
-    // Notify staff, creator AND admin users when result is delivered
+    // Notify creator AND admin users when result is delivered
     try {
-      const staffUsers = await User.find({ role: 'staff' });
       const adminUsers = await User.find({ role: 'admin' });
       const targetUserIds = new Set<string>();
       if (result.nguoiNhap) {
         targetUserIds.add(result.nguoiNhap.toString());
       }
-      staffUsers.forEach((u) => targetUserIds.add(u._id.toString()));
       adminUsers.forEach((u) => targetUserIds.add(u._id.toString()));
 
       for (const tId of targetUserIds) {
