@@ -1413,7 +1413,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           <FileUpload
                             accept="image/*"
                             label="Tải ảnh biểu đồ PCR"
-                            value={formData.anhHpv || (isCombo ? '' : formData.anhTeBao)}
+                            value={formData.anhHpv}
                             isImage={true}
                             disabled={false}
                             onChange={(url) => handleImageUploadPart(1, url)}

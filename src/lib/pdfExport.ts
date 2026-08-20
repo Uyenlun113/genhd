@@ -1071,7 +1071,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     );
 
     // Embedded PCR chart image if uploaded
-    const hpvImg = data.anhHpv || (data.loaiXetNghiem?.startsWith('combo') ? '' : data.anhTeBao);
+    const hpvImg = data.anhHpv;
     if (hpvImg && hpvImg.length > 20) {
       try {
         let imageBytes: Buffer;
