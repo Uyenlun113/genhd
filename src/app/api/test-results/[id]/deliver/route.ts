@@ -29,7 +29,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const userName = session.user?.name || 'Admin Lab';
 
     const body = await request.json().catch(() => ({}));
-    const { anhTeBao } = body;
+    const { anhTeBao, anhHpv } = body;
 
     const updateFields: any = {
       trangThai: 'da_tra_ket_qua',
@@ -45,6 +45,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
     if (typeof anhTeBao === 'string') {
       updateFields.anhTeBao = anhTeBao;
+    }
+    if (typeof anhHpv === 'string') {
+      updateFields.anhHpv = anhHpv;
     }
 
     const result = await TestResult.findByIdAndUpdate(

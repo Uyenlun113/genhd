@@ -327,7 +327,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
       const res = await fetch(`/api/test-results/${id}/deliver`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ anhTeBao: formData.anhTeBao }),
+        body: JSON.stringify({ anhTeBao: formData.anhTeBao, anhHpv: formData.anhHpv }),
       });
       if (res.ok) {
         const updated = await res.json();

@@ -1537,7 +1537,8 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
   const drawFooterBlock = async (targetPage: typeof page1) => {
     const footerY = 36;
 
-    if (data.anhTeBao && data.anhTeBao.length > 20) {
+    const isCellOrThinPrep = loaiXetNghiem === 'cell' || loaiXetNghiem === 'thinprep';
+    if (isCellOrThinPrep && data.anhTeBao && data.anhTeBao.length > 20) {
       const anhTeBaoUrl = data.anhTeBao;
       try {
         let imageBytes: Buffer;
