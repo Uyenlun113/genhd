@@ -438,14 +438,17 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [previewTab, setPreviewTab] = useState<'pdf' | 'page1' | 'run' | 'cccd'>('pdf');
   const [pdfPreviewUrl, setPdfPreviewUrl] = useState<string>('');
   const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [pdfLang, setPdfLang] = useState<'vi' | 'en'>('vi');
 
-  const generatePdfPreview = async () => {
+  const generatePdfPreview = async (targetLang?: 'vi' | 'en') => {
     setGeneratingPreview(true);
+    const langToUse = targetLang || pdfLang;
     try {
       const payload = {
         loaiXetNghiemADN,
         soPhieu,
         ngayYeuCau,
+        ngayBanHanh,
         nguoiYeuCau,
         nguoiThuMau,
         boKit,
@@ -460,6 +463,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         doTinCay,
         totalLikelihoodRatio,
         probabilityOfPaternity,
+        lang: langToUse,
       };
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
@@ -952,6 +956,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         table1,
         table2,
         table3,
+        lang: pdfLang,
       };
 
       const res = await fetch('/api/adn/export-pdf', {
@@ -1012,6 +1017,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         table2,
         table3,
         isGenetrust: true,
+        lang: pdfLang,
       };
 
       const res = await fetch('/api/adn/export-pdf', {
@@ -2109,14 +2115,45 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                   <span>Xem trước PDF kết quả</span>
                 </h3>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPdfLang('vi');
+                        generatePdfPreview('vi');
+                      }}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        pdfLang === 'vi'
+                          ? 'bg-white text-sky-700 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      🇻🇳 Tiếng Việt
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPdfLang('en');
+                        generatePdfPreview('en');
+                      }}
+                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                        pdfLang === 'en'
+                          ? 'bg-white text-sky-700 shadow-xs'
+                          : 'text-slate-500 hover:text-slate-800'
+                      }`}
+                    >
+                      🇬🇧 English
+                    </button>
+                  </div>
+
                   <button
                     onClick={handleDownloadPdf}
                     disabled={exportingPdf}
                     className="btn btn-primary text-xs py-1.5 px-3.5 flex items-center gap-1.5"
                   >
                     {exportingPdf ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-                    <span>Tải PDF</span>
+                    <span>Tải PDF {pdfLang === 'en' ? '(EN)' : '(VI)'}</span>
                   </button>
 
                   <button
@@ -2358,6 +2395,36 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                   placeholder="VD: ĐỖ VĂN TÌNH hoặc CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Ngôn ngữ xuất file PDF
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setPdfLang('vi')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      pdfLang === 'vi'
+                        ? 'bg-sky-50 border-sky-500 text-sky-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🇻🇳 Tiếng Việt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setPdfLang('en')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      pdfLang === 'en'
+                        ? 'bg-sky-50 border-sky-500 text-sky-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🇬🇧 English
+                  </button>
+                </div>
               </div>
             </div>
 

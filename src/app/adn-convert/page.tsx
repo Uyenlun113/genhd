@@ -133,6 +133,7 @@ export default function AdnConvertListPage() {
   const [showUploadResultModal, setShowUploadResultModal] = useState(false);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [exportLang, setExportLang] = useState<'vi' | 'en'>('vi');
 
   const [activeOrder, setActiveOrder] = useState<AdnOrderData | null>(null);
   const [exportingPdf, setExportingPdf] = useState(false);
@@ -498,8 +499,9 @@ export default function AdnConvertListPage() {
     setShowPreviewModal(true);
   };
 
-  const handleDownloadPdf = async (order: AdnOrderData) => {
+  const handleDownloadPdf = async (order: AdnOrderData, langOverride?: 'vi' | 'en') => {
     setExportingPdf(true);
+    const langToUse = langOverride || exportLang;
     try {
       // Fetch full order data to get all images (portrait, CCCD, chart images) and loci tables
       let fullOrder = order;
@@ -516,7 +518,7 @@ export default function AdnConvertListPage() {
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(fullOrder),
+        body: JSON.stringify({ ...fullOrder, lang: langToUse }),
       });
 
       if (res.ok) {
@@ -539,8 +541,9 @@ export default function AdnConvertListPage() {
     }
   };
 
-  const handleDownloadPdfGenetrust = async (order: AdnOrderData, customCanBo?: string, customDaiDien?: string) => {
+  const handleDownloadPdfGenetrust = async (order: AdnOrderData, customCanBo?: string, customDaiDien?: string, langOverride?: 'vi' | 'en') => {
     setExportingPdf(true);
+    const langToUse = langOverride || exportLang;
     try {
       // Fetch full order data to get all images (portrait, CCCD, chart images) and loci tables
       let fullOrder = order;
@@ -559,6 +562,7 @@ export default function AdnConvertListPage() {
         canBoXetNghiem: customCanBo !== undefined ? customCanBo : fullOrder.canBoXetNghiem,
         daiDienDonVi: customDaiDien !== undefined ? customDaiDien : fullOrder.daiDienDonVi,
         isGenetrust: true,
+        lang: langToUse,
       };
       const res = await fetch('/api/adn/export-pdf', {
         method: 'POST',
@@ -1770,13 +1774,38 @@ export default function AdnConvertListPage() {
               </div>
 
               <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                  <button
+                    type="button"
+                    onClick={() => setExportLang('vi')}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      exportLang === 'vi'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    🇻🇳 Tiếng Việt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportLang('en')}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                      exportLang === 'en'
+                        ? 'bg-white text-sky-700 shadow-xs'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    🇬🇧 English
+                  </button>
+                </div>
+
                 <button
                   onClick={() => handleDownloadPdf(activeOrder)}
                   disabled={exportingPdf}
                   className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
                 >
                   {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  <span>Tải PDF Kết Quả</span>
+                  <span>Tải PDF Kết Quả {exportLang === 'en' ? '(EN)' : '(VI)'}</span>
                 </button>
                 <button onClick={() => setShowPreviewModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">
                   ✕
@@ -2073,6 +2102,36 @@ export default function AdnConvertListPage() {
                   placeholder="VD: ĐỖ VĂN TÌNH hoặc CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM"
                   className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:border-indigo-500 focus:outline-none transition-all"
                 />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                  Ngôn ngữ xuất file PDF
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setExportLang('vi')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      exportLang === 'vi'
+                        ? 'bg-sky-50 border-sky-500 text-sky-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🇻🇳 Tiếng Việt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExportLang('en')}
+                    className={`flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer ${
+                      exportLang === 'en'
+                        ? 'bg-sky-50 border-sky-500 text-sky-700'
+                        : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    🇬🇧 English
+                  </button>
+                </div>
               </div>
             </div>
 

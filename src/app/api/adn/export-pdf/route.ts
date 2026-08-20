@@ -68,6 +68,123 @@ const formatDateVN = (dateStr: any): string => {
   return trimmed;
 };
 
+const MONTH_NAMES_EN = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
+
+const formatDateEN = (dateStr: any): string => {
+  if (!dateStr || typeof dateStr !== 'string') return '';
+  const trimmed = dateStr.trim();
+  if (!trimmed) return '';
+
+  const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
+  if (vnMatch) {
+    const d = parseInt(vnMatch[1], 10);
+    const m = parseInt(vnMatch[2], 10) - 1;
+    const y = vnMatch[3];
+    const monthName = MONTH_NAMES_EN[m] || `${m + 1}`;
+    return `Hanoi, ${monthName} ${d < 10 ? '0' + d : d}, ${y}.`;
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const [y, m, d] = trimmed.split('-');
+    const mIdx = parseInt(m, 10) - 1;
+    return `${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}`;
+  }
+  if (trimmed.includes('T') && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const ymd = trimmed.split('T')[0];
+    const [y, m, d] = ymd.split('-');
+    const mIdx = parseInt(m, 10) - 1;
+    return `${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}`;
+  }
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const [d, m, y] = trimmed.split('/');
+    const mIdx = parseInt(m, 10) - 1;
+    return `${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}`;
+  }
+  return trimmed;
+};
+
+const removeVietnameseTones = (str: string): string => {
+  if (!str) return '';
+  let s = String(str);
+  s = s.replace(/À|Á|Ạ|Ả|Ã|Â|Ầ|Ấ|Ậ|Ẩ|Ẫ|Ă|Ằ|Ắ|Ặ|Ẳ|Ẵ/g, 'A');
+  s = s.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, 'a');
+  s = s.replace(/È|É|Ẹ|Ẻ|Ẽ|Ê|Ề|Ế|Ệ|Ể|Ễ/g, 'E');
+  s = s.replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, 'e');
+  s = s.replace(/Ì|Í|Ị|Ỉ|Ĩ/g, 'I');
+  s = s.replace(/ì|í|ị|ỉ|ĩ/g, 'i');
+  s = s.replace(/Ò|Ó|Ọ|Ỏ|Õ|Ô|Ồ|Ố|Ộ|Ổ|Ỗ|Ơ|Ờ|Ớ|Ợ|Ở|Ỡ/g, 'O');
+  s = s.replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, 'o');
+  s = s.replace(/Ù|Ú|Ụ|Ủ|Ũ|Ư|Ừ|Ứ|Ự|Ử|Ữ/g, 'U');
+  s = s.replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, 'u');
+  s = s.replace(/Ỳ|Ý|Ỵ|Ỷ|Ỹ/g, 'Y');
+  s = s.replace(/ỳ|ý|ỵ|ỷ|ỹ/g, 'y');
+  s = s.replace(/Đ/g, 'D');
+  s = s.replace(/đ/g, 'd');
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+};
+
+const toEnglishText = (text: any, type: 'name' | 'address' | 'agency' | 'nationality' | 'gender' | 'sampleType' | 'general' = 'general'): string => {
+  if (!text || typeof text !== 'string') return '';
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  if (type === 'gender') {
+    const val = trimmed.toLowerCase();
+    if (val === 'nam') return 'Male';
+    if (val === 'nữ' || val === 'nu') return 'Female';
+    return removeVietnameseTones(trimmed);
+  }
+
+  if (type === 'nationality') {
+    const val = trimmed.toLowerCase();
+    if (val.includes('việt nam') || val.includes('viet nam') || val.includes('vietnam')) return 'Vietnamese';
+    return removeVietnameseTones(trimmed);
+  }
+
+  if (type === 'sampleType') {
+    const val = trimmed.toLowerCase();
+    if (val.includes('máu') || val.includes('mau')) return 'Blood';
+    if (val.includes('niêm mạc') || val.includes('buccal')) return 'Buccal Swab';
+    if (val.includes('tóc') || val.includes('toc')) return 'Hair with root';
+    if (val.includes('móng') || val.includes('mong')) return 'Fingernail';
+    if (val.includes('cuống rốn')) return 'Umbilical cord';
+    return removeVietnameseTones(trimmed);
+  }
+
+  let s = trimmed;
+
+  // Title prefixes for names
+  s = s.replace(/^Ông\s+/i, 'Mr. ');
+  s = s.replace(/^Bà\s+/i, 'Mrs. ');
+  s = s.replace(/^TS\.\s*BS\.\s*/i, 'Dr. ');
+  s = s.replace(/^ThS\.\s*/i, 'MSc. ');
+  s = s.replace(/^BS\.\s*/i, 'Dr. ');
+
+  // Common administrative terms for addresses / agencies
+  if (type === 'address' || type === 'agency' || type === 'general') {
+    s = s.replace(/Cục Cảnh sát quản lý hành chính về trật tự xã hội/gi, 'Police Dept. of Administrative Management of Social Order');
+    s = s.replace(/Cục Cảnh sát QLHC về TTXH/gi, 'Police Dept. of Administrative Management of Social Order');
+    s = s.replace(/Công an TP\./gi, 'City Police Dept. of');
+    s = s.replace(/Công an tỉnh/gi, 'Provincial Police Dept. of');
+    s = s.replace(/Công an huyện/gi, 'District Police Dept. of');
+    s = s.replace(/Công an quận/gi, 'District Police Dept. of');
+    s = s.replace(/Phường\s+/gi, 'Ward ');
+    s = s.replace(/Quận\s+/gi, 'District ');
+    s = s.replace(/Huyện\s+/gi, 'District ');
+    s = s.replace(/TP\.\s*/gi, 'City ');
+    s = s.replace(/TP\s+/gi, 'City ');
+    s = s.replace(/Thành phố\s+/gi, 'City ');
+    s = s.replace(/Tỉnh\s+/gi, 'Province ');
+    s = s.replace(/Xã\s+/gi, 'Commune ');
+    s = s.replace(/Thị trấn\s+/gi, 'Town ');
+  }
+
+  return removeVietnameseTones(s);
+};
+
 // Helper to embed image (base64 data URI or file path/buffer) onto PDF
 async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
   if (!imgStr || typeof imgStr !== 'string') return null;
@@ -186,9 +303,11 @@ export async function POST(request: NextRequest) {
       daiDienDonVi = '',
       kiemSoatKetQua = 'TS. BS. Nguyễn Khánh Dương',
       isGenetrust = false,
+      lang = 'vi',
     } = body;
 
     const isGtMode = isGenetrust || body.brand === 'genetrust';
+    const isEn = lang === 'en';
 
     const pdfDoc = await PDFDocument.create();
     pdfDoc.registerFontkit(fontkit);
@@ -266,12 +385,12 @@ export async function POST(request: NextRequest) {
     if (isGtMode && fs.existsSync(logoGtPath)) {
       const logoBytes = fs.readFileSync(logoGtPath);
       const logoImg = await pdfDoc.embedPng(logoBytes);
-      const targetH = 78;
+      const targetH = 58;
       const targetW = targetH * (logoImg.width / logoImg.height);
       logoGtWidth = targetW;
       page1.drawImage(logoImg, {
         x: margin,
-        y: height - 18 - targetH,
+        y: height - 25 - targetH,
         width: targetW,
         height: targetH,
       });
@@ -289,29 +408,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    let currentY = isGtMode ? height - 22 : height - margin - 8;
+    let currentY = isGtMode ? height - 28 : height - margin - 8;
     const headerX = isGtMode
-      ? margin + (logoGtWidth ? logoGtWidth + 10 : 75)
+      ? margin + (logoGtWidth ? logoGtWidth + 14 : 80)
       : margin + 85;
 
     if (isGtMode) {
       // Header for Genetrust Brand
-      page1.drawText(nfc('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'), {
+      page1.drawText(nfc(isEn ? 'GENETRUST VIETNAM JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'), {
         x: headerX,
         y: currentY,
-        size: 11,
+        size: 10.5,
         font: fontBold,
         color: primaryBlue,
       });
       currentY -= 13;
-      page1.drawText(nfc('Địa chỉ: 15 ngõ 5 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội'), {
+      page1.drawText(nfc(isEn ? 'Address: 15, Alley 5 Hoang Quoc Viet St., Nghia Do, Hanoi' : 'Địa chỉ: 15 ngõ 5 Hoàng Quốc Việt, Nghĩa Đô, Hà Nội'), {
         x: headerX,
         y: currentY,
         size: 7.5,
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 11;
+      currentY -= 11.5;
       page1.drawText(nfc('Email: gennetrust@gmail.com'), {
         x: headerX,
         y: currentY,
@@ -319,7 +438,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 11;
+      currentY -= 11.5;
       page1.drawText(nfc('Hotline: 0818.992.466'), {
         x: headerX,
         y: currentY,
@@ -327,7 +446,7 @@ export async function POST(request: NextRequest) {
         font: fontItalic,
         color: primaryBlue,
       });
-      currentY -= 11;
+      currentY -= 11.5;
       page1.drawText(nfc('Website: Genetrust.vn'), {
         x: headerX,
         y: currentY,
@@ -338,7 +457,7 @@ export async function POST(request: NextRequest) {
       currentY = height - 90; // Ensure currentY ends right above blue bar line (height - 98)
     } else if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
       // Header for ADN Tự nguyện, Nhiễm sắc thể Y & X (Image 1, 3, 4)
-      page1.drawText(nfc('VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN'), {
+      page1.drawText(nfc(isEn ? 'GENETIC RESEARCH AND ANALYSIS INSTITUTE' : 'VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN'), {
         x: headerX,
         y: currentY,
         size: 9.5,
@@ -346,7 +465,7 @@ export async function POST(request: NextRequest) {
         color: primaryBlue,
       });
       currentY -= 12;
-      page1.drawText(nfc('CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
+      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
         x: headerX,
         y: currentY,
         size: 9.5,
@@ -354,7 +473,7 @@ export async function POST(request: NextRequest) {
         color: primaryBlue,
       });
       currentY -= 11;
-      page1.drawText(nfc('Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội'), {
+      page1.drawText(nfc(isEn ? 'Address: No. 15 Nguyen Nhu Uyen St., Yen Hoa Ward, Cau Giay Dist., Hanoi' : 'Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội'), {
         x: headerX,
         y: currentY,
         size: 7.5,
@@ -387,7 +506,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Header for ADN Pháp lý (Image 2)
-      page1.drawText(nfc('CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
+      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
         x: headerX,
         y: currentY,
         size: 10,
@@ -395,7 +514,7 @@ export async function POST(request: NextRequest) {
         color: primaryBlue,
       });
       currentY -= 12;
-      page1.drawText(nfc('Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội'), {
+      page1.drawText(nfc(isEn ? 'Address: No. 15 Nguyen Nhu Uyen St., Yen Hoa Ward, Cau Giay Dist., Hanoi' : 'Địa chỉ: Số 15 Nguyễn Như Uyên, Phường Yên Hòa, Quận Cầu Giấy, TP Hà Nội'), {
         x: headerX,
         y: currentY,
         size: 7.5,
@@ -440,17 +559,17 @@ export async function POST(request: NextRequest) {
 
     // Date & Code at top right
     currentY -= 18;
-    const formattedNgayBanHanh = formatDateVN(ngayBanHanh);
-    page1.drawText(nfc(formattedNgayBanHanh || 'Hà Nội, ngày .... tháng .... năm ........'), {
-      x: width - margin - 170,
+    const formattedNgayBanHanh = isEn ? formatDateEN(ngayBanHanh) : formatDateVN(ngayBanHanh);
+    page1.drawText(nfc(formattedNgayBanHanh || (isEn ? 'Hanoi, Date: .... Month: .... Year: ........' : 'Hà Nội, ngày .... tháng .... năm ........')), {
+      x: width - margin - (isEn ? 190 : 170),
       y: currentY,
       size: 8.5,
       font: fontItalic,
       color: darkColor,
     });
     currentY -= 12;
-    page1.drawText(nfc(`Số: ${soPhieu}`), {
-      x: width - margin - 170,
+    page1.drawText(nfc(`${isEn ? 'Ref No.' : 'Số'}: ${soPhieu}`), {
+      x: width - margin - (isEn ? 190 : 170),
       y: currentY,
       size: 8.5,
       font: fontItalic,
@@ -459,7 +578,7 @@ export async function POST(request: NextRequest) {
 
     // Title KẾT QUẢ XÉT NGHIỆM ADN
     currentY -= 20;
-    const titleText = nfc('KẾT QUẢ XÉT NGHIỆM ADN');
+    const titleText = nfc(isEn ? 'DNA TEST REPORT' : 'KẾT QUẢ XÉT NGHIỆM ADN');
     const titleWidth = fontBold.widthOfTextAtSize(titleText, 16);
     page1.drawText(titleText, {
       x: (width - titleWidth) / 2,
@@ -471,13 +590,24 @@ export async function POST(request: NextRequest) {
 
     // Intro text
     currentY -= 18;
-    const formattedNgayYeuCau = formatDateVN(ngayYeuCau) || '...................';
-    const compName = isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty Cổ phần công nghệ và thương mại HK- Teck';
+    const formattedNgayYeuCau = (isEn ? formatDateEN(ngayYeuCau) : formatDateVN(ngayYeuCau)) || '...................';
+    const compName = isGtMode
+      ? (isEn ? 'Genetrust Vietnam Joint Stock Company' : 'Công ty Cổ phần Genetrust Việt Nam')
+      : (isEn ? 'HK-Tech Technology and Trading Joint Stock Company' : 'Công ty Cổ phần công nghệ và thương mại HK- Teck');
+    const nguoiYeuCauDisplay = isEn ? toEnglishText(nguoiYeuCau, 'name') : (nguoiYeuCau || '...................');
     let introStr = '';
-    if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà (ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
+    if (isEn) {
+      if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+        introStr = `According to the DNA testing application form dated ${formattedNgayYeuCau} from Mr./Ms. ${nguoiYeuCauDisplay}, ${compName} performed DNA analysis for the following samples:`;
+      } else {
+        introStr = `According to the DNA testing application form dated ${formattedNgayYeuCau} from Mr./Ms. ${nguoiYeuCauDisplay}, ${compName} performed DNA analysis for the following individuals:`;
+      }
     } else {
-      introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những người sau:`;
+      if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+        introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà (ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những mẫu được ghi tên sau:`;
+      } else {
+        introStr = `Theo đơn yêu cầu xét nghiệm ADN ngày ${formattedNgayYeuCau} của bà(ông) ${nguoiYeuCau || '...................'}, ${compName} thực hiện xét nghiệm ADN cho những người sau:`;
+      }
     }
 
     const introLines = wrapText(introStr, fontRegular, 13, width - margin * 2);
@@ -498,38 +628,68 @@ export async function POST(request: NextRequest) {
     for (let idx = 0; idx < mauDanhSach.length; idx++) {
       const sample = mauDanhSach[idx];
       const labelKey = sample.kyHieuMau || `M${idx + 1}`;
-      const name = sample.hoTen || '...................';
-      const gender = sample.gioiTinh || '......';
-      const dob = formatDateVN(sample.ngaySinh) || '........';
-      const sampleNgayCap = formatDateVN(sample.ngayCap) || '...................';
-      const sampleType = sample.loaiMau || 'Máu';
+      const name = (isEn ? toEnglishText(sample.hoTen, 'name') : sample.hoTen) || '...................';
+      const gender = (isEn ? toEnglishText(sample.gioiTinh, 'gender') : sample.gioiTinh) || '......';
+      const dob = (isEn ? formatDateEN(sample.ngaySinh) : formatDateVN(sample.ngaySinh)) || '........';
+      const sampleNgayCap = (isEn ? formatDateEN(sample.ngayCap) : formatDateVN(sample.ngayCap)) || '...................';
+      const sampleType = (isEn ? toEnglishText(sample.loaiMau, 'sampleType') : sample.loaiMau) || 'Máu';
+      const nationality = (isEn ? toEnglishText(sample.quocTich, 'nationality') : (sample.quocTich || 'Việt Nam'));
+      const noiCap = (isEn ? toEnglishText(sample.noiCap, 'agency') : sample.noiCap) || '...................';
+      const noiThuongTru = (isEn ? toEnglishText(sample.noiThuongTru, 'address') : sample.noiThuongTru) || '...................';
 
       if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr') {
-        // ADN Tự Nguyện & Nhiễm sắc thể Y (Image 1 & 3 format)
-        page1.drawText(nfc(`${idx + 1}.  Người có mẫu ghi tên: ${name}`), {
-          x: margin + 15,
-          y: currentY,
-          size: 13,
-          font: fontBold,
-          color: darkColor,
-        });
-        currentY -= 15;
-        page1.drawText(nfc(`    Giới tính: ${gender}   Ngày sinh: ${dob}   Loại mẫu: ${sampleType}`), {
-          x: margin + 15,
-          y: currentY,
-          size: 13,
-          font: fontRegular,
-          color: darkColor,
-        });
-        currentY -= 15;
-        page1.drawText(nfc(`    Ký hiệu mẫu: ${labelKey}`), {
-          x: margin + 15,
-          y: currentY,
-          size: 13,
-          font: fontRegular,
-          color: darkColor,
-        });
-        currentY -= 16;
+        // ADN Tự Nguyện & Nhiễm sắc thể Y
+        if (isEn) {
+          page1.drawText(nfc(`${idx + 1}.  Sample donor: ${name}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontBold,
+            color: darkColor,
+          });
+          currentY -= 15;
+          page1.drawText(nfc(`    Gender: ${gender}   Date of Birth: ${dob}   Sample Type: ${sampleType}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontRegular,
+            color: darkColor,
+          });
+          currentY -= 15;
+          page1.drawText(nfc(`    Sample Code: ${labelKey}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontRegular,
+            color: darkColor,
+          });
+          currentY -= 16;
+        } else {
+          page1.drawText(nfc(`${idx + 1}.  Người có mẫu ghi tên: ${name}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontBold,
+            color: darkColor,
+          });
+          currentY -= 15;
+          page1.drawText(nfc(`    Giới tính: ${gender}   Ngày sinh: ${dob}   Loại mẫu: ${sampleType}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontRegular,
+            color: darkColor,
+          });
+          currentY -= 15;
+          page1.drawText(nfc(`    Ký hiệu mẫu: ${labelKey}`), {
+            x: margin + 15,
+            y: currentY,
+            size: 13,
+            font: fontRegular,
+            color: darkColor,
+          });
+          currentY -= 16;
+        }
       } else {
         // ADN Pháp Lý (Image 2 format with Portrait Avatar Photo on left)
         const portraitImgStr = sample.anhChanDung || sample.photoUrl || sample.anhCccdMatTruoc;
@@ -552,105 +712,208 @@ export async function POST(request: NextRequest) {
         const textX = margin + 10 + (drawnAvatarWidth ? drawnAvatarWidth + 12 : 0);
 
         if (idx === 0) {
-          page1.drawText(nfc(`1.  Họ tên: ${name}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontBold,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}   Quốc tịch: ${sample.quocTich || 'Việt Nam'}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`CCCD/Passport: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Nơi cấp: ${sample.noiCap || '...................'}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Nơi thường trú: ${sample.noiThuongTru || '...................'}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 18;
+          if (isEn) {
+            page1.drawText(nfc(`1.  Full Name: ${name}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontBold,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Gender: ${gender}   Date of Birth: ${dob}   Nationality: ${nationality}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`ID/Passport No.: ${sample.cccd || '...................'}   Date of Issue: ${sampleNgayCap}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Place of Issue: ${noiCap}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Permanent Address: ${noiThuongTru}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Sample Code: ${labelKey}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 18;
+          } else {
+            page1.drawText(nfc(`1.  Họ tên: ${name}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontBold,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}   Quốc tịch: ${sample.quocTich || 'Việt Nam'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`CCCD/Passport: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Nơi cấp: ${sample.noiCap || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Nơi thường trú: ${sample.noiThuongTru || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 18;
+          }
         } else {
-          page1.drawText(nfc(`${idx + 1}.  Người có tên dự kiến: ${name}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontBold,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Giấy chứng sinh số: ${sample.cccd || '...................'}   Quyển số: ${sample.quyenSo || '...................'}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Ngày cấp: ${sampleNgayCap}   Nơi cấp: ${sample.noiCap || '...................'}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 15;
-          page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
-            x: textX,
-            y: currentY,
-            size: 13,
-            font: fontRegular,
-            color: darkColor,
-          });
-          currentY -= 18;
+          if (isEn) {
+            page1.drawText(nfc(`${idx + 1}.  Intended Person: ${name}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontBold,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Gender: ${gender}   Date of Birth: ${dob}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Birth Certificate No.: ${sample.cccd || '...................'}   Book No.: ${sample.quyenSo || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Date of Issue: ${sampleNgayCap}   Place of Issue: ${noiCap}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Sample Code: ${labelKey}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 18;
+          } else {
+            page1.drawText(nfc(`${idx + 1}.  Người có tên dự kiến: ${name}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontBold,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Giấy chứng sinh số: ${sample.cccd || '...................'}   Quyển số: ${sample.quyenSo || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Ngày cấp: ${sampleNgayCap}   Nơi cấp: ${sample.noiCap || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 18;
+          }
         }
       }
     }
 
-    // Notes Section (Khoảng cách vừa vặn với phần thông tin mẫu bên trên)
+    // Notes Section
     currentY -= 6;
-    // Notes Section (Khoảng cách vừa vặn với phần thông tin mẫu bên trên)
     currentY -= 6;
+    const collectorName = isEn ? toEnglishText(nguoiThuMau, 'name') : (nguoiThuMau || 'Hoàng Văn Luận');
     if (loaiXetNghiemADN === 'x_chr') {
-      const bullets = [
+      const bullets = isEn ? [
+        `-  Sample collector / Received by: ${collectorName}`,
+        '-  Samples and sample details were provided by the applicant, who assumes full responsibility.',
+        `-  Sample codes were assigned by ${isGtMode ? 'Genetrust Vietnam Joint Stock Company' : 'HK-Tech Technology and Trading Joint Stock Company'}.`,
+        '-  Testing method: X-chromosome STR analysis.',
+        '-  DNA was extracted using the ReliaPrep gDNA Miniprep Kit (Promega, USA).',
+        `-  Extracted DNA was amplified using the ${boKit || 'X18Plex STR Detection Kit'}, on MultiGene OptiMax Cycler (Labnet, USA).`,
+        '-  PCR products were separated by capillary electrophoresis on 3500-Genetic Analyzer (Applied Biosystems, USA).',
+        '-  Data were analyzed using GeneMapper ID-X v1.5 software (Applied Biosystems, USA).',
+      ] : [
         `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
         '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
         '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
@@ -672,7 +935,16 @@ export async function POST(request: NextRequest) {
       }
       currentY -= 4;
     } else if (loaiXetNghiemADN === 'y_chr') {
-      const bullets = [
+      const bullets = isEn ? [
+        `-  Sample collector / Received by: ${collectorName}`,
+        '-  Samples and sample details were provided by the applicant, who assumes full responsibility.',
+        `-  Sample codes were assigned by ${isGtMode ? 'Genetrust Vietnam Joint Stock Company' : 'HK-Tech Technology and Trading Joint Stock Company'}.`,
+        '-  Testing method: Y-chromosome STR analysis.',
+        '-  DNA was extracted using the ReliaPrep gDNA Miniprep Kit (Promega, USA).',
+        `-  Extracted DNA was amplified using the ${boKit || 'Y27Plex STR Detection Kit'}, on MultiGene OptiMax Cycler (Labnet, USA).`,
+        '-  PCR products were separated by capillary electrophoresis on 3500-Genetic Analyzer (Applied Biosystems, USA).',
+        '-  Data were analyzed using GeneMapper ID-X v1.5 software (Applied Biosystems, USA).',
+      ] : [
         `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
         '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
         '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
@@ -694,44 +966,79 @@ export async function POST(request: NextRequest) {
       }
       currentY -= 4;
     } else {
-      page1.drawText(nfc(`-  Người ${loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`), {
-        x: margin,
-        y: currentY,
-        size: 10,
-        font: fontItalic,
-        color: darkColor,
-      });
-      currentY -= 12;
-      page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.`), {
-        x: margin,
-        y: currentY,
-        size: 10,
-        font: fontItalic,
-        color: darkColor,
-      });
-      currentY -= 12;
-      page1.drawText(nfc(`-  Các ký hiệu mẫu do ${isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty cổ phần công nghệ và thương mại HK- TECK'} đặt.`), {
-        x: margin,
-        y: currentY,
-        size: 10,
-        font: fontItalic,
-        color: darkColor,
-      });
-      currentY -= 12;
-      page1.drawText(nfc(`-  Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit ${boKit || 'A27Plex STR Detection Kit'}.`), {
-        x: margin,
-        y: currentY,
-        size: 10,
-        font: fontItalic,
-        color: darkColor,
-      });
-      currentY -= 16;
+      if (isEn) {
+        page1.drawText(nfc(`-  Sample ${loaiXetNghiemADN === 'tu_nguyen' ? 'received' : 'collected'} by: ${collectorName}`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Samples and sample details' : 'Personal identification documents'} were provided by the applicant, who assumes full responsibility.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  Sample codes were assigned by ${isGtMode ? 'Genetrust Vietnam Joint Stock Company' : 'HK-Tech Technology and Trading Joint Stock Company'}.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  Nuclear DNA analysis of the above samples using the ${boKit || 'A27Plex STR Detection Kit'}.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 16;
+      } else {
+        page1.drawText(nfc(`-  Người ${loaiXetNghiemADN === 'tu_nguyen' ? 'nhận' : 'thu'} mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Mẫu và các thông tin ghi trên mẫu' : 'Các giấy tờ cá nhân'} do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  Các ký hiệu mẫu do ${isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty cổ phần công nghệ và thương mại HK- TECK'} đặt.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 12;
+        page1.drawText(nfc(`-  Phân tích ADN trong nhân tế bào các mẫu trên theo bộ kit ${boKit || 'A27Plex STR Detection Kit'}.`), {
+          x: margin,
+          y: currentY,
+          size: 10,
+          font: fontItalic,
+          color: darkColor,
+        });
+        currentY -= 16;
+      }
     }
 
     // STR Loci Header
     if (loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
-      currentY -= 8; // Clear vertical gap from bullet text above
-      const yTitle = nfc('KẾT QUẢ PHÂN TÍCH ADN');
+      currentY -= 8;
+      const yTitle = nfc(isEn ? 'DNA ANALYSIS RESULT TABLE' : 'KẾT QUẢ PHÂN TÍCH ADN');
       const yTitleW = fontBold.widthOfTextAtSize(yTitle, 13);
       page1.drawText(yTitle, {
         x: (width - yTitleW) / 2,
@@ -740,9 +1047,9 @@ export async function POST(request: NextRequest) {
         font: fontBold,
         color: primaryBlue,
       });
-      currentY -= 16; // Clear vertical gap before loci table
+      currentY -= 16;
     } else {
-      page1.drawText(nfc('Kết quả phân tích ADN như sau:'), {
+      page1.drawText(nfc(isEn ? 'The DNA analysis results are as follows:' : 'Kết quả phân tích ADN như sau:'), {
         x: margin,
         y: currentY,
         size: 13,
@@ -843,7 +1150,7 @@ export async function POST(request: NextRequest) {
         font: fontBold,
         color: (isYchr || isXchr) ? primaryBlue : darkColor,
       });
-      page1.drawText(nfc('Mẫu'), {
+      page1.drawText(nfc(isEn ? 'Sample' : 'Mẫu'), {
         x: margin + 6,
         y: currentY - rowHeight + 2,
         size: 7,
@@ -1004,7 +1311,7 @@ export async function POST(request: NextRequest) {
 
     // Conclusion Section
     currentY -= 10;
-    page1.drawText(nfc('KẾT LUẬN:'), {
+    page1.drawText(nfc(isEn ? 'CONCLUSION:' : 'KẾT LUẬN:'), {
       x: margin,
       y: currentY,
       size: 13,
@@ -1022,31 +1329,73 @@ export async function POST(request: NextRequest) {
     const isAlreadyFullSentence =
       rawKetLuan.toLowerCase().includes('kí hiệu') ||
       rawKetLuan.toLowerCase().includes('ký hiệu') ||
-      rawKetLuan.toLowerCase().startsWith('người có mẫu');
+      rawKetLuan.toLowerCase().startsWith('người có mẫu') ||
+      rawKetLuan.toLowerCase().startsWith('sample donor');
 
     let conclusionFullText = '';
-    if (isAlreadyFullSentence) {
-      conclusionFullText = rawKetLuan;
-    } else {
-      const phrase = rawKetLuan;
-      const confidenceVal = (doTinCay || '> 99,9999%').trim();
-      const confidenceStr = confidenceVal.toLowerCase().startsWith('độ tin cậy')
-        ? confidenceVal
-        : `độ tin cậy ${confidenceVal}`;
-
-      if (loaiXetNghiemADN === 'x_chr') {
-        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể X'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
-      } else if (loaiXetNghiemADN === 'y_chr') {
-        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể Y'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
-      } else if (loaiXetNghiemADN === 'tu_nguyen') {
-        conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+    if (isEn) {
+      if (isAlreadyFullSentence) {
+        conclusionFullText = rawKetLuan;
       } else {
-        // ADN Pháp lý
-        conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có tên dự kiến ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+        const normK = rawKetLuan.toLowerCase();
+        let relationStr = 'is the biological father of';
+        if (normK.includes('không') || normK.includes('not') || normK.includes('excluded')) {
+          if (normK.includes('mẹ') || normK.includes('mother')) {
+            relationStr = 'is excluded as the biological mother of';
+          } else if (loaiXetNghiemADN === 'x_chr') {
+            relationStr = 'does not have a biological relationship along the X-chromosome lineage with';
+          } else if (loaiXetNghiemADN === 'y_chr') {
+            relationStr = 'does not have a biological relationship along the Y-chromosome lineage with';
+          } else {
+            relationStr = 'is excluded as the biological father of';
+          }
+        } else {
+          if (normK.includes('mẹ') || normK.includes('mother')) {
+            relationStr = 'is the biological mother of';
+          } else if (loaiXetNghiemADN === 'x_chr') {
+            relationStr = 'has a biological relationship along the X-chromosome lineage with';
+          } else if (loaiXetNghiemADN === 'y_chr') {
+            relationStr = 'has a biological relationship along the Y-chromosome lineage with';
+          } else {
+            relationStr = 'is the biological father of';
+          }
+        }
+
+        const confidenceVal = (doTinCay || '> 99,9999%').trim().replace(/,/g, '.');
+        const confidenceStr = `with a probability of ${confidenceVal}`;
+
+        if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
+          conclusionFullText = `Sample donor ${m1Name} (Code: ${m1Key}) ${relationStr} sample donor ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
+        } else {
+          conclusionFullText = `${m1Name} (Code: ${m1Key}) ${relationStr} intended person ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
+        }
+      }
+    } else {
+      if (isAlreadyFullSentence) {
+        conclusionFullText = rawKetLuan;
+      } else {
+        const phrase = rawKetLuan;
+        const confidenceVal = (doTinCay || '> 99,9999%').trim();
+        const confidenceStr = confidenceVal.toLowerCase().startsWith('độ tin cậy')
+          ? confidenceVal
+          : `độ tin cậy ${confidenceVal}`;
+
+        if (loaiXetNghiemADN === 'x_chr') {
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể X'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+        } else if (loaiXetNghiemADN === 'y_chr') {
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể Y'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+        } else if (loaiXetNghiemADN === 'tu_nguyen') {
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+        } else {
+          // ADN Pháp lý
+          conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có tên dự kiến ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+        }
       }
     }
 
-    const redPhraseRegex = /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+X|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+Y|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
+    const redPhraseRegex = isEn
+      ? /(is\s+the\s+biological\s+father\s+of|is\s+excluded\s+as\s+the\s+biological\s+father\s+of|is\s+the\s+biological\s+mother\s+of|is\s+excluded\s+as\s+the\s+biological\s+mother\s+of|has\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|does\s+not\s+have\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|has\s+a\s+biological\s+relationship\s+with)/i
+      : /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+X|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+Y|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
     const match = conclusionFullText.match(redPhraseRegex);
     const wordTokens: { word: string; color: any }[] = [];
 
@@ -1087,8 +1436,8 @@ export async function POST(request: NextRequest) {
 
     // Signatures
     currentY -= 35;
-    const canBoTitleText = nfc('CÁN BỘ XÉT NGHIỆM');
-    const daiDienTitleText = nfc('ĐẠI DIỆN ĐƠN VỊ');
+    const canBoTitleText = nfc(isEn ? 'RESULT CONTROLLER' : 'CÁN BỘ XÉT NGHIỆM');
+    const daiDienTitleText = nfc(isEn ? 'CHIEF EXECUTIVE OFFICER' : 'ĐẠI DIỆN ĐƠN VỊ');
 
     const canBoTitleWidth = fontBold.widthOfTextAtSize(canBoTitleText, 13);
     const daiDienTitleWidth = fontBold.widthOfTextAtSize(daiDienTitleText, 13);
@@ -1112,8 +1461,8 @@ export async function POST(request: NextRequest) {
     });
 
     // Render Signer Names Below Signature Area (if provided)
-    const canBoName = (canBoXetNghiem || '').trim();
-    const daiDienName = (daiDienDonVi || '').trim();
+    const canBoName = isEn ? toEnglishText(canBoXetNghiem, 'name') : (canBoXetNghiem || '').trim();
+    const daiDienName = isEn ? toEnglishText(daiDienDonVi, 'name') : (daiDienDonVi || '').trim();
 
     if (canBoName || daiDienName) {
       const nameY = currentY - 75; // Expanded signature space for hand signing & stamping
@@ -1167,7 +1516,7 @@ export async function POST(request: NextRequest) {
 
     // Footer note for ADN Tự nguyện & Nhiễm sắc thể Y
     if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr') {
-      page1.drawText(nfc('Ghi chú: Kết quả xét nghiệm có giá trị trên mẫu phân tích, không có giá trị trong tranh chấp, tổ tụng pháp lý'), {
+      page1.drawText(nfc(isEn ? 'Note: Test results are valid for the analyzed samples only and have no legal validity for dispute or litigation.' : 'Ghi chú: Kết quả xét nghiệm có giá trị trên mẫu phân tích, không có giá trị trong tranh chấp, tổ tụng pháp lý'), {
         x: margin,
         y: margin + 10,
         size: 7,
