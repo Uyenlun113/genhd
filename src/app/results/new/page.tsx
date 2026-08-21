@@ -76,6 +76,7 @@ function NewResultFormContent() {
     nhanXetDaiThe: '',
     viTriBenhPham: '',
     ngayNhanMau: new Date().toISOString().split('T')[0],
+    ngayXetNghiem: new Date().toISOString().split('T')[0],
   });
 
   const hasCategoryPermission = (cat: string) => {

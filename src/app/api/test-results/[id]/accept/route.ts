@@ -23,6 +23,8 @@ export async function POST(request: NextRequest, { params }: Params) {
     const { id } = await params;
     const userId = (session.user as { id: string }).id;
 
+    const testResult = await TestResult.findById(id).lean();
+
     const userName = session.user?.name || 'Bác sĩ';
     const now = new Date();
     const duKienTra = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Exactly +3 days (72 hours)
@@ -33,7 +35,7 @@ export async function POST(request: NextRequest, { params }: Params) {
     const updateFields: any = {
       trangThai: 'chay_ket_qua',
       bacSiXuLy: userId,
-      ngayNhanMau: now,
+      ngayNhanMau: testResult?.ngayNhanMau || now,
       ngayDuKienTra: duKienTra,
       $push: {
         lichSuChinhSua: {

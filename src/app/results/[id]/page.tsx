@@ -156,10 +156,24 @@ export default function TestResultDetailPage({ params }: PageProps) {
           ketLuan: data.ketLuan || '',
           ketLuan2: data.ketLuan2 || '',
           ngayXetNghiem: data.ngayXetNghiem
-            ? new Date(data.ngayXetNghiem).toISOString().split('T')[0]
+            ? (typeof data.ngayXetNghiem === 'string' && /^\d{4}-\d{2}-\d{2}/.test(data.ngayXetNghiem)
+              ? data.ngayXetNghiem.split('T')[0]
+              : (() => {
+                const d = new Date(data.ngayXetNghiem);
+                return !isNaN(d.getTime())
+                  ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                  : new Date().toISOString().split('T')[0];
+              })())
             : new Date().toISOString().split('T')[0],
           ngayNhanMau: data.ngayNhanMau
-            ? new Date(data.ngayNhanMau).toISOString().split('T')[0]
+            ? (typeof data.ngayNhanMau === 'string' && /^\d{4}-\d{2}-\d{2}/.test(data.ngayNhanMau)
+              ? data.ngayNhanMau.split('T')[0]
+              : (() => {
+                const d = new Date(data.ngayNhanMau);
+                return !isNaN(d.getTime())
+                  ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                  : new Date().toISOString().split('T')[0];
+              })())
             : new Date().toISOString().split('T')[0],
         });
 
@@ -389,10 +403,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
   const type1 = formData.loaiXetNghiem.startsWith('combo_hpv20')
     ? 'hpv20'
     : formData.loaiXetNghiem.startsWith('combo_hpv40')
-    ? 'hpv40'
-    : formData.loaiXetNghiem.startsWith('combo_hpv23')
-    ? 'hpv23'
-    : formData.loaiXetNghiem;
+      ? 'hpv40'
+      : formData.loaiXetNghiem.startsWith('combo_hpv23')
+        ? 'hpv23'
+        : formData.loaiXetNghiem;
 
   const type2 = formData.loaiXetNghiem.endsWith('_thinprep') ? 'thinprep' : 'cell';
 
@@ -416,23 +430,22 @@ export default function TestResultDetailPage({ params }: PageProps) {
         <main className="flex-1 p-6 md:p-8 w-full overflow-y-auto">
           <Header
             title={`Phiếu xét nghiệm: ${formData.maSo}`}
-            subtitle={`Bệnh nhân: ${formData.hoTen} (${
-              formData.loaiXetNghiem === 'cell'
+            subtitle={`Bệnh nhân: ${formData.hoTen} (${formData.loaiXetNghiem === 'cell'
                 ? 'Mẫu CELL'
                 : formData.loaiXetNghiem === 'thinprep'
-                ? 'Mẫu ThinPrep'
-                : formData.loaiXetNghiem === 'hpv40'
-                ? 'Mẫu HPV 40'
-                : formData.loaiXetNghiem === 'hpv20'
-                ? 'Mẫu HPV 20'
-                : formData.loaiXetNghiem === 'hpv23'
-                ? 'Mẫu HPV 23'
-                : formData.loaiXetNghiem === 'soituoi'
-                ? 'Mẫu Soi tươi'
-                : formData.loaiXetNghiem === 'giaiphaubenh'
-                ? 'Mẫu Giải Phẫu Bệnh'
-                : 'Phiếu xét nghiệm'
-            })`}
+                  ? 'Mẫu ThinPrep'
+                  : formData.loaiXetNghiem === 'hpv40'
+                    ? 'Mẫu HPV 40'
+                    : formData.loaiXetNghiem === 'hpv20'
+                      ? 'Mẫu HPV 20'
+                      : formData.loaiXetNghiem === 'hpv23'
+                        ? 'Mẫu HPV 23'
+                        : formData.loaiXetNghiem === 'soituoi'
+                          ? 'Mẫu Soi tươi'
+                          : formData.loaiXetNghiem === 'giaiphaubenh'
+                            ? 'Mẫu Giải Phẫu Bệnh'
+                            : 'Phiếu xét nghiệm'
+              })`}
             action={
               <div className="flex items-center gap-3">
                 <StatusBadge status={formData.trangThai} />
@@ -877,6 +890,17 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               )}
                             </div>
 
+                            <div>
+                              <span className="text-xs text-amber-800 font-bold block mb-1">Ngày ký:</span>
+                              <input
+                                type="date"
+                                name="ngayXetNghiem"
+                                value={formData.ngayXetNghiem}
+                                onChange={handleInputChange}
+                                className="form-input text-xs py-1 px-2.5 font-bold text-slate-800 rounded-lg border-amber-300 bg-white shadow-2xs w-44 min-w-[170px]"
+                              />
+                            </div>
+
                             {formData.daKy && (
                               <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
                                 <PenLine className="w-3.5 h-3.5 text-emerald-600" />
@@ -901,14 +925,13 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 type="button"
                                 onClick={() => handleSignPart(1)}
                                 disabled={saving}
-                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
-                                  formData.daKy
+                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
                                     ? 'bg-amber-500 hover:bg-amber-600 text-white'
                                     : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
-                                }`}
+                                  }`}
                               >
                                 <PenLine className="w-3.5 h-3.5" />
-                                <span>{formData.daKy ? 'Hủy chữ ký GPB' : 'Lưu & Ký duyệt (GPB)'}</span>
+                                <span>{formData.daKy ? 'Hủy chữ ký' : 'Lưu & Ký duyệt (GPB)'}</span>
                               </button>
                             </div>
                           )}
@@ -951,282 +974,292 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     {showSoiTuoiSection && (
                       <>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="form-group mb-0">
-                        <label className="font-bold text-slate-700 text-xs">Chẩn đoán lâm sàng</label>
-                        <input
-                          type="text"
-                          name="chanDoanLamSang"
-                          className="form-input text-xs disabled:bg-slate-100"
-                          placeholder="Nhập chẩn đoán lâm sàng..."
-                          value={formData.chanDoanLamSang || ''}
-                          onChange={handleInputChange}
-                          disabled={false}
-                        />
-                      </div>
-
-                      <div className="form-group mb-0">
-                        <label className="font-bold text-slate-700 text-xs">Nhận xét đại thể</label>
-                        <input
-                          type="text"
-                          name="nhanXetDaiThe"
-                          className="form-input text-xs disabled:bg-slate-100"
-                          placeholder="Nhập nhận xét đại thể..."
-                          value={formData.nhanXetDaiThe || ''}
-                          onChange={handleInputChange}
-                          disabled={false}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Table of 5 Soi Tươi items */}
-                    <div className="overflow-x-auto mb-6">
-                      <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-xs">
-                        <thead>
-                          <tr className="bg-sky-800 text-white font-bold text-center divide-x divide-sky-700">
-                            <th className="py-2.5 px-3 w-12">STT</th>
-                            <th className="py-2.5 px-3 w-1/4">SOI TƯƠI</th>
-                            <th className="py-2.5 px-3 w-1/4">KẾT QUẢ</th>
-                            <th className="py-2.5 px-3 w-1/4">Ý NGHĨA</th>
-                            <th className="py-2.5 px-3 w-1/4">GHI CHÚ</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200 font-medium">
-                          {/* Row 1: Bạch cầu */}
-                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
-                            <td className="py-2 px-3 text-center font-bold text-slate-500">1</td>
-                            <td className="py-2 px-3 font-bold text-slate-800">Bạch cầu</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiBachCau"
-                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiBachCau || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / + / ++..."
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">Đánh giá mức độ viêm nhiễm</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiGhiChuBachCau"
-                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiGhiChuBachCau || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                            </td>
-                          </tr>
-
-                          {/* Row 2: Nấm */}
-                          <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
-                            <td className="py-2 px-3 text-center font-bold text-slate-500">2</td>
-                            <td className="py-2 px-3 font-bold text-slate-800">Nấm</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiNam"
-                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiNam || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / Dương tính..."
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">Đánh giá sự xuất hiện của nấm</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiGhiChuNam"
-                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiGhiChuNam || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                            </td>
-                          </tr>
-
-                          {/* Row 3: Tạp khuẩn */}
-                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
-                            <td className="py-2 px-3 text-center font-bold text-slate-500">3</td>
-                            <td className="py-2 px-3 font-bold text-slate-800">Tạp khuẩn</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiTapKhuan"
-                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiTapKhuan || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / + / ++..."
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">Viêm do vi khuẩn</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiGhiChuTapKhuan"
-                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiGhiChuTapKhuan || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                            </td>
-                          </tr>
-
-                          {/* Row 4: Tế bào biểu mô */}
-                          <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
-                            <td className="py-2 px-3 text-center font-bold text-slate-500">4</td>
-                            <td className="py-2 px-3 font-bold text-slate-800">Tế bào biểu mô</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiTeBaoBieuMo"
-                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiTeBaoBieuMo || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Ít / Vừa / Nhiều..."
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">Đánh giá chất lượng mẫu</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiGhiChuTeBaoBieuMo"
-                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiGhiChuTeBaoBieuMo || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                            </td>
-                          </tr>
-
-                          {/* Row 5: Trichomonas vaginalis */}
-                          <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
-                            <td className="py-2 px-3 text-center font-bold text-slate-500">5</td>
-                            <td className="py-2 px-3 font-bold italic text-slate-800">Trichomonas vaginalis</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiTrichomonas"
-                                className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiTrichomonas || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / Dương tính..."
-                              />
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">Đánh giá sơ bộ sự xuất hiện của trùng roi</td>
-                            <td className="py-2 px-3">
-                              <input
-                                type="text"
-                                name="soiTuoiGhiChuTrichomonas"
-                                className="form-input w-full text-xs py-1 disabled:bg-slate-100"
-                                value={formData.soiTuoiGhiChuTrichomonas || ''}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                            </td>
-                          </tr>
-                        </tbody>
-                      </table>
-                    </div>
-
-                    {/* Kết luận & Khuyến nghị */}
-                    <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
-                      <div className="form-group">
-                        <label className="font-bold text-emerald-800">KẾT LUẬN *</label>
-                        <textarea
-                          name="ketLuan"
-                          rows={3}
-                          className="form-textarea font-bold text-emerald-900 bg-emerald-50/30 border-emerald-200 disabled:bg-slate-100 disabled:text-slate-600"
-                          value={formData.ketLuan}
-                          onChange={handleInputChange}
-                          disabled={false}
-                          required
-                        />
-                      </div>
-
-                      <div className="form-group">
-                        <label className="font-bold text-slate-700">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
-                        <textarea
-                          name="khuyenNghi"
-                          rows={2}
-                          className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
-                          value={formData.khuyenNghi}
-                          onChange={handleInputChange}
-                          disabled={false}
-                        />
-                      </div>
-                    </div>
-
-                    {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN SOI TƯƠI */}
-                    <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 flex flex-wrap items-center justify-between gap-4 mt-6">
-                      <div className="flex items-center gap-4">
-                        <div>
-                          <span className="text-xs text-emerald-800 font-bold block mb-1">
-                            Bác sĩ đọc kết quả:
-                          </span>
-                          {userRole === 'admin' || userRole === 'lab_admin' ? (
-                            <select
-                              name="bacSiDoc"
-                              value={formData.bacSiDoc}
+                          <div className="form-group mb-0">
+                            <label className="font-bold text-slate-700 text-xs">Chẩn đoán lâm sàng</label>
+                            <input
+                              type="text"
+                              name="chanDoanLamSang"
+                              className="form-input text-xs disabled:bg-slate-100"
+                              placeholder="Nhập chẩn đoán lâm sàng..."
+                              value={formData.chanDoanLamSang || ''}
                               onChange={handleInputChange}
-                              className="form-select text-xs py-1.5 px-3 font-bold text-emerald-700 rounded-lg border-emerald-300 bg-white shadow-2xs"
-                            >
-                              {doctors1.map((d) => (
-                                <option key={d._id} value={d.fullName}>
-                                  {d.fullName}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <span className="text-xs font-bold text-emerald-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                              disabled={false}
+                            />
+                          </div>
+
+                          <div className="form-group mb-0">
+                            <label className="font-bold text-slate-700 text-xs">Nhận xét đại thể</label>
+                            <input
+                              type="text"
+                              name="nhanXetDaiThe"
+                              className="form-input text-xs disabled:bg-slate-100"
+                              placeholder="Nhập nhận xét đại thể..."
+                              value={formData.nhanXetDaiThe || ''}
+                              onChange={handleInputChange}
+                              disabled={false}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Table of 5 Soi Tươi items */}
+                        <div className="overflow-x-auto mb-6">
+                          <table className="w-full text-xs text-left border-collapse border border-slate-200 rounded-xl overflow-hidden shadow-xs">
+                            <thead>
+                              <tr className="bg-sky-800 text-white font-bold text-center divide-x divide-sky-700">
+                                <th className="py-2.5 px-3 w-12">STT</th>
+                                <th className="py-2.5 px-3 w-1/4">SOI TƯƠI</th>
+                                <th className="py-2.5 px-3 w-1/4">KẾT QUẢ</th>
+                                <th className="py-2.5 px-3 w-1/4">Ý NGHĨA</th>
+                                <th className="py-2.5 px-3 w-1/4">GHI CHÚ</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-200 font-medium">
+                              {/* Row 1: Bạch cầu */}
+                              <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                                <td className="py-2 px-3 text-center font-bold text-slate-500">1</td>
+                                <td className="py-2 px-3 font-bold text-slate-800">Bạch cầu</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiBachCau"
+                                    className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiBachCau || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / + / ++..."
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-slate-600">Đánh giá mức độ viêm nhiễm</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiGhiChuBachCau"
+                                    className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiGhiChuBachCau || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                </td>
+                              </tr>
+
+                              {/* Row 2: Nấm */}
+                              <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
+                                <td className="py-2 px-3 text-center font-bold text-slate-500">2</td>
+                                <td className="py-2 px-3 font-bold text-slate-800">Nấm</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiNam"
+                                    className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiNam || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / Dương tính..."
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-slate-600">Đánh giá sự xuất hiện của nấm</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiGhiChuNam"
+                                    className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiGhiChuNam || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                </td>
+                              </tr>
+
+                              {/* Row 3: Tạp khuẩn */}
+                              <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                                <td className="py-2 px-3 text-center font-bold text-slate-500">3</td>
+                                <td className="py-2 px-3 font-bold text-slate-800">Tạp khuẩn</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiTapKhuan"
+                                    className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiTapKhuan || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / + / ++..."
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-slate-600">Viêm do vi khuẩn</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiGhiChuTapKhuan"
+                                    className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiGhiChuTapKhuan || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                </td>
+                              </tr>
+
+                              {/* Row 4: Tế bào biểu mô */}
+                              <tr className="divide-x divide-slate-200 bg-slate-50/40 hover:bg-slate-50/80">
+                                <td className="py-2 px-3 text-center font-bold text-slate-500">4</td>
+                                <td className="py-2 px-3 font-bold text-slate-800">Tế bào biểu mô</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiTeBaoBieuMo"
+                                    className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiTeBaoBieuMo || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Ít / Vừa / Nhiều..."
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-slate-600">Đánh giá chất lượng mẫu</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiGhiChuTeBaoBieuMo"
+                                    className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiGhiChuTeBaoBieuMo || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                </td>
+                              </tr>
+
+                              {/* Row 5: Trichomonas vaginalis */}
+                              <tr className="divide-x divide-slate-200 hover:bg-slate-50/50">
+                                <td className="py-2 px-3 text-center font-bold text-slate-500">5</td>
+                                <td className="py-2 px-3 font-bold italic text-slate-800">Trichomonas vaginalis</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiTrichomonas"
+                                    className="form-input w-full text-xs font-bold text-sky-700 bg-sky-50/50 py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiTrichomonas || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / Dương tính..."
+                                  />
+                                </td>
+                                <td className="py-2 px-3 text-slate-600">Đánh giá sơ bộ sự xuất hiện của trùng roi</td>
+                                <td className="py-2 px-3">
+                                  <input
+                                    type="text"
+                                    name="soiTuoiGhiChuTrichomonas"
+                                    className="form-input w-full text-xs py-1 disabled:bg-slate-100"
+                                    value={formData.soiTuoiGhiChuTrichomonas || ''}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Kết luận & Khuyến nghị */}
+                        <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100">
+                          <div className="form-group">
+                            <label className="font-bold text-emerald-800">KẾT LUẬN *</label>
+                            <textarea
+                              name="ketLuan"
+                              rows={3}
+                              className="form-textarea font-bold text-emerald-900 bg-emerald-50/30 border-emerald-200 disabled:bg-slate-100 disabled:text-slate-600"
+                              value={formData.ketLuan}
+                              onChange={handleInputChange}
+                              disabled={false}
+                              required
+                            />
+                          </div>
+
+                          <div className="form-group">
+                            <label className="font-bold text-slate-700">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
+                            <textarea
+                              name="khuyenNghi"
+                              rows={2}
+                              className="form-textarea disabled:bg-slate-100 disabled:text-slate-600"
+                              value={formData.khuyenNghi}
+                              onChange={handleInputChange}
+                              disabled={false}
+                            />
+                          </div>
+                        </div>
+
+                        {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN SOI TƯƠI */}
+                        <div className="p-4 bg-emerald-50/60 rounded-xl border border-emerald-200 flex flex-wrap items-center justify-between gap-4 mt-6">
+                          <div className="flex items-center gap-4">
+                            <div>
+                              <span className="text-xs text-emerald-800 font-bold block mb-1">
+                                Bác sĩ đọc kết quả:
+                              </span>
+                              {userRole === 'admin' || userRole === 'lab_admin' ? (
+                                <select
+                                  name="bacSiDoc"
+                                  value={formData.bacSiDoc}
+                                  onChange={handleInputChange}
+                                  className="form-select text-xs py-1.5 px-3 font-bold text-emerald-700 rounded-lg border-emerald-300 bg-white shadow-2xs"
+                                >
+                                  {doctors1.map((d) => (
+                                    <option key={d._id} value={d.fullName}>
+                                      {d.fullName}
+                                    </option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <span className="text-xs font-bold text-emerald-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                              )}
+                            </div>
+
+                            <div>
+                              <span className="text-xs text-emerald-800 font-bold block mb-1">Ngày ký:</span>
+                              <input
+                                type="date"
+                                name="ngayXetNghiem"
+                                value={formData.ngayXetNghiem}
+                                onChange={handleInputChange}
+                                className="form-input text-xs py-1 px-2.5 font-bold text-slate-800 rounded-lg border-emerald-300 bg-white shadow-2xs w-44 min-w-[170px]"
+                              />
+                            </div>
+
+                            {formData.daKy && (
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                <PenLine className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>ĐÃ KÝ DUYỆT</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={handleSave}
+                                disabled={saving}
+                                className="btn btn-secondary text-xs py-1.5 px-3"
+                              >
+                                <Save className="w-3.5 h-3.5" />
+                                <span>{saving ? 'Đang lưu...' : 'Lưu kết quả Soi tươi'}</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => handleSignPart(1)}
+                                disabled={saving}
+                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
+                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                  }`}
+                              >
+                                <PenLine className="w-3.5 h-3.5" />
+                                <span>{formData.daKy ? 'Hủy chữ ký' : 'Lưu & Ký duyệt (Soi tươi)'}</span>
+                              </button>
+                            </div>
                           )}
                         </div>
-
-                        {formData.daKy && (
-                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                            <PenLine className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>ĐÃ KÝ DUYỆT</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={handleSave}
-                            disabled={saving}
-                            className="btn btn-secondary text-xs py-1.5 px-3"
-                          >
-                            <Save className="w-3.5 h-3.5" />
-                            <span>{saving ? 'Đang lưu...' : 'Lưu kết quả Soi tươi'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => handleSignPart(1)}
-                            disabled={saving}
-                            className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
-                              formData.daKy
-                                ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
-                            }`}
-                          >
-                            <PenLine className="w-3.5 h-3.5" />
-                            <span>{formData.daKy ? 'Hủy chữ ký Soi tươi' : 'Lưu & Ký duyệt (Soi tươi)'}</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            ) : (
+                      </>
+                    )}
+                  </div>
+                ) : (
                   <>
                     {/* Render HPV Form if HPV or Combo */}
                     {isHPV && (
@@ -1265,223 +1298,233 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         {showHpvSection && (
                           <>
                             <div className="space-y-4 mb-6">
-                          {/* Row 1: High Risk 16, 18 */}
-                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <div>
-                              <span className="text-xs font-bold text-red-700 uppercase block">
-                                1. NHÓM HPV NGUY CƠ CAO (TYPE 16, 18)
-                              </span>
-                              <span className="text-xs text-slate-500">Khảo sát 2 chủng nguy cơ cao nhất: 16, 18</span>
-                            </div>
-                            <input
-                              type="text"
-                              name="hpvHighRiskResult"
-                              className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
-                              value={formData.hpvHighRiskResult}
-                              onChange={handleInputChange}
-                              disabled={false}
-                              placeholder="Âm tính / Dương tính..."
-                            />
-                          </div>
-
-                          {/* Row 2: High Risk Others */}
-                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <div>
-                              <span className="text-xs font-bold text-red-700 uppercase block">
-                                2. NHÓM HPV NGUY CƠ CAO KHÁC ({isHPV23 ? '10 TYPES' : '16 TYPES'})
-                              </span>
-                              <span className="text-xs text-slate-500">
-                                {isHPV23
-                                  ? 'Khảo sát 10 chủng: 31, 33, 35, 39, 45, 51, 52, 56, 58, 59'
-                                  : 'Khảo sát 16 chủng: 26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82'}
-                              </span>
-                            </div>
-                            <input
-                              type="text"
-                              name="hpvHighRiskOtherResult"
-                              className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
-                              value={formData.hpvHighRiskOtherResult}
-                              onChange={handleInputChange}
-                              disabled={false}
-                              placeholder="Âm tính / Dương tính..."
-                            />
-                          </div>
-
-                          {/* If HPV 23: Row 3 is Other Types (9 Types) */}
-                          {isHPV23 && (
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                              <div>
-                                <span className="text-xs font-bold text-red-700 uppercase block">
-                                  3. CÁC TYPE HPV KHÁC (9 TYPES)
-                                </span>
-                                <span className="text-xs text-slate-500">
-                                  Khảo sát 9 chủng: 66, 68, 42, 43, 44, 53, 81, 82, 73
-                                </span>
-                              </div>
-                              <input
-                                type="text"
-                                name="hpvOtherTypesResult"
-                                className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
-                                value={formData.hpvOtherTypesResult}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / Dương tính..."
-                              />
-                            </div>
-                          )}
-
-                          {/* Low Risk 6, 11 */}
-                          <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                            <div>
-                              <span className="text-xs font-bold text-sky-700 uppercase block">
-                                {isHPV23 ? '4. NHÓM HPV NGUY CƠ THẤP (2 TYPES)' : '3. NHÓM HPV NGUY CƠ THẤP (2 TYPES)'}
-                              </span>
-                              <span className="text-xs text-slate-500">Khảo sát 2 chủng: 6, 11</span>
-                            </div>
-                            <input
-                              type="text"
-                              name="hpvLowRiskResult"
-                              className="form-input w-full sm:w-48 text-xs font-bold text-sky-700 border-sky-200 bg-sky-50/50 disabled:bg-slate-100"
-                              value={formData.hpvLowRiskResult}
-                              onChange={handleInputChange}
-                              disabled={false}
-                              placeholder="Âm tính / Dương tính..."
-                            />
-                          </div>
-
-                          {/* If HPV 40: 20 Other Types */}
-                          {isHPV40 && (
-                            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                              <div>
-                                <span className="text-xs font-bold text-slate-700 uppercase block">
-                                  4. CÁC TYPE HPV KHÁC (20 TYPES)
-                                </span>
-                                <span className="text-xs text-slate-500">
-                                  Khảo sát 20 chủng: 30, 32, 34, 40, 42, 43, 44, 54, 55, 61, 62, 67, 71, 72, 74, 81, 83, 84, 87, 90
-                                </span>
-                              </div>
-                              <input
-                                type="text"
-                                name="hpvOtherTypesResult"
-                                className="form-input w-full sm:w-48 text-xs font-bold text-slate-700 bg-white disabled:bg-slate-100"
-                                value={formData.hpvOtherTypesResult}
-                                onChange={handleInputChange}
-                                disabled={false}
-                                placeholder="Âm tính / Dương tính..."
-                              />
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Kết luận & Khuyến nghị HPV */}
-                        <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mb-6">
-                          <div className="form-group">
-                            <label className="font-bold text-indigo-800 text-xs">KẾT LUẬN XÉT NGHIỆM HPV *</label>
-                            <textarea
-                              name="ketLuan"
-                              rows={2}
-                              className="form-textarea font-bold text-indigo-900 bg-indigo-50/40 border-indigo-200 text-xs disabled:bg-slate-100"
-                              value={formData.ketLuan}
-                              onChange={handleInputChange}
-                              disabled={false}
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label className="font-bold text-slate-700 text-xs">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
-                            <textarea
-                              name="khuyenNghi"
-                              rows={2}
-                              className="form-textarea text-xs disabled:bg-slate-100"
-                              value={formData.khuyenNghi}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Ảnh đính kèm biểu đồ PCR */}
-                        <div className="pt-4 border-t border-slate-100 mb-6">
-                          <label className="font-bold text-slate-700 text-xs mb-2 block flex items-center gap-1.5">
-                            <ImageIcon className="w-4 h-4 text-sky-600" />
-                            <span>Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR / Tiêu bản</span>
-                          </label>
-                          <FileUpload
-                            accept="image/*"
-                            label="Tải ảnh biểu đồ PCR"
-                            value={formData.anhHpv}
-                            isImage={true}
-                            disabled={false}
-                            onChange={(url) => handleImageUploadPart(1, url)}
-                          />
-                        </div>
-
-                        {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN HPV */}
-                        <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <span className="text-xs text-indigo-800 font-bold block mb-1">
-                                {isCombo ? 'Bác sĩ đọc HPV (Phần 1):' : 'Bác sĩ đọc kết quả:'}
-                              </span>
-                              {userRole === 'admin' || userRole === 'lab_admin' ? (
-                                <select
-                                  name="bacSiDoc"
-                                  value={formData.bacSiDoc}
+                              {/* Row 1: High Risk 16, 18 */}
+                              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div>
+                                  <span className="text-xs font-bold text-red-700 uppercase block">
+                                    1. NHÓM HPV NGUY CƠ CAO (TYPE 16, 18)
+                                  </span>
+                                  <span className="text-xs text-slate-500">Khảo sát 2 chủng nguy cơ cao nhất: 16, 18</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  name="hpvHighRiskResult"
+                                  className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
+                                  value={formData.hpvHighRiskResult}
                                   onChange={handleInputChange}
-                                  className="form-select text-xs py-1.5 px-3 font-bold text-sky-700 rounded-lg border-sky-300 bg-white shadow-2xs"
-                                >
-                                  {doctors1.map((d) => (
-                                    <option key={d._id} value={d.fullName}>
-                                      {d.fullName}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <span className="text-xs font-bold text-sky-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                                  disabled={false}
+                                  placeholder="Âm tính / Dương tính..."
+                                />
+                              </div>
+
+                              {/* Row 2: High Risk Others */}
+                              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div>
+                                  <span className="text-xs font-bold text-red-700 uppercase block">
+                                    2. NHÓM HPV NGUY CƠ CAO KHÁC ({isHPV23 ? '10 TYPES' : '16 TYPES'})
+                                  </span>
+                                  <span className="text-xs text-slate-500">
+                                    {isHPV23
+                                      ? 'Khảo sát 10 chủng: 31, 33, 35, 39, 45, 51, 52, 56, 58, 59'
+                                      : 'Khảo sát 16 chủng: 26, 31, 33, 35, 39, 45, 51, 52, 53, 56, 58, 59, 66, 68, 73, 82'}
+                                  </span>
+                                </div>
+                                <input
+                                  type="text"
+                                  name="hpvHighRiskOtherResult"
+                                  className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
+                                  value={formData.hpvHighRiskOtherResult}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                  placeholder="Âm tính / Dương tính..."
+                                />
+                              </div>
+
+                              {/* If HPV 23: Row 3 is Other Types (9 Types) */}
+                              {isHPV23 && (
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                  <div>
+                                    <span className="text-xs font-bold text-red-700 uppercase block">
+                                      3. CÁC TYPE HPV KHÁC (9 TYPES)
+                                    </span>
+                                    <span className="text-xs text-slate-500">
+                                      Khảo sát 9 chủng: 66, 68, 42, 43, 44, 53, 81, 82, 73
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    name="hpvOtherTypesResult"
+                                    className="form-input w-full sm:w-48 text-xs font-bold text-red-700 border-red-200 bg-red-50/50 disabled:bg-slate-100"
+                                    value={formData.hpvOtherTypesResult}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / Dương tính..."
+                                  />
+                                </div>
+                              )}
+
+                              {/* Low Risk 6, 11 */}
+                              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                <div>
+                                  <span className="text-xs font-bold text-sky-700 uppercase block">
+                                    {isHPV23 ? '4. NHÓM HPV NGUY CƠ THẤP (2 TYPES)' : '3. NHÓM HPV NGUY CƠ THẤP (2 TYPES)'}
+                                  </span>
+                                  <span className="text-xs text-slate-500">Khảo sát 2 chủng: 6, 11</span>
+                                </div>
+                                <input
+                                  type="text"
+                                  name="hpvLowRiskResult"
+                                  className="form-input w-full sm:w-48 text-xs font-bold text-sky-700 border-sky-200 bg-sky-50/50 disabled:bg-slate-100"
+                                  value={formData.hpvLowRiskResult}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                  placeholder="Âm tính / Dương tính..."
+                                />
+                              </div>
+
+                              {/* If HPV 40: 20 Other Types */}
+                              {isHPV40 && (
+                                <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                                  <div>
+                                    <span className="text-xs font-bold text-slate-700 uppercase block">
+                                      4. CÁC TYPE HPV KHÁC (20 TYPES)
+                                    </span>
+                                    <span className="text-xs text-slate-500">
+                                      Khảo sát 20 chủng: 30, 32, 34, 40, 42, 43, 44, 54, 55, 61, 62, 67, 71, 72, 74, 81, 83, 84, 87, 90
+                                    </span>
+                                  </div>
+                                  <input
+                                    type="text"
+                                    name="hpvOtherTypesResult"
+                                    className="form-input w-full sm:w-48 text-xs font-bold text-slate-700 bg-white disabled:bg-slate-100"
+                                    value={formData.hpvOtherTypesResult}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                    placeholder="Âm tính / Dương tính..."
+                                  />
+                                </div>
                               )}
                             </div>
 
-                            {formData.daKy && (
-                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                <PenLine className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>ĐÃ KÝ DUYỆT</span>
-                              </span>
-                            )}
-                          </div>
+                            {/* Kết luận & Khuyến nghị HPV */}
+                            <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mb-6">
+                              <div className="form-group">
+                                <label className="font-bold text-indigo-800 text-xs">KẾT LUẬN XÉT NGHIỆM HPV *</label>
+                                <textarea
+                                  name="ketLuan"
+                                  rows={2}
+                                  className="form-textarea font-bold text-indigo-900 bg-indigo-50/40 border-indigo-200 text-xs disabled:bg-slate-100"
+                                  value={formData.ketLuan}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                  required
+                                />
+                              </div>
 
-                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="btn btn-secondary text-xs py-1.5 px-3"
-                              >
-                                <Save className="w-3.5 h-3.5" />
-                                <span>{saving ? 'Đang lưu...' : 'Lưu kết quả HPV'}</span>
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => handleSignPart(1)}
-                                disabled={saving}
-                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
-                                  formData.daKy
-                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
-                                }`}
-                              >
-                                <PenLine className="w-3.5 h-3.5" />
-                                <span>{formData.daKy ? 'Hủy chữ ký P1' : 'Lưu & Ký duyệt P1 (HPV)'}</span>
-                              </button>
+                              <div className="form-group">
+                                <label className="font-bold text-slate-700 text-xs">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
+                                <textarea
+                                  name="khuyenNghi"
+                                  rows={2}
+                                  className="form-textarea text-xs disabled:bg-slate-100"
+                                  value={formData.khuyenNghi}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                />
+                              </div>
                             </div>
-                          )}
-                        </div>
-                      </>
+
+                            {/* Ảnh đính kèm biểu đồ PCR */}
+                            <div className="pt-4 border-t border-slate-100 mb-6">
+                              <label className="font-bold text-slate-700 text-xs mb-2 block flex items-center gap-1.5">
+                                <ImageIcon className="w-4 h-4 text-sky-600" />
+                                <span>Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR / Tiêu bản</span>
+                              </label>
+                              <FileUpload
+                                accept="image/*"
+                                label="Tải ảnh biểu đồ PCR"
+                                value={formData.anhHpv}
+                                isImage={true}
+                                disabled={false}
+                                onChange={(url) => handleImageUploadPart(1, url)}
+                              />
+                            </div>
+
+                            {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN HPV */}
+                            <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <span className="text-xs text-indigo-800 font-bold block mb-1">
+                                    {isCombo ? 'Bác sĩ đọc HPV (Phần 1):' : 'Bác sĩ đọc kết quả:'}
+                                  </span>
+                                  {userRole === 'admin' || userRole === 'lab_admin' ? (
+                                    <select
+                                      name="bacSiDoc"
+                                      value={formData.bacSiDoc}
+                                      onChange={handleInputChange}
+                                      className="form-select text-xs py-1.5 px-3 font-bold text-sky-700 rounded-lg border-sky-300 bg-white shadow-2xs"
+                                    >
+                                      {doctors1.map((d) => (
+                                        <option key={d._id} value={d.fullName}>
+                                          {d.fullName}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="text-xs font-bold text-sky-800">{formData.bacSiDoc || 'Chưa gán'}</span>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <span className="text-xs text-indigo-800 font-bold block mb-1">Ngày ký:</span>
+                                  <input
+                                    type="date"
+                                    name="ngayXetNghiem"
+                                    value={formData.ngayXetNghiem}
+                                    onChange={handleInputChange}
+                                    className="form-input text-xs py-1 px-2.5 font-bold text-slate-800 rounded-lg border-indigo-300 bg-white shadow-2xs w-44 min-w-[170px]"
+                                  />
+                                </div>
+
+                                {formData.daKy && (
+                                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                    <PenLine className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>ĐÃ KÝ DUYỆT</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="btn btn-secondary text-xs py-1.5 px-3"
+                                  >
+                                    <Save className="w-3.5 h-3.5" />
+                                    <span>{saving ? 'Đang lưu...' : 'Lưu kết quả HPV'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSignPart(1)}
+                                    disabled={saving}
+                                    className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
+                                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                      }`}
+                                  >
+                                    <PenLine className="w-3.5 h-3.5" />
+                                    <span>{isCombo ? (formData.daKy ? 'Hủy chữ ký P1' : 'Lưu & Ký duyệt P1 (HPV)') : (formData.daKy ? 'Hủy chữ ký' : 'Lưu & Ký duyệt')}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
 
                     {/* Render Cell / ThinPrep Form if Cell/ThinPrep or Combo */}
                     {(isCell || isThinPrep) && (
@@ -1518,280 +1561,290 @@ export default function TestResultDetailPage({ params }: PageProps) {
                         {showCellSection && (
                           <>
                             {/* Tính chất bệnh phẩm */}
-                        <div className="mb-6">
-                          <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                            TÍNH CHẤT BỆNH PHẨM
-                          </label>
-                          <div className="flex flex-wrap gap-4">
-                            <label className={`radio-item ${formData.tinhChatBenhPham === 'dat' ? 'border-sky-500 bg-sky-50/60 ring-2 ring-sky-500/20' : ''}`}>
-                              <input
-                                type="radio"
-                                name="tinhChatBenhPham"
-                                value="dat"
-                                checked={formData.tinhChatBenhPham === 'dat'}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                              <span className="text-sm font-bold text-slate-800">Đạt tiêu chuẩn đánh giá</span>
-                            </label>
-
-                            <label className={`radio-item ${formData.tinhChatBenhPham === 'khongDat' ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/20' : ''}`}>
-                              <input
-                                type="radio"
-                                name="tinhChatBenhPham"
-                                value="khongDat"
-                                checked={formData.tinhChatBenhPham === 'khongDat'}
-                                onChange={handleInputChange}
-                                disabled={false}
-                              />
-                              <span className="text-sm font-bold text-slate-800">Không đạt tiêu chuẩn</span>
-                            </label>
-                          </div>
-
-                          {formData.tinhChatBenhPham === 'khongDat' && (
-                            <input
-                              type="text"
-                              name="lyDoKhongDat"
-                              placeholder="Nhập lý do không đạt..."
-                              className="form-input mt-2 text-xs"
-                              value={formData.lyDoKhongDat}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                          )}
-                        </div>
-
-                        {/* Checkbox Main 3 Categories */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                          <label className="checkbox-item">
-                            <input
-                              type="checkbox"
-                              name="khongTonThuong"
-                              checked={formData.khongTonThuong}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                            <span className="text-xs font-bold text-slate-700">
-                              Không tổn thương trong biểu mô hay ác tính
-                            </span>
-                          </label>
-
-                          <label className="checkbox-item">
-                            <input
-                              type="checkbox"
-                              name="batThuongKhac"
-                              checked={formData.batThuongKhac}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                            <span className="text-xs font-bold text-slate-700">Tế bào bất thường khác</span>
-                          </label>
-
-                          <label className="checkbox-item">
-                            <input
-                              type="checkbox"
-                              name="teBaoNoiMac"
-                              checked={formData.teBaoNoiMac}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                            <span className="text-xs font-bold text-slate-700">
-                              Tế bào nội mạc tử cung ở phụ nữ &ge; 45 tuổi
-                            </span>
-                          </label>
-                        </div>
-
-                        {/* Biến đổi vi sinh */}
-                        <div className="mb-6">
-                          <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
-                            BIẾN ĐỔI TẾ BÀO DO VI SINH VẬT
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                            {BIEN_DOI_VI_SINH_OPTIONS.map((opt) => (
-                              <label key={opt.value} className="checkbox-item">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.bienDoiViSinh.includes(opt.value)}
-                                  onChange={() => handleArrayCheckbox('bienDoiViSinh', opt.value)}
-                                  disabled={false}
-                                />
-                                <span className={`text-xs font-medium ${opt.value === 'hpv' || opt.value === 'tapKhuan' ? '' : 'italic'}`}>
-                                  {opt.label}
-                                </span>
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
+                                TÍNH CHẤT BỆNH PHẨM
                               </label>
-                            ))}
-                          </div>
-                        </div>
+                              <div className="flex flex-wrap gap-4">
+                                <label className={`radio-item ${formData.tinhChatBenhPham === 'dat' ? 'border-sky-500 bg-sky-50/60 ring-2 ring-sky-500/20' : ''}`}>
+                                  <input
+                                    type="radio"
+                                    name="tinhChatBenhPham"
+                                    value="dat"
+                                    checked={formData.tinhChatBenhPham === 'dat'}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                  <span className="text-sm font-bold text-slate-800">Đạt tiêu chuẩn đánh giá</span>
+                                </label>
 
-                        {/* Biến đổi tế bào khác */}
-                        <div className="mb-6">
-                          <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
-                            BIẾN ĐỔI TẾ BÀO KHÁC
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                            {BIEN_DOI_KHAC_OPTIONS.map((opt) => (
-                              <label key={opt.value} className="checkbox-item">
+                                <label className={`radio-item ${formData.tinhChatBenhPham === 'khongDat' ? 'border-amber-500 bg-amber-50/60 ring-2 ring-amber-500/20' : ''}`}>
+                                  <input
+                                    type="radio"
+                                    name="tinhChatBenhPham"
+                                    value="khongDat"
+                                    checked={formData.tinhChatBenhPham === 'khongDat'}
+                                    onChange={handleInputChange}
+                                    disabled={false}
+                                  />
+                                  <span className="text-sm font-bold text-slate-800">Không đạt tiêu chuẩn</span>
+                                </label>
+                              </div>
+
+                              {formData.tinhChatBenhPham === 'khongDat' && (
                                 <input
-                                  type="checkbox"
-                                  checked={formData.bienDoiKhac.includes(opt.value)}
-                                  onChange={() => handleArrayCheckbox('bienDoiKhac', opt.value)}
-                                  disabled={false}
-                                />
-                                <span className="text-xs">{opt.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Bất thường tế bào vảy */}
-                        <div className="mb-6">
-                          <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
-                            BẤT THƯỜNG TẾ BÀO VẢY
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                            {BAT_THUONG_VAY_OPTIONS.map((opt) => (
-                              <label key={opt.value} className="checkbox-item">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.batThuongVay.includes(opt.value)}
-                                  onChange={() => handleArrayCheckbox('batThuongVay', opt.value)}
-                                  disabled={false}
-                                />
-                                <span className="text-xs">{opt.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Bất thường tế bào tuyến */}
-                        <div className="mb-6">
-                          <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
-                            BẤT THƯỜNG TẾ BÀO TUYẾN
-                          </label>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                            {BAT_THUONG_TUYEN_OPTIONS.map((opt) => (
-                              <label key={opt.value} className="checkbox-item">
-                                <input
-                                  type="checkbox"
-                                  checked={formData.batThuongTuyen.includes(opt.value)}
-                                  onChange={() => handleArrayCheckbox('batThuongTuyen', opt.value)}
-                                  disabled={false}
-                                />
-                                <span className="text-xs">{opt.label}</span>
-                              </label>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Kết luận & Khuyến nghị */}
-                        <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mb-6">
-                          <div className="form-group">
-                            <label className="font-bold text-sky-800 text-xs">KẾT LUẬN TẾ BÀO HỌC *</label>
-                            <textarea
-                              name={isCombo ? "ketLuan2" : "ketLuan"}
-                              rows={3}
-                              className="form-textarea font-bold text-sky-900 bg-sky-50/30 border-sky-200 text-xs disabled:bg-slate-100"
-                              value={isCombo ? (formData.ketLuan2 || '') : formData.ketLuan}
-                              onChange={handleInputChange}
-                              disabled={false}
-                              required
-                            />
-                          </div>
-
-                          <div className="form-group">
-                            <label className="font-bold text-slate-700 text-xs">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
-                            <textarea
-                              name="khuyenNghi"
-                              rows={2}
-                              className="form-textarea text-xs disabled:bg-slate-100"
-                              value={formData.khuyenNghi}
-                              onChange={handleInputChange}
-                              disabled={false}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Ảnh đính kèm tiêu bản tế bào */}
-                        <div className="pt-4 border-t border-slate-100 mb-6">
-                          <label className="font-bold text-slate-700 text-xs mb-2 block flex items-center gap-1.5">
-                            <ImageIcon className="w-4 h-4 text-sky-600" />
-                            <span>Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)</span>
-                          </label>
-                          <FileUpload
-                            accept="image/*"
-                            label="Tải ảnh tiêu bản tế bào"
-                            value={formData.anhTeBao}
-                            isImage={true}
-                            disabled={false}
-                            onChange={(url) => handleImageUploadPart(2, url)}
-                          />
-                        </div>
-
-                        {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN TẾ BÀO */}
-                        <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200 flex flex-wrap items-center justify-between gap-4">
-                          <div className="flex items-center gap-4">
-                            <div>
-                              <span className="text-xs text-purple-800 font-bold block mb-1">
-                                {isCombo ? 'Bác sĩ đọc Tế bào (Phần 2):' : 'Bác sĩ đọc kết quả:'}
-                              </span>
-                              {userRole === 'admin' || userRole === 'lab_admin' ? (
-                                <select
-                                  name="bacSiDoc2"
-                                  value={formData.bacSiDoc2 || formData.bacSiDoc}
+                                  type="text"
+                                  name="lyDoKhongDat"
+                                  placeholder="Nhập lý do không đạt..."
+                                  className="form-input mt-2 text-xs"
+                                  value={formData.lyDoKhongDat}
                                   onChange={handleInputChange}
-                                  className="form-select text-xs py-1.5 px-3 font-bold text-purple-700 rounded-lg border-purple-300 bg-white shadow-2xs"
-                                >
-                                  {doctors2.map((d) => (
-                                    <option key={d._id} value={d.fullName}>
-                                      {d.fullName}
-                                    </option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <span className="text-xs font-bold text-purple-800">{formData.bacSiDoc2 || formData.bacSiDoc || 'Chưa gán'}</span>
+                                  disabled={false}
+                                />
                               )}
                             </div>
 
-                            {(isCombo ? formData.daKy2 : formData.daKy) && (
-                              <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
-                                <PenLine className="w-3.5 h-3.5 text-emerald-600" />
-                                <span>ĐÃ KÝ DUYỆT</span>
-                              </span>
-                            )}
-                          </div>
+                            {/* Checkbox Main 3 Categories */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
+                              <label className="checkbox-item">
+                                <input
+                                  type="checkbox"
+                                  name="khongTonThuong"
+                                  checked={formData.khongTonThuong}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                />
+                                <span className="text-xs font-bold text-slate-700">
+                                  Không tổn thương trong biểu mô hay ác tính
+                                </span>
+                              </label>
 
-                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="btn btn-secondary text-xs py-1.5 px-3"
-                              >
-                                <Save className="w-3.5 h-3.5" />
-                                <span>{saving ? 'Đang lưu...' : 'Lưu kết quả Tế bào'}</span>
-                              </button>
+                              <label className="checkbox-item">
+                                <input
+                                  type="checkbox"
+                                  name="batThuongKhac"
+                                  checked={formData.batThuongKhac}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                />
+                                <span className="text-xs font-bold text-slate-700">Tế bào bất thường khác</span>
+                              </label>
 
-                              <button
-                                type="button"
-                                onClick={() => handleSignPart(isCombo ? 2 : 1)}
-                                disabled={saving}
-                                className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${
-                                  (isCombo ? formData.daKy2 : formData.daKy)
-                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
-                                }`}
-                              >
-                                <PenLine className="w-3.5 h-3.5" />
-                                <span>{(isCombo ? formData.daKy2 : formData.daKy) ? 'Hủy chữ ký P2' : 'Lưu & Ký duyệt P2 (Tế bào)'}</span>
-                              </button>
+                              <label className="checkbox-item">
+                                <input
+                                  type="checkbox"
+                                  name="teBaoNoiMac"
+                                  checked={formData.teBaoNoiMac}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                />
+                                <span className="text-xs font-bold text-slate-700">
+                                  Tế bào nội mạc tử cung ở phụ nữ &ge; 45 tuổi
+                                </span>
+                              </label>
                             </div>
-                          )}
-                        </div>
-                      </>
+
+                            {/* Biến đổi vi sinh */}
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
+                                BIẾN ĐỔI TẾ BÀO DO VI SINH VẬT
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {BIEN_DOI_VI_SINH_OPTIONS.map((opt) => (
+                                  <label key={opt.value} className="checkbox-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.bienDoiViSinh.includes(opt.value)}
+                                      onChange={() => handleArrayCheckbox('bienDoiViSinh', opt.value)}
+                                      disabled={false}
+                                    />
+                                    <span className={`text-xs font-medium ${opt.value === 'hpv' || opt.value === 'tapKhuan' ? '' : 'italic'}`}>
+                                      {opt.label}
+                                    </span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Biến đổi tế bào khác */}
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
+                                BIẾN ĐỔI TẾ BÀO KHÁC
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {BIEN_DOI_KHAC_OPTIONS.map((opt) => (
+                                  <label key={opt.value} className="checkbox-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.bienDoiKhac.includes(opt.value)}
+                                      onChange={() => handleArrayCheckbox('bienDoiKhac', opt.value)}
+                                      disabled={false}
+                                    />
+                                    <span className="text-xs">{opt.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Bất thường tế bào vảy */}
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
+                                BẤT THƯỜNG TẾ BÀO VẢY
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {BAT_THUONG_VAY_OPTIONS.map((opt) => (
+                                  <label key={opt.value} className="checkbox-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.batThuongVay.includes(opt.value)}
+                                      onChange={() => handleArrayCheckbox('batThuongVay', opt.value)}
+                                      disabled={false}
+                                    />
+                                    <span className="text-xs">{opt.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Bất thường tế bào tuyến */}
+                            <div className="mb-6">
+                              <label className="block text-xs font-bold text-sky-800 uppercase tracking-wider mb-2">
+                                BẤT THƯỜNG TẾ BÀO TUYẾN
+                              </label>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                                {BAT_THUONG_TUYEN_OPTIONS.map((opt) => (
+                                  <label key={opt.value} className="checkbox-item">
+                                    <input
+                                      type="checkbox"
+                                      checked={formData.batThuongTuyen.includes(opt.value)}
+                                      onChange={() => handleArrayCheckbox('batThuongTuyen', opt.value)}
+                                      disabled={false}
+                                    />
+                                    <span className="text-xs">{opt.label}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Kết luận & Khuyến nghị */}
+                            <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mb-6">
+                              <div className="form-group">
+                                <label className="font-bold text-sky-800 text-xs">KẾT LUẬN TẾ BÀO HỌC *</label>
+                                <textarea
+                                  name={isCombo ? "ketLuan2" : "ketLuan"}
+                                  rows={3}
+                                  className="form-textarea font-bold text-sky-900 bg-sky-50/30 border-sky-200 text-xs disabled:bg-slate-100"
+                                  value={isCombo ? (formData.ketLuan2 || '') : formData.ketLuan}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                  required
+                                />
+                              </div>
+
+                              <div className="form-group">
+                                <label className="font-bold text-slate-700 text-xs">KHUYẾN NGHỊ / ĐỀ NGHỊ</label>
+                                <textarea
+                                  name="khuyenNghi"
+                                  rows={2}
+                                  className="form-textarea text-xs disabled:bg-slate-100"
+                                  value={formData.khuyenNghi}
+                                  onChange={handleInputChange}
+                                  disabled={false}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Ảnh đính kèm tiêu bản tế bào */}
+                            <div className="pt-4 border-t border-slate-100 mb-6">
+                              <label className="font-bold text-slate-700 text-xs mb-2 block flex items-center gap-1.5">
+                                <ImageIcon className="w-4 h-4 text-sky-600" />
+                                <span>Ảnh tiêu bản tế bào học (Kính hiển vi / ThinPrep)</span>
+                              </label>
+                              <FileUpload
+                                accept="image/*"
+                                label="Tải ảnh tiêu bản tế bào"
+                                value={formData.anhTeBao}
+                                isImage={true}
+                                disabled={false}
+                                onChange={(url) => handleImageUploadPart(2, url)}
+                              />
+                            </div>
+
+                            {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN TẾ BÀO */}
+                            <div className="p-4 bg-purple-50/60 rounded-xl border border-purple-200 flex flex-wrap items-center justify-between gap-4">
+                              <div className="flex items-center gap-4">
+                                <div>
+                                  <span className="text-xs text-purple-800 font-bold block mb-1">
+                                    {isCombo ? 'Bác sĩ đọc Tế bào (Phần 2):' : 'Bác sĩ đọc kết quả:'}
+                                  </span>
+                                  {userRole === 'admin' || userRole === 'lab_admin' ? (
+                                    <select
+                                      name="bacSiDoc2"
+                                      value={formData.bacSiDoc2 || formData.bacSiDoc}
+                                      onChange={handleInputChange}
+                                      className="form-select text-xs py-1.5 px-3 font-bold text-purple-700 rounded-lg border-purple-300 bg-white shadow-2xs"
+                                    >
+                                      {doctors2.map((d) => (
+                                        <option key={d._id} value={d.fullName}>
+                                          {d.fullName}
+                                        </option>
+                                      ))}
+                                    </select>
+                                  ) : (
+                                    <span className="text-xs font-bold text-purple-800">{formData.bacSiDoc2 || formData.bacSiDoc || 'Chưa gán'}</span>
+                                  )}
+                                </div>
+
+                                <div>
+                                  <span className="text-xs text-purple-800 font-bold block mb-1">Ngày ký:</span>
+                                  <input
+                                    type="date"
+                                    name="ngayXetNghiem"
+                                    value={formData.ngayXetNghiem}
+                                    onChange={handleInputChange}
+                                    className="form-input text-xs py-1 px-2.5 font-bold text-slate-800 rounded-lg border-purple-300 bg-white shadow-2xs w-44 min-w-[170px]"
+                                  />
+                                </div>
+
+                                {(isCombo ? formData.daKy2 : formData.daKy) && (
+                                  <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-3 py-1 rounded-full border border-emerald-300 inline-flex items-center gap-1">
+                                    <PenLine className="w-3.5 h-3.5 text-emerald-600" />
+                                    <span>ĐÃ KÝ DUYỆT</span>
+                                  </span>
+                                )}
+                              </div>
+
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={handleSave}
+                                    disabled={saving}
+                                    className="btn btn-secondary text-xs py-1.5 px-3"
+                                  >
+                                    <Save className="w-3.5 h-3.5" />
+                                    <span>{saving ? 'Đang lưu...' : 'Lưu kết quả Tế bào'}</span>
+                                  </button>
+
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSignPart(isCombo ? 2 : 1)}
+                                    disabled={saving}
+                                    className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${(isCombo ? formData.daKy2 : formData.daKy)
+                                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                      }`}
+                                  >
+                                    <PenLine className="w-3.5 h-3.5" />
+                                    <span>{isCombo ? (formData.daKy2 ? 'Hủy chữ ký P2' : 'Lưu & Ký duyệt P2 (Tế bào)') : (formData.daKy ? 'Hủy chữ ký' : 'Lưu & Ký duyệt')}</span>
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </div>
                     )}
-                  </div>
-                )}
                   </>
                 )}
 
