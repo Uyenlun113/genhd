@@ -119,6 +119,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
 
     // Common fields
     ketLuan: 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ',
+    ketLuan2: 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ',
     khuyenNghi: '',
     ngayXetNghiem: new Date().toISOString().split('T')[0],
     ngayNhanMau: new Date().toISOString().split('T')[0],
@@ -141,6 +142,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
         const testType = data.loaiXetNghiem || 'cell';
         const currentDoctorName = (session?.user as any)?.name;
         const assignedDoctor = data.bacSiDoc || currentDoctorName || 'BS CK1 PHẠM THẾ HÙNG';
+        const isCombo = testType.startsWith('combo_');
 
         setFormData({
           ...data,
@@ -151,13 +153,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
           daKy2: data.daKy2 || false,
           anhTeBao: data.anhTeBao || '',
           anhHpv: data.anhHpv || '',
-          ketLuan:
-            data.ketLuan ||
-            (testType === 'soituoi'
-              ? 'BÌNH THƯỜNG'
-              : testType === 'cell' || testType === 'thinprep'
-              ? 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ'
-              : 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
+          ketLuan: data.ketLuan || '',
+          ketLuan2: data.ketLuan2 || '',
           ngayXetNghiem: data.ngayXetNghiem
             ? new Date(data.ngayXetNghiem).toISOString().split('T')[0]
             : new Date().toISOString().split('T')[0],
@@ -1691,10 +1688,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           <div className="form-group">
                             <label className="font-bold text-sky-800 text-xs">KẾT LUẬN TẾ BÀO HỌC *</label>
                             <textarea
-                              name="ketLuan"
+                              name={isCombo ? "ketLuan2" : "ketLuan"}
                               rows={3}
                               className="form-textarea font-bold text-sky-900 bg-sky-50/30 border-sky-200 text-xs disabled:bg-slate-100"
-                              value={formData.ketLuan}
+                              value={isCombo ? (formData.ketLuan2 || '') : formData.ketLuan}
                               onChange={handleInputChange}
                               disabled={false}
                               required

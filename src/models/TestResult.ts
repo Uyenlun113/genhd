@@ -76,6 +76,7 @@ export interface ITestResult extends Document {
 
   // Chung
   ketLuan: string;
+  ketLuan2?: string;
   khuyenNghi: string;
   ngayXetNghiem: Date;
   bacSiDoc: string;
@@ -158,6 +159,7 @@ const TestResultSchema = new Schema<ITestResult>(
 
     // Kết luận & Khuyến nghị
     ketLuan: { type: String, default: '' },
+    ketLuan2: { type: String, default: '' },
     khuyenNghi: { type: String, default: '' },
 
     ngayXetNghiem: { type: Date, default: Date.now },

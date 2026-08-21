@@ -96,6 +96,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       soiTuoiGhiChuTrichomonas: testResult.soiTuoiGhiChuTrichomonas,
 
       ketLuan: testResult.ketLuan,
+      ketLuan2: testResult.ketLuan2,
       khuyenNghi: testResult.khuyenNghi,
       ngayXetNghiem: testResult.ngayXetNghiem,
       bacSiDoc: testResult.bacSiDoc,

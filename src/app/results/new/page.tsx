@@ -226,6 +226,8 @@ function NewResultFormContent() {
             loaiXetNghiem: typeToSave,
             bacSiDoc: bacSiDoc1,
             bacSiDoc2: bacSiDoc2,
+            ketLuan: 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT',
+            ketLuan2: 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ',
           }),
         });
 
@@ -240,6 +242,8 @@ function NewResultFormContent() {
       } else {
         const createdResults: any[] = [];
         for (const srvId of selectedSingleServices) {
+          const defaultKL = '';
+
           const res = await fetch('/api/test-results', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -249,6 +253,8 @@ function NewResultFormContent() {
               loaiXetNghiem: srvId,
               bacSiDoc: bacSiDoc1,
               bacSiDoc2: '',
+              ketLuan: defaultKL,
+              ketLuan2: '',
             }),
           });
 

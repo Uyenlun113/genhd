@@ -69,7 +69,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (body.trangThai === 'da_tra_ket_qua') {
       body.ngayTraKetQua = new Date();
       actionDesc = 'Hoàn tất & Trả kết quả xét nghiệm';
-    } else if (body.ketLuan || body.hpvHighRiskResult || body.bienDoiViSinh) {
+    } else if (body.ketLuan || body.ketLuan2 || body.hpvHighRiskResult || body.bienDoiViSinh) {
       actionDesc = 'Cập nhật kết quả xét nghiệm chuyên môn';
     }
 

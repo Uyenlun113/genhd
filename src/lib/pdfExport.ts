@@ -55,6 +55,7 @@ export interface ITestResultData {
 
   // Chung
   ketLuan: string;
+  ketLuan2?: string;
   khuyenNghi?: string;
   ngayXetNghiem: string | Date;
   bacSiDoc?: string;
@@ -748,7 +749,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
 
     drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY - 18, 9.5, true, primaryBlue);
-    const klLines = wrapTextLines(data.ketLuan || 'BÌNH THƯỜNG', 68);
+    const klLines = wrapTextLines(data.ketLuan || '', 68);
     klLines.forEach((lText, lIdx) => {
       drawTextOnPage(page1, lText, tableX + 90, ketLuanBoxY - 18 - lIdx * 14, 9.5, true, blackColor);
     });
@@ -772,13 +773,13 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     const titleStr = isHPV40
       ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 40 TYPES'
       : isHPV23
-      ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 23 TYPES'
-      : 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 20 TYPES';
+        ? 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 23 TYPES'
+        : 'PHIẾU KẾT QUẢ XÉT NGHIỆM HPV 20 TYPES';
     const subTitleStr = isHPV40
       ? '(Kỹ thuật Real-time PCR / Genotyping định danh 40 chủng HPV)'
       : isHPV23
-      ? '(Kỹ thuật Real-time PCR / Genotyping định danh 23 chủng HPV)'
-      : '(Kỹ thuật Real-time PCR / Genotyping định danh 20 chủng HPV)';
+        ? '(Kỹ thuật Real-time PCR / Genotyping định danh 23 chủng HPV)'
+        : '(Kỹ thuật Real-time PCR / Genotyping định danh 20 chủng HPV)';
 
     drawCenteredText(page1, titleStr, 35, 560, 735, 14, true, primaryBlue);
     drawCenteredText(page1, subTitleStr, 35, 560, 722, 9, false, rgb(0.4, 0.4, 0.4));
@@ -872,8 +873,8 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     const methodStr = isHPV40
       ? 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 40 chủng HPV.'
       : isHPV23
-      ? 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 23 chủng HPV.'
-      : 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 20 chủng HPV.';
+        ? 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 23 chủng HPV.'
+        : 'Phương pháp xét nghiệm: Kỹ thuật Multiplex Nested-PCR nhân bản và phát hiện đoạn gen đặc hiệu của 20 chủng HPV.';
     drawTextOnPage(page1, methodStr, tableX + 8, methodY + 4, 8.5, true, primaryBlue);
 
     // Genotype Table with explicit row heights per row to prevent line overlaps
@@ -1127,7 +1128,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
 
     drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY + 26, 9.5, true, primaryBlue);
-    const kLines = wrapTextLines(data.ketLuan || 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT', 70);
+    const kLines = wrapTextLines(data.ketLuan || '', 70);
     kLines.forEach((lText, lIdx) => {
       drawTextOnPage(page1, lText, tableX + 85, ketLuanBoxY + 26 - lIdx * 12, 9.5, true, blackColor);
     });
@@ -1470,7 +1471,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
   });
 
   // Multi-page Pagination Logic for KẾT LUẬN & KHUYẾN NGHỊ
-  const ketLuanStr = data.ketLuan || 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ';
+  const ketLuanStr = data.ketLuan || '';
   const khuyenNghiStr = data.khuyenNghi || '';
 
   const ketLuanLines = wrapTextLines(ketLuanStr, 68);
@@ -1667,7 +1668,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       loaiXetNghiem: type1,
       bacSiDoc: data.bacSiDoc,
       signatureImage: data.signatureImage,
-      ketLuan: data.hpvHighRiskResult ? `NHÓM HPV NGUY CƠ CAO (TYPE 16, 18): ${data.hpvHighRiskResult.toUpperCase()}` : (data.ketLuan || 'ÂM TÍNH VỚI CÁC CHỦNG HPV KHẢO SÁT'),
+      ketLuan: data.ketLuan || '',
     });
 
     const pdfBytes2 = await generateSingleTestPDF({
@@ -1675,6 +1676,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       loaiXetNghiem: type2,
       bacSiDoc: data.bacSiDoc2 || data.bacSiDoc,
       signatureImage: data.signatureImage2 || data.signatureImage,
+      ketLuan: data.ketLuan2 || '',
     });
 
     const mergedPdf = await PDFDocument.create();
