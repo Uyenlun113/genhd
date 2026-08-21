@@ -49,6 +49,8 @@ interface TestResultItem {
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
   ngayNhanMau?: string;
   ngayDuKienTra?: string;
+  ngayTraKetQua?: string;
+  updatedAt?: string;
   createdAt: string;
   bacSiDoc?: string;
   bacSiDoc2?: string;
@@ -581,7 +583,7 @@ function DashboardContent() {
                     {userRole === 'admin' && <th>Nguồn</th>}
                     <th>BS Đọc KQ</th>
                     <th>Trạng thái</th>
-                    <th>Dự kiến trả</th>
+                    <th>Thời gian trả / Dự kiến</th>
                     <th>Ngày tạo</th>
                     <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
@@ -698,7 +700,33 @@ function DashboardContent() {
                             </div>
                           </td>
                           <td>
-                            {duKienDate ? (
+                            {item.trangThai === 'da_tra_ket_qua' ? (
+                              <div className="text-xs">
+                                <span className="font-bold text-emerald-800 block">
+                                  {item.ngayTraKetQua
+                                    ? new Date(item.ngayTraKetQua).toLocaleString('vi-VN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                      })
+                                    : item.updatedAt
+                                    ? new Date(item.updatedAt).toLocaleString('vi-VN', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                        day: '2-digit',
+                                        month: '2-digit',
+                                        year: 'numeric',
+                                      })
+                                    : '---'}
+                                </span>
+                                <span className="text-[10px] text-emerald-600 font-bold inline-flex items-center gap-1 mt-0.5">
+                                  <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                  <span>Đã trả kết quả</span>
+                                </span>
+                              </div>
+                            ) : duKienDate ? (
                               <div className="text-xs">
                                 <span className="font-semibold text-slate-700 block">
                                   {duKienDate.toLocaleString('vi-VN', {
@@ -709,14 +737,12 @@ function DashboardContent() {
                                     year: 'numeric',
                                   })}
                                 </span>
-                                {item.trangThai === 'da_tra_ket_qua' ? (
-                                  <span className="text-[10px] text-emerald-600 font-bold">✓ Đã trả kết quả</span>
-                                ) : isOverdue72h ? (
+                                {isOverdue72h ? (
                                   <span className="text-[10px] text-red-600 font-bold animate-pulse"><Clock className='inline-block w-3 h-3' /> Quá hạn 72h!</span>
                                 ) : isWarning48h ? (
                                   <span className="text-[10px] text-amber-700 font-bold"> <Clock className='inline-block w-3 h-3' /> Cảnh báo &gt;48h</span>
                                 ) : (
-                                  <span className="text-[10px] text-sky-600 font-bold"> <Clock className='inline-block w-3 h-3' /> Trong thời hạn</span>
+                                  <span className="text-[10px] text-sky-600 font-bold"> <Clock className='inline-block w-3 h-3' /> Dự kiến trả</span>
                                 )}
                               </div>
                             ) : (

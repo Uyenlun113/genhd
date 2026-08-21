@@ -900,7 +900,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
         },
         {
           group: 'Các Type HPV khác (9 Types)',
-          types: '66,68,42,43,44,53,81,82,73',
+          types: '66, 68, 42, 43, 44, 53, 81, 82, 73',
           result: data.hpvOtherTypesResult || 'Âm tính',
           color: redColor,
           height: 30,
@@ -1047,76 +1047,12 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       );
     });
 
-    // Real-time PCR Chart Box
-    const chartBoxY = isHPV40 ? 300 : 310;
-    const chartBoxH = 90;
-
-    page1.drawRectangle({
-      x: tableX,
-      y: chartBoxY,
-      width: tableW,
-      height: chartBoxH,
-      color: whiteColor,
-      borderColor: primaryBlue,
-      borderWidth: 1,
-    });
-
-    drawTextOnPage(
-      page1,
-      'BIỂU ĐỒ TÍN HIỆU TẢI LƯỢNG KẾT QUẢ (REAL-TIME PCR)',
-      tableX + 10,
-      chartBoxY + chartBoxH - 14,
-      9,
-      true,
-      primaryBlue
-    );
-
-    // Embedded PCR chart image if uploaded
-    const hpvImg = data.anhHpv;
-    if (hpvImg && hpvImg.length > 20) {
-      try {
-        let imageBytes: Buffer;
-        if (hpvImg.startsWith('http://') || hpvImg.startsWith('https://')) {
-          const res = await fetch(hpvImg);
-          const arrayBuf = await res.arrayBuffer();
-          imageBytes = Buffer.from(arrayBuf);
-        } else {
-          const base64Data = hpvImg.replace(/^data:image\/\w+;base64,/, '');
-          imageBytes = Buffer.from(base64Data, 'base64');
-        }
-
-        let embeddedImg;
-        if (hpvImg.includes('.png') || hpvImg.includes('image/png')) {
-          embeddedImg = await pdfDoc.embedPng(imageBytes);
-        } else {
-          embeddedImg = await pdfDoc.embedJpg(imageBytes);
-        }
-
-        page1.drawImage(embeddedImg, {
-          x: tableX + 10,
-          y: chartBoxY + 6,
-          width: tableW - 20,
-          height: chartBoxH - 24,
-        });
-      } catch (err) {
-        console.error('Failed to embed PCR chart image:', err);
-      }
-    } else {
-      drawCenteredText(
-        page1,
-        '[ Khung hiển thị đồ thị tín hiệu huỳnh quang Real-time PCR / Đồ thị điện di ]',
-        tableX,
-        tableX + tableW,
-        chartBoxY + 36,
-        8.5,
-        false,
-        rgb(0.5, 0.5, 0.5)
-      );
-    }
+    // Position Conclusion box directly below Genotype table
+    const tableBottomY = gTableY - gTableH;
+    const ketLuanBoxH = 44;
+    const ketLuanBoxY = tableBottomY - 16 - ketLuanBoxH;
 
     // Kết luận Box
-    const ketLuanBoxY = chartBoxY - 52;
-    const ketLuanBoxH = 44;
     page1.drawRectangle({
       x: tableX,
       y: ketLuanBoxY,

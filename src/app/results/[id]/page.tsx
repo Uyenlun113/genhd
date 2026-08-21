@@ -1434,21 +1434,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               </div>
                             </div>
 
-                            {/* Ảnh đính kèm biểu đồ PCR */}
-                            <div className="pt-4 border-t border-slate-100 mb-6">
-                              <label className="font-bold text-slate-700 text-xs mb-2 block flex items-center gap-1.5">
-                                <ImageIcon className="w-4 h-4 text-sky-600" />
-                                <span>Ảnh biểu đồ tín hiệu huỳnh quang Real-time PCR / Tiêu bản</span>
-                              </label>
-                              <FileUpload
-                                accept="image/*"
-                                label="Tải ảnh biểu đồ PCR"
-                                value={formData.anhHpv}
-                                isImage={true}
-                                disabled={false}
-                                onChange={(url) => handleImageUploadPart(1, url)}
-                              />
-                            </div>
+
 
                             {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN HPV */}
                             <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-between gap-4">
