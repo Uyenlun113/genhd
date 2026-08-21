@@ -598,9 +598,9 @@ export async function POST(request: NextRequest) {
     let introStr = '';
     if (isEn) {
       if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
-        introStr = `According to the DNA testing application form dated ${formattedNgayYeuCau} from Mr./Ms. ${nguoiYeuCauDisplay}, ${compName} performed DNA analysis for the following samples:`;
+        introStr = `According to the request of Mr./Mrs. ${nguoiYeuCauDisplay} on ${formattedNgayYeuCau}, ${compName} performed DNA analysis for the following samples:`;
       } else {
-        introStr = `According to the DNA testing application form dated ${formattedNgayYeuCau} from Mr./Ms. ${nguoiYeuCauDisplay}, ${compName} performed DNA analysis for the following individuals:`;
+        introStr = `According to the request of Mr./Mrs. ${nguoiYeuCauDisplay} on ${formattedNgayYeuCau}, ${compName} performed DNA analysis for the following individuals:`;
       }
     } else {
       if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
@@ -713,7 +713,7 @@ export async function POST(request: NextRequest) {
 
         if (idx === 0) {
           if (isEn) {
-            page1.drawText(nfc(`1.  Full Name: ${name}`), {
+            page1.drawText(nfc(`1.  Alleged Father: ${name}`), {
               x: textX,
               y: currentY,
               size: 13,
@@ -813,7 +813,7 @@ export async function POST(request: NextRequest) {
           }
         } else {
           if (isEn) {
-            page1.drawText(nfc(`${idx + 1}.  Intended Person: ${name}`), {
+            page1.drawText(nfc(`${idx + 1}.  Intended Name: ${name}`), {
               x: textX,
               y: currentY,
               size: 13,
@@ -975,7 +975,7 @@ export async function POST(request: NextRequest) {
           color: darkColor,
         });
         currentY -= 12;
-        page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Samples and sample details' : 'Personal identification documents'} were provided by the applicant, who assumes full responsibility.`), {
+        page1.drawText(nfc(`-  ${loaiXetNghiemADN === 'tu_nguyen' ? 'Samples and sample details' : 'Personal identification documents'} were provided by the person(s) requesting the test, who assumes full responsibility.`), {
           x: margin,
           y: currentY,
           size: 10,
@@ -991,7 +991,7 @@ export async function POST(request: NextRequest) {
           color: darkColor,
         });
         currentY -= 12;
-        page1.drawText(nfc(`-  Nuclear DNA analysis of the above samples using the ${boKit || 'A27Plex STR Detection Kit'}.`), {
+        page1.drawText(nfc(`-  Extracted Nuclear DNA were amplified by using ${boKit || 'A27Plex STR Detection Kit'}.`), {
           x: margin,
           y: currentY,
           size: 10,
@@ -1049,7 +1049,7 @@ export async function POST(request: NextRequest) {
       });
       currentY -= 16;
     } else {
-      page1.drawText(nfc(isEn ? 'The DNA analysis results are as follows:' : 'Kết quả phân tích ADN như sau:'), {
+      page1.drawText(nfc(isEn ? 'Profile Comparison Matrix is described in the following table:' : 'Kết quả phân tích ADN như sau:'), {
         x: margin,
         y: currentY,
         size: 13,
@@ -1320,9 +1320,11 @@ export async function POST(request: NextRequest) {
     });
     currentY -= 15;
 
-    const m1Name = mauDanhSach[0]?.hoTen || '...................';
+    const m1RawName = mauDanhSach[0]?.hoTen || '...................';
+    const m1Name = isEn ? toEnglishText(m1RawName, 'name') : m1RawName;
     const m1Key = mauDanhSach[0]?.kyHieuMau || 'M1';
-    const m2Name = mauDanhSach[1]?.hoTen || '...................';
+    const m2RawName = mauDanhSach[1]?.hoTen || '...................';
+    const m2Name = isEn ? toEnglishText(m2RawName, 'name') : m2RawName;
     const m2Key = mauDanhSach[1]?.kyHieuMau || 'M2';
 
     const rawKetLuan = (ketLuan || 'có quan hệ huyết thống bố - con ( cha – con)').trim();
@@ -1367,7 +1369,7 @@ export async function POST(request: NextRequest) {
         if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
           conclusionFullText = `Sample donor ${m1Name} (Code: ${m1Key}) ${relationStr} sample donor ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
         } else {
-          conclusionFullText = `${m1Name} (Code: ${m1Key}) ${relationStr} intended person ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `${m1Name} (Code: ${m1Key}) ${relationStr} child ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
         }
       }
     } else {

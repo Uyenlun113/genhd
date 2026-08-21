@@ -541,6 +541,95 @@ export default function AdnConvertListPage() {
     }
   };
 
+  const handleDownloadDocx = async (order: AdnOrderData, langOverride?: 'vi' | 'en') => {
+    setExportingPdf(true);
+    const langToUse = langOverride || exportLang;
+    try {
+      let fullOrder = order;
+      try {
+        const fullRes = await fetch(`/api/adn/orders/${order._id}`);
+        const fullJson = await fullRes.json();
+        if (fullJson.success && fullJson.data) {
+          fullOrder = fullJson.data;
+        }
+      } catch (e) {
+        console.error('Error fetching full order data:', e);
+      }
+
+      const res = await fetch('/api/adn/export-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...fullOrder, lang: langToUse }),
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ket_Qua_ADN_${fullOrder.soPhieu || fullOrder.maSo}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success('Đã tải file DOCX kết quả ADN thành công!');
+      } else {
+        toast.error('Xuất DOCX thất bại');
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tạo file DOCX');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
+  const handleDownloadDocxGenetrust = async (order: AdnOrderData, customCanBo?: string, customDaiDien?: string, langOverride?: 'vi' | 'en') => {
+    setExportingPdf(true);
+    const langToUse = langOverride || exportLang;
+    try {
+      let fullOrder = order;
+      try {
+        const fullRes = await fetch(`/api/adn/orders/${order._id}`);
+        const fullJson = await fullRes.json();
+        if (fullJson.success && fullJson.data) {
+          fullOrder = fullJson.data;
+        }
+      } catch (e) {
+        console.error('Error fetching full order data:', e);
+      }
+
+      const payload = {
+        ...fullOrder,
+        canBoXetNghiem: customCanBo !== undefined ? customCanBo : fullOrder.canBoXetNghiem,
+        daiDienDonVi: customDaiDien !== undefined ? customDaiDien : fullOrder.daiDienDonVi,
+        isGenetrust: true,
+        lang: langToUse,
+      };
+      const res = await fetch('/api/adn/export-docx', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Ket_Qua_ADN_Genetrust_${fullOrder.soPhieu || fullOrder.maSo}.docx`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        toast.success('Đã convert và tải file DOCX kết quả Genetrust thành công!');
+      } else {
+        toast.error('Xuất DOCX Genetrust thất bại');
+      }
+    } catch (err) {
+      toast.error('Lỗi khi tạo file DOCX');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const handleDownloadPdfGenetrust = async (order: AdnOrderData, customCanBo?: string, customDaiDien?: string, langOverride?: 'vi' | 'en') => {
     setExportingPdf(true);
     const langToUse = langOverride || exportLang;
@@ -1800,12 +1889,20 @@ export default function AdnConvertListPage() {
                 </div>
 
                 <button
-                  onClick={() => handleDownloadPdf(activeOrder)}
+                  onClick={() => handleDownloadDocx(activeOrder)}
                   disabled={exportingPdf}
-                  className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
                 >
                   {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-                  <span>Tải PDF Kết Quả {exportLang === 'en' ? '(EN)' : '(VI)'}</span>
+                  <span>Tải DOCX {exportLang === 'en' ? '(EN)' : '(VI)'}</span>
+                </button>
+                <button
+                  onClick={() => handleDownloadPdf(activeOrder)}
+                  disabled={exportingPdf}
+                  className="px-4 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold text-xs rounded-xl shadow-md cursor-pointer flex items-center gap-2"
+                >
+                  {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                  <span>PDF</span>
                 </button>
                 <button onClick={() => setShowPreviewModal(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">
                   ✕
@@ -2150,13 +2247,27 @@ export default function AdnConvertListPage() {
                   const canBo = gtCanBoName;
                   const daiDien = gtDaiDienName;
                   setGtConvertOrder(null);
-                  handleDownloadPdfGenetrust(targetOrder, canBo, daiDien);
+                  if (targetOrder) handleDownloadDocxGenetrust(targetOrder, canBo, daiDien);
                 }}
                 disabled={exportingPdf}
-                className="px-5 py-2.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all"
+                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs cursor-pointer flex items-center gap-2 transition-all"
               >
                 {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                <span>Xác nhận Convert & Tải PDF</span>
+                <span>Xác nhận Convert & Tải DOCX</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const targetOrder = gtConvertOrder;
+                  const canBo = gtCanBoName;
+                  const daiDien = gtDaiDienName;
+                  setGtConvertOrder(null);
+                  if (targetOrder) handleDownloadPdfGenetrust(targetOrder, canBo, daiDien);
+                }}
+                disabled={exportingPdf}
+                className="px-4 py-2.5 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer"
+              >
+                <span>Tải PDF</span>
               </button>
             </div>
           </div>
