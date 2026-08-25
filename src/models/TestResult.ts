@@ -79,6 +79,7 @@ export interface ITestResult extends Document {
   ketLuan2?: string;
   khuyenNghi: string;
   ngayXetNghiem: Date;
+  ngayXetNghiem2?: Date;
   bacSiDoc: string;
 
   trangThai: 'nhap_thong_tin' | 'chay_ket_qua' | 'da_tra_ket_qua';
@@ -163,6 +164,7 @@ const TestResultSchema = new Schema<ITestResult>(
     khuyenNghi: { type: String, default: '' },
 
     ngayXetNghiem: { type: Date, default: Date.now },
+    ngayXetNghiem2: { type: Date },
     bacSiDoc: { type: String, default: 'BS CK1 PHẠM THẾ HÙNG' },
     bacSiDoc2: { type: String, default: '' },
 

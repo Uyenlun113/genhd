@@ -122,6 +122,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
     ketLuan2: 'KHÔNG THẤY TẾ BÀO BẤT THƯỜNG TRÊN PHIẾN ĐỒ',
     khuyenNghi: '',
     ngayXetNghiem: new Date().toISOString().split('T')[0],
+    ngayXetNghiem2: new Date().toISOString().split('T')[0],
     ngayNhanMau: new Date().toISOString().split('T')[0],
     bacSiDoc: 'BS CK1 PHẠM THẾ HÙNG',
     bacSiDoc2: 'BS CK1 PHẠM THẾ HÙNG',
@@ -160,6 +161,16 @@ export default function TestResultDetailPage({ params }: PageProps) {
               ? data.ngayXetNghiem.split('T')[0]
               : (() => {
                 const d = new Date(data.ngayXetNghiem);
+                return !isNaN(d.getTime())
+                  ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+                  : new Date().toISOString().split('T')[0];
+              })())
+            : new Date().toISOString().split('T')[0],
+          ngayXetNghiem2: (data.ngayXetNghiem2 || data.ngayXetNghiem)
+            ? (typeof (data.ngayXetNghiem2 || data.ngayXetNghiem) === 'string' && /^\d{4}-\d{2}-\d{2}/.test(data.ngayXetNghiem2 || data.ngayXetNghiem)
+              ? (data.ngayXetNghiem2 || data.ngayXetNghiem).split('T')[0]
+              : (() => {
+                const d = new Date(data.ngayXetNghiem2 || data.ngayXetNghiem);
                 return !isNaN(d.getTime())
                   ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
                   : new Date().toISOString().split('T')[0];
@@ -1801,8 +1812,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                   <span className="text-xs text-purple-800 font-bold block mb-1">Ngày ký:</span>
                                   <input
                                     type="date"
-                                    name="ngayXetNghiem"
-                                    value={formData.ngayXetNghiem}
+                                    name={isCombo ? "ngayXetNghiem2" : "ngayXetNghiem"}
+                                    value={isCombo ? (formData.ngayXetNghiem2 || formData.ngayXetNghiem) : formData.ngayXetNghiem}
                                     onChange={handleInputChange}
                                     className="form-input text-xs py-1 px-2.5 font-bold text-slate-800 rounded-lg border-purple-300 bg-white shadow-2xs w-44 min-w-[170px]"
                                   />

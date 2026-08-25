@@ -58,6 +58,7 @@ export interface ITestResultData {
   ketLuan2?: string;
   khuyenNghi?: string;
   ngayXetNghiem: string | Date;
+  ngayXetNghiem2?: string | Date;
   bacSiDoc?: string;
   bacSiDoc2?: string;
   bacSiTitle?: string;
@@ -1641,6 +1642,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const pdfBytes1 = await generateSingleTestPDF({
       ...data,
       loaiXetNghiem: type1,
+      ngayXetNghiem: data.ngayXetNghiem,
       bacSiDoc: data.bacSiDoc,
       signatureImage: data.signatureImage,
       ketLuan: data.ketLuan || '',
@@ -1649,6 +1651,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
     const pdfBytes2 = await generateSingleTestPDF({
       ...data,
       loaiXetNghiem: type2,
+      ngayXetNghiem: data.ngayXetNghiem2 || data.ngayXetNghiem,
       bacSiDoc: data.bacSiDoc2 || data.bacSiDoc,
       signatureImage: data.signatureImage2 || data.signatureImage,
       ketLuan: data.ketLuan2 || '',
