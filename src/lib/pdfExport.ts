@@ -557,7 +557,46 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       drawTextOnPage(page1, lText, tableX + 85, ketLuanBoxY + ketLuanBoxH - 16 - lIdx * 13, 9.5, true, blackColor);
     });
 
-    // Doctor Signature
+    // Doctor Signature & Test Image
+    if (data.anhTeBao && data.anhTeBao.length > 20) {
+      const anhTeBaoUrl = data.anhTeBao;
+      try {
+        let imageBytes: Buffer;
+        if (anhTeBaoUrl.startsWith('http://') || anhTeBaoUrl.startsWith('https://')) {
+          const res = await fetch(anhTeBaoUrl);
+          const arrayBuf = await res.arrayBuffer();
+          imageBytes = Buffer.from(arrayBuf);
+        } else {
+          const base64Data = anhTeBaoUrl.replace(/^data:image\/\w+;base64,/, '');
+          imageBytes = Buffer.from(base64Data, 'base64');
+        }
+
+        let img: any = null;
+        try {
+          img = await pdfDoc.embedPng(imageBytes);
+        } catch {
+          try {
+            img = await pdfDoc.embedJpg(imageBytes);
+          } catch {
+            const sharp = require('sharp');
+            const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
+            img = await pdfDoc.embedPng(cleanPngBytes);
+          }
+        }
+
+        if (img) {
+          page1.drawImage(img, {
+            x: tableX + 20,
+            y: 75,
+            width: 170,
+            height: 115,
+          });
+        }
+      } catch (err) {
+        console.error('Failed to embed pathology image:', err);
+      }
+    }
+
     drawDoctorSignatureBlock(page1, data.ngayXetNghiem, 220);
 
     drawWatermarkOverlay(page1);

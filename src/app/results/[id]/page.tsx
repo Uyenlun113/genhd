@@ -865,6 +865,22 @@ export default function TestResultDetailPage({ params }: PageProps) {
                           </div>
                         </div>
 
+                        {/* Ảnh đính kèm tiêu bản / xét nghiệm Giải phẫu bệnh */}
+                        <div className="pt-4 border-t border-slate-100 mb-6">
+                          <label className="font-bold text-slate-700 text-xs mb-2 flex items-center gap-1.5">
+                            <ImageIcon className="w-4 h-4 text-amber-600" />
+                            <span>Ảnh tiêu bản / xét nghiệm Giải phẫu bệnh</span>
+                          </label>
+                          <FileUpload
+                            accept="image/*"
+                            label="Tải ảnh xét nghiệm GPB"
+                            value={formData.anhTeBao}
+                            isImage={true}
+                            disabled={false}
+                            onChange={(url) => handleImageUploadPart(2, url)}
+                          />
+                        </div>
+
                         {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN GIẢI PHẪU BỆNH */}
                         <div className="p-4 bg-amber-50/60 rounded-xl border border-amber-200 flex flex-wrap items-center justify-between gap-4">
                           <div className="flex items-center gap-4">
