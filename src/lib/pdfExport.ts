@@ -587,7 +587,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
         if (img) {
           page1.drawImage(img, {
             x: tableX + 20,
-            y: 75,
+            y: 92,
             width: 170,
             height: 115,
           });
