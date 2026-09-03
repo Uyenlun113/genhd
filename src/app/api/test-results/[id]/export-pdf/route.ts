@@ -34,18 +34,18 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
 
     // Map bác sĩ đọc kết quả → file chữ ký
-    const getSig = (docName?: string) => {
-      if (!testResult.daKy || !docName) return '';
+    const getSig = (docName?: string, isSigned?: boolean) => {
+      if (!isSigned || !docName) return '';
       const upper = docName.toUpperCase();
       if (upper.includes('TRỰC') || upper.includes('TRUC')) return 'chu_ki_truc.png';
       if (upper.includes('HÙNG') || upper.includes('HUNG')) return 'chu_ki_hung.png';
       if (upper.includes('DƯƠNG') || upper.includes('DUONG')) return 'chu_ki_duong.png';
-      if (upper.includes('DŨNG') || upper.includes('DUNG')) return 'chu_ki_dung.png';
+      if (upper.includes('DŨNG') || upper.includes('DUNG')) return 'chu_ki_duong.png';
       return 'chu_ki_hung.png';
     };
 
-    const signatureImage1 = getSig(testResult.bacSiDoc);
-    const signatureImage2 = getSig(testResult.bacSiDoc2 || testResult.bacSiDoc);
+    const signatureImage1 = getSig(testResult.bacSiDoc, testResult.daKy);
+    const signatureImage2 = getSig(testResult.bacSiDoc2 || testResult.bacSiDoc, testResult.daKy2 !== undefined ? testResult.daKy2 : testResult.daKy);
 
     const pdfBuffer = await generatePDF({
       maSo: testResult.maSo,

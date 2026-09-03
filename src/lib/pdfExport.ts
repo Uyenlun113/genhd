@@ -1653,7 +1653,7 @@ export async function generatePDF(data: ITestResultData): Promise<Uint8Array> {
       loaiXetNghiem: type2,
       ngayXetNghiem: data.ngayXetNghiem2 || data.ngayXetNghiem,
       bacSiDoc: data.bacSiDoc2 || data.bacSiDoc,
-      signatureImage: data.signatureImage2 || data.signatureImage,
+      signatureImage: data.signatureImage2,
       ketLuan: data.ketLuan2 || '',
     });
 

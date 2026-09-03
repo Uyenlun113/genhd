@@ -39,10 +39,23 @@ export async function POST(request: NextRequest, { params }: Params) {
     const part = body.part || 1;
     delete body.part;
 
+    const existing = await TestResult.findById(id).lean();
+    if (!existing) {
+      return NextResponse.json({ error: 'Không tìm thấy phiếu' }, { status: 404 });
+    }
+
+    const daKy = part === 1
+      ? (body.daKy !== undefined ? body.daKy : true)
+      : (body.daKy !== undefined ? body.daKy : (existing.daKy || false));
+
+    const daKy2 = part === 2
+      ? (body.daKy2 !== undefined ? body.daKy2 : true)
+      : (body.daKy2 !== undefined ? body.daKy2 : (existing.daKy2 || false));
+
     const updatePayload: any = {
       ...body,
-      daKy: part === 1 ? (body.daKy !== undefined ? body.daKy : true) : (body.daKy || false),
-      daKy2: part === 2 ? (body.daKy2 !== undefined ? body.daKy2 : true) : (body.daKy2 || false),
+      daKy,
+      daKy2,
       $push: {
         lichSuChinhSua: {
           nguoiSua: userName,

@@ -307,8 +307,21 @@ export default function TestResultDetailPage({ params }: PageProps) {
       const isCurrentlySigned = isPart1 ? formData.daKy : (isCombo ? formData.daKy2 : formData.daKy);
       const targetState = !isCurrentlySigned;
 
+      let updatedDoc1 = formData.bacSiDoc;
+      let updatedDoc2 = formData.bacSiDoc2;
+      if (targetState && session?.user?.name) {
+        if (isPart1 && (!updatedDoc1 || updatedDoc1 === 'Chưa phân loại')) {
+          updatedDoc1 = session.user.name;
+        }
+        if (!isPart1 && (!updatedDoc2 || updatedDoc2 === 'Chưa phân loại')) {
+          updatedDoc2 = session.user.name;
+        }
+      }
+
       const payload = {
         ...formData,
+        bacSiDoc: updatedDoc1,
+        bacSiDoc2: updatedDoc2,
         part,
         [isPart1 ? 'daKy' : 'daKy2']: targetState,
       };

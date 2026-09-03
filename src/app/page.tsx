@@ -56,6 +56,7 @@ interface TestResultItem {
   bacSiDoc2?: string;
   nguoiNhap?: any;
   daKy?: boolean;
+  daKy2?: boolean;
 }
 
 interface DoctorUser {
@@ -664,10 +665,20 @@ function DashboardContent() {
                                     <div className="flex items-center gap-1.5">
                                       <span className="font-bold text-sky-700 text-[11px] shrink-0">{part1Name}:</span>
                                       <span className="font-semibold text-slate-800 truncate">{doc1Name}</span>
+                                      {item.daKy && userRole !== 'staff' && (
+                                        <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-300 shrink-0">
+                                          Đã ký
+                                        </span>
+                                      )}
                                     </div>
                                     <div className="flex items-center gap-1.5">
                                       <span className="font-bold text-purple-700 text-[11px] shrink-0">{part2Name}:</span>
                                       <span className="font-semibold text-slate-800 truncate">{doc2Name}</span>
+                                      {item.daKy2 && userRole !== 'staff' && (
+                                        <span className="text-[10px] text-purple-700 font-bold bg-purple-50 px-1.5 py-0.5 rounded border border-purple-300 shrink-0">
+                                          Đã ký
+                                        </span>
+                                      )}
                                     </div>
                                   </div>
                                 );
@@ -691,11 +702,26 @@ function DashboardContent() {
                           <td>
                             <div className="flex flex-col items-start gap-1">
                               <StatusBadge status={item.trangThai} />
-                              {item.daKy && item.trangThai !== 'da_tra_ket_qua' && userRole !== 'staff' && (
-                                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300">
-                                  <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
-                                  <span>Bác sĩ đã đọc & ký</span>
-                                </span>
+                              {item.trangThai !== 'da_tra_ket_qua' && userRole !== 'staff' && (
+                                item.loaiXetNghiem?.startsWith('combo_') ? (
+                                  (item.daKy || item.daKy2) && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300">
+                                      <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                      <span>
+                                        {item.daKy && item.daKy2
+                                          ? 'Bác sĩ đã ký (P1 & P2)'
+                                          : item.daKy
+                                          ? 'Đã ký P1 (HPV)'
+                                          : 'Đã ký P2 (Tế bào)'}
+                                      </span>
+                                    </span>
+                                  )
+                                ) : item.daKy && (
+                                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-300">
+                                    <CheckCircle className="w-3 h-3 text-emerald-600 shrink-0" />
+                                    <span>Bác sĩ đã đọc & ký</span>
+                                  </span>
+                                )
                               )}
                             </div>
                           </td>
