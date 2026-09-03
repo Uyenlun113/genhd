@@ -890,7 +890,9 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           soPhieu,
           loaiXetNghiemADN,
           ngayYeuCau,
-          ngayBanHanh,
+          ngayBanHanh: ngayBanHanh && ngayBanHanh.trim()
+            ? ngayBanHanh
+            : `Hà Nội, ngày ${String(new Date().getDate()).padStart(2, '0')} tháng ${String(new Date().getMonth() + 1).padStart(2, '0')} năm ${new Date().getFullYear()}.`,
           nguoiYeuCau,
           nguoiThuMau,
           boKit,
@@ -2137,7 +2139,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="form-group mb-0">
                   <label>Độ tin cậy</label>
                   <input
@@ -2146,6 +2148,37 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     onChange={(e) => setDoTinCay(e.target.value)}
                     disabled={trangThai === 'da_tra_ket_qua'}
                     className="form-input disabled:bg-slate-100 disabled:text-slate-500"
+                  />
+                </div>
+
+                <div className="form-group mb-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="mb-0">Ngày lưu kết quả (Ngày ký)</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date();
+                        const dd = String(today.getDate()).padStart(2, '0');
+                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                        const yyyy = today.getFullYear();
+                        const newDateStr = `Hà Nội, ngày ${dd} tháng ${mm} năm ${yyyy}.`;
+                        setNgayBanHanh(newDateStr);
+                        setTimeout(() => generatePdfPreview(), 300);
+                      }}
+                      className="text-[11px] text-sky-600 hover:text-sky-800 font-semibold underline cursor-pointer"
+                    >
+                      Lấy ngày hôm nay
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={ngayBanHanh}
+                    onChange={(e) => {
+                      setNgayBanHanh(e.target.value);
+                      setTimeout(() => generatePdfPreview(), 300);
+                    }}
+                    placeholder="VD: Hà Nội, ngày 03 tháng 09 năm 2026."
+                    className="form-input font-medium"
                   />
                 </div>
 

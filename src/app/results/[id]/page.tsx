@@ -442,20 +442,20 @@ export default function TestResultDetailPage({ params }: PageProps) {
           <Header
             title={`Phiếu xét nghiệm: ${formData.maSo}`}
             subtitle={`Bệnh nhân: ${formData.hoTen} (${formData.loaiXetNghiem === 'cell'
-                ? 'Mẫu CELL'
-                : formData.loaiXetNghiem === 'thinprep'
-                  ? 'Mẫu ThinPrep'
-                  : formData.loaiXetNghiem === 'hpv40'
-                    ? 'Mẫu HPV 40'
-                    : formData.loaiXetNghiem === 'hpv20'
-                      ? 'Mẫu HPV 20'
-                      : formData.loaiXetNghiem === 'hpv23'
-                        ? 'Mẫu HPV 23'
-                        : formData.loaiXetNghiem === 'soituoi'
-                          ? 'Mẫu Soi tươi'
-                          : formData.loaiXetNghiem === 'giaiphaubenh'
-                            ? 'Mẫu Giải Phẫu Bệnh'
-                            : 'Phiếu xét nghiệm'
+              ? 'Mẫu CELL'
+              : formData.loaiXetNghiem === 'thinprep'
+                ? 'Mẫu ThinPrep'
+                : formData.loaiXetNghiem === 'hpv40'
+                  ? 'Mẫu HPV 40'
+                  : formData.loaiXetNghiem === 'hpv20'
+                    ? 'Mẫu HPV 20'
+                    : formData.loaiXetNghiem === 'hpv23'
+                      ? 'Mẫu HPV 23'
+                      : formData.loaiXetNghiem === 'soituoi'
+                        ? 'Mẫu Soi tươi'
+                        : formData.loaiXetNghiem === 'giaiphaubenh'
+                          ? 'Mẫu Giải Phẫu Bệnh'
+                          : 'Phiếu xét nghiệm'
               })`}
             action={
               <div className="flex items-center gap-3">
@@ -953,8 +953,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 onClick={() => handleSignPart(1)}
                                 disabled={saving}
                                 className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
-                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                                   }`}
                               >
                                 <PenLine className="w-3.5 h-3.5" />
@@ -1273,8 +1273,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 onClick={() => handleSignPart(1)}
                                 disabled={saving}
                                 className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
-                                    ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                  : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                                   }`}
                               >
                                 <PenLine className="w-3.5 h-3.5" />
@@ -1524,8 +1524,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                     onClick={() => handleSignPart(1)}
                                     disabled={saving}
                                     className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${formData.daKy
-                                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                                       }`}
                                   >
                                     <PenLine className="w-3.5 h-3.5" />
@@ -1844,8 +1844,8 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                     onClick={() => handleSignPart(isCombo ? 2 : 1)}
                                     disabled={saving}
                                     className={`btn text-xs py-1.5 px-3.5 font-bold transition-all shadow-sm ${(isCombo ? formData.daKy2 : formData.daKy)
-                                        ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                                        : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                                      ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                                      : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
                                       }`}
                                   >
                                     <PenLine className="w-3.5 h-3.5" />

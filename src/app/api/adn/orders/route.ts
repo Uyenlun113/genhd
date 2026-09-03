@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
       maSo,
       loaiXetNghiemADN,
       soPhieu: finalSoPhieu,
-      ngayBanHanh: ngayBanHanh || `Hà Nội, ngày ${new Date().getDate()} tháng ${new Date().getMonth() + 1} năm ${new Date().getFullYear()}.`,
+      ngayBanHanh: ngayBanHanh || `Hà Nội, ngày ${String(new Date().getDate()).padStart(2, '0')} tháng ${String(new Date().getMonth() + 1).padStart(2, '0')} năm ${new Date().getFullYear()}.`,
       ngayYeuCau: ngayYeuCau || new Date().toISOString().split('T')[0],
       nguoiYeuCau,
       nguoiThuMau,

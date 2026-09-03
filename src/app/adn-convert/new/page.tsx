@@ -81,7 +81,7 @@ export default function NewAdnOrderPage() {
     const mmIso = String(today.getMonth() + 1).padStart(2, '0');
     const ddIso = String(today.getDate()).padStart(2, '0');
     setNgayYeuCau(`${yyyy}-${mmIso}-${ddIso}`);
-    setNgayBanHanh(`Hà Nội, ngày ${today.getDate()} tháng ${today.getMonth() + 1} năm ${today.getFullYear()}`);
+    setNgayBanHanh(`Hà Nội, ngày ${ddIso} tháng ${mmIso} năm ${yyyy}.`);
   }, [createType]);
 
   // Image Upload Helper (convert to JPEG & upload to Cloudinary if available)

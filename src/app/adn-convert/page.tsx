@@ -107,6 +107,43 @@ const formatDateDisplay = (dateStr?: string) => {
   return dateStr;
 };
 
+const formatResultDateStr = (ngayBanHanh?: string, fallbackDate?: string | Date) => {
+  if (ngayBanHanh && typeof ngayBanHanh === 'string' && ngayBanHanh.trim()) {
+    const trimmed = ngayBanHanh.trim();
+    const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
+    if (vnMatch) {
+      const d = String(parseInt(vnMatch[1], 10)).padStart(2, '0');
+      const m = String(parseInt(vnMatch[2], 10)).padStart(2, '0');
+      const y = vnMatch[3];
+      return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
+    }
+    if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T')) {
+      const ymd = trimmed.split('T')[0];
+      const parts = ymd.split('-');
+      if (parts.length === 3) {
+        const y = parts[0];
+        const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+        const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+        return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
+      }
+    }
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+      const parts = trimmed.split('/');
+      const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+      const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const y = parts[2];
+      return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
+    }
+    return trimmed;
+  }
+
+  const dateObj = fallbackDate ? new Date(fallbackDate) : new Date();
+  const d = String(dateObj.getDate()).padStart(2, '0');
+  const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const y = dateObj.getFullYear();
+  return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
+};
+
 const formatAllele = (v1?: string, v2?: string) => {
   const a1 = (v1 || '').trim();
   const a2 = (v2 || '').trim();
@@ -238,6 +275,7 @@ export default function AdnConvertListPage() {
   const [resultProbabilityOfPaternity, setResultProbabilityOfPaternity] = useState('99.9999999999957%');
   const [resultKiemSoat, setResultKiemSoat] = useState('TS. BS. Nguyễn Khánh Dương');
   const [resultDaiDien, setResultDaiDien] = useState('CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+  const [resultNgayBanHanh, setResultNgayBanHanh] = useState('');
   const [resultSamples, setResultSamples] = useState<SampleItem[]>([]);
   const [resultTable1, setResultTable1] = useState<LocusItem[]>([]);
   const [resultTable2, setResultTable2] = useState<LocusItem[]>([]);
@@ -407,6 +445,7 @@ export default function AdnConvertListPage() {
     setResultProbabilityOfPaternity(order.probabilityOfPaternity || '99.9999999999957%');
     setResultKiemSoat(order.kiemSoatKetQua || 'TS. BS. Nguyễn Khánh Dương');
     setResultDaiDien(order.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+    setResultNgayBanHanh(order.ngayBanHanh || `Hà Nội, ngày ${String(new Date().getDate()).padStart(2, '0')} tháng ${String(new Date().getMonth() + 1).padStart(2, '0')} năm ${new Date().getFullYear()}.`);
     setResultSamples(order.mauDanhSach || []);
     setResultTable1(order.table1 || []);
     setResultTable2(order.table2 || []);
@@ -471,6 +510,7 @@ export default function AdnConvertListPage() {
           probabilityOfPaternity: resultProbabilityOfPaternity,
           kiemSoatKetQua: resultKiemSoat,
           daiDienDonVi: resultDaiDien,
+          ngayBanHanh: resultNgayBanHanh,
         }),
       });
 
@@ -1792,7 +1832,7 @@ export default function AdnConvertListPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1">Độ tin cậy</label>
                   <input
@@ -1800,6 +1840,31 @@ export default function AdnConvertListPage() {
                     value={resultDoTinCay}
                     onChange={(e) => setResultDoTinCay(e.target.value)}
                     className="w-full p-2 border border-slate-300 rounded-lg text-xs"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-slate-700">Ngày lưu kết quả (Ngày ký)</label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const today = new Date();
+                        const dd = String(today.getDate()).padStart(2, '0');
+                        const mm = String(today.getMonth() + 1).padStart(2, '0');
+                        const yyyy = today.getFullYear();
+                        setResultNgayBanHanh(`Hà Nội, ngày ${dd} tháng ${mm} năm ${yyyy}.`);
+                      }}
+                      className="text-[10px] text-sky-600 hover:text-sky-800 font-semibold underline cursor-pointer"
+                    >
+                      Lấy ngày hôm nay
+                    </button>
+                  </div>
+                  <input
+                    type="text"
+                    value={resultNgayBanHanh}
+                    onChange={(e) => setResultNgayBanHanh(e.target.value)}
+                    placeholder="VD: Hà Nội, ngày 03 tháng 09 năm 2026."
+                    className="w-full p-2 border border-slate-300 rounded-lg text-xs font-medium"
                   />
                 </div>
                 <div>
@@ -2029,6 +2094,9 @@ export default function AdnConvertListPage() {
                       <div className="mt-12 text-slate-700">{activeOrder.kiemSoatKetQua}</div>
                     </div>
                     <div>
+                      <div className="italic font-normal mb-3">
+                        {formatResultDateStr(activeOrder.ngayBanHanh, activeOrder.createdAt)}
+                      </div>
                       <div>ĐẠI DIỆN ĐƠN VỊ</div>
                       <div className="mt-12 text-slate-700">{activeOrder.daiDienDonVi}</div>
                     </div>

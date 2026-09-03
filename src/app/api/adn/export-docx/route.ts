@@ -63,19 +63,53 @@ const formatAllelePair = (v1: any, v2: any) => {
 };
 
 const formatDateVN = (dateStr: any): string => {
-  if (!dateStr || typeof dateStr !== 'string') return '';
-  const trimmed = dateStr.trim();
-  if (!trimmed) return '';
+  if (!dateStr) {
+    const now = new Date();
+    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const m = now.getMonth() + 1 < 10 ? `0${now.getMonth() + 1}` : `${now.getMonth() + 1}`;
+    return `Hà Nội, ngày ${d} tháng ${m} năm ${now.getFullYear()}`;
+  }
+  const trimmed = String(dateStr).trim();
+  if (!trimmed) {
+    const now = new Date();
+    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const m = now.getMonth() + 1 < 10 ? `0${now.getMonth() + 1}` : `${now.getMonth() + 1}`;
+    return `Hà Nội, ngày ${d} tháng ${m} năm ${now.getFullYear()}`;
+  }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    const [y, m, d] = trimmed.split('-');
-    return `${d}/${m}/${y}`;
+  const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
+  if (vnMatch) {
+    const d = parseInt(vnMatch[1], 10);
+    const m = parseInt(vnMatch[2], 10);
+    const y = vnMatch[3];
+    const dd = d < 10 ? `0${d}` : `${d}`;
+    const mm = m < 10 ? `0${m}` : `${m}`;
+    return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
   }
-  if (trimmed.includes('T') && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T')) {
     const ymd = trimmed.split('T')[0];
-    const [y, m, d] = ymd.split('-');
-    return `${d}/${m}/${y}`;
+    const parts = ymd.split('-');
+    if (parts.length === 3) {
+      const y = parts[0];
+      const m = parseInt(parts[1], 10);
+      const d = parseInt(parts[2], 10);
+      const dd = d < 10 ? `0${d}` : `${d}`;
+      const mm = m < 10 ? `0${m}` : `${m}`;
+      return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
+    }
   }
+
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const parts = trimmed.split('/');
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const y = parts[2];
+    const dd = d < 10 ? `0${d}` : `${d}`;
+    const mm = m < 10 ? `0${m}` : `${m}`;
+    return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
+  }
+
   return trimmed;
 };
 
@@ -85,9 +119,19 @@ const MONTH_NAMES_EN = [
 ];
 
 const formatDateEN = (dateStr: any): string => {
-  if (!dateStr || typeof dateStr !== 'string') return '';
-  const trimmed = dateStr.trim();
-  if (!trimmed) return '';
+  if (!dateStr) {
+    const now = new Date();
+    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const mName = MONTH_NAMES_EN[now.getMonth()];
+    return `Hanoi, ${mName} ${d}, ${now.getFullYear()}`;
+  }
+  const trimmed = String(dateStr).trim();
+  if (!trimmed) {
+    const now = new Date();
+    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const mName = MONTH_NAMES_EN[now.getMonth()];
+    return `Hanoi, ${mName} ${d}, ${now.getFullYear()}`;
+  }
 
   const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
   if (vnMatch) {
@@ -95,25 +139,26 @@ const formatDateEN = (dateStr: any): string => {
     const m = parseInt(vnMatch[2], 10) - 1;
     const y = vnMatch[3];
     const monthName = MONTH_NAMES_EN[m] || `${m + 1}`;
-    return `Hanoi, ${monthName} ${d < 10 ? '0' + d : d}, ${y}.`;
+    return `Hanoi, ${monthName} ${d < 10 ? '0' + d : d}, ${y}`;
   }
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    const [y, m, d] = trimmed.split('-');
-    const mIdx = parseInt(m, 10) - 1;
-    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}.`;
-  }
-  if (trimmed.includes('T') && /^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T')) {
     const ymd = trimmed.split('T')[0];
     const [y, m, d] = ymd.split('-');
     const mIdx = parseInt(m, 10) - 1;
-    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}.`;
+    const dayNum = parseInt(d, 10);
+    const dd = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${dd}, ${y}`;
   }
+
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
     const [d, m, y] = trimmed.split('/');
     const mIdx = parseInt(m, 10) - 1;
-    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${d}, ${y}.`;
+    const dayNum = parseInt(d, 10);
+    const dd = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
+    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${dd}, ${y}`;
   }
+
   return trimmed;
 };
 
@@ -1074,6 +1119,7 @@ export async function POST(request: NextRequest) {
     // Signatures
     const sigLeft = isEn ? 'RESULT CONTROLLER' : 'CÁN BỘ XÉT NGHIỆM';
     const sigRight = isEn ? 'CHIEF EXECUTIVE OFFICER' : 'ĐẠI DIỆN ĐƠN VỊ';
+    const sigDateText = formattedNgayBanHanh;
 
     const canBoName = isEn ? toEnglishText(canBoXetNghiem, 'name') : (canBoXetNghiem || '').trim();
     const daiDienName = isEn ? toEnglishText(daiDienDonVi, 'name') : (daiDienDonVi || '').trim();
@@ -1097,6 +1143,11 @@ export async function POST(request: NextRequest) {
                 children: [
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
+                    spacing: { after: 180 },
+                    children: [new TextRun({ text: '', size: 20 })],
+                  }),
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
                     children: [new TextRun({ text: nfc(sigLeft), bold: true, size: 22 })],
                   }),
                   new Paragraph({
@@ -1109,6 +1160,11 @@ export async function POST(request: NextRequest) {
               new TableCell({
                 width: { size: 50, type: WidthType.PERCENTAGE },
                 children: [
+                  new Paragraph({
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 180 },
+                    children: [new TextRun({ text: nfc(sigDateText), italics: true, size: 20 })],
+                  }),
                   new Paragraph({
                     alignment: AlignmentType.CENTER,
                     children: [new TextRun({ text: nfc(sigRight), bold: true, size: 22 })],
