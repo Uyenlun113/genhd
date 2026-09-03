@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -152,6 +153,10 @@ const formatAllele = (v1?: string, v2?: string) => {
 };
 
 export default function AdnConvertListPage() {
+  const { data: session } = useSession();
+  const userRole = (session?.user as { role?: string })?.role;
+  const isAdmin = userRole === 'admin';
+
   const [orders, setOrders] = useState<AdnOrderData[]>([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -1081,18 +1086,20 @@ export default function AdnConvertListPage() {
                                         <Download className="w-4 h-4 text-emerald-600" />
                                         <span>Tải PDF kết quả</span>
                                       </button>
-                                      <button
-                                        onClick={() => {
-                                          setActiveMenuId(null);
-                                          setGtConvertOrder(order);
-                                          setGtCanBoName(order.canBoXetNghiem || '');
-                                          setGtDaiDienName(order.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
-                                        }}
-                                        className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
-                                      >
-                                        <Sparkles className="w-4 h-4 text-indigo-600" />
-                                        <span>Convert sang Genetrust</span>
-                                      </button>
+                                       {isAdmin && (
+                                         <button
+                                           onClick={() => {
+                                             setActiveMenuId(null);
+                                             setGtConvertOrder(order);
+                                             setGtCanBoName(order.canBoXetNghiem || '');
+                                             setGtDaiDienName(order.daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+                                           }}
+                                           className="w-full flex items-center gap-2.5 px-3.5 py-2 text-xs font-bold text-indigo-700 hover:bg-indigo-50 transition-colors"
+                                         >
+                                           <Sparkles className="w-4 h-4 text-indigo-600" />
+                                           <span>Convert sang Genetrust</span>
+                                         </button>
+                                       )}
                                     </>
                                   )}
 

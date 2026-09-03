@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
@@ -353,6 +354,10 @@ function ImageEditorModal({ imageUrl, title, onClose, onSave }: ImageEditorModal
 export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const { data: session } = useSession();
+
+  const userRole = (session?.user as { role?: string })?.role;
+  const isAdmin = userRole === 'admin';
 
   const [order, setOrder] = useState<AdnOrderData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1327,18 +1332,20 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                       {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                       <span>Lưu thay đổi</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        setGtCanBo(canBoXetNghiem || '');
-                        setGtDaiDien(daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
-                        setShowGtModal(true);
-                      }}
-                      disabled={exportingPdf}
-                      className="btn bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
-                    >
-                      {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                      <span>Convert kết quả sang Genetrust</span>
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => {
+                          setGtCanBo(canBoXetNghiem || '');
+                          setGtDaiDien(daiDienDonVi || 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM');
+                          setShowGtModal(true);
+                        }}
+                        disabled={exportingPdf}
+                        className="btn bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-bold flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      >
+                        {exportingPdf ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                        <span>Convert kết quả sang Genetrust</span>
+                      </button>
+                    )}
                   </>
                 )}
 
