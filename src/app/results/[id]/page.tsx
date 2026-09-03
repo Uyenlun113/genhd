@@ -949,7 +949,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             )}
                           </div>
 
-                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1269,7 +1269,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                             )}
                           </div>
 
-                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                          {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && (
                             <div className="flex items-center gap-2">
                               <button
                                 type="button"
@@ -1520,7 +1520,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 )}
                               </div>
 
-                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && (
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
@@ -1840,7 +1840,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 )}
                               </div>
 
-                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && !isCompleted && (
+                              {(userRole === 'doctor' || userRole === 'admin' || userRole === 'lab_admin') && (
                                 <div className="flex items-center gap-2">
                                   <button
                                     type="button"
