@@ -636,10 +636,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       </label>
                       <select
                         name="bacSiDoc"
-                        className="form-select text-xs font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600"
+                        className="form-select text-xs font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                         value={formData.bacSiDoc}
                         onChange={handleInputChange}
-                        disabled={userRole === 'doctor'}
+                        disabled={userRole !== 'admin' && userRole !== 'lab_admin'}
                         required
                       >
                         <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
@@ -657,10 +657,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                       </label>
                       <select
                         name="bacSiDoc2"
-                        className="form-select text-xs font-semibold border-purple-300 bg-purple-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600"
+                        className="form-select text-xs font-semibold border-purple-300 bg-purple-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                         value={formData.bacSiDoc2 || formData.bacSiDoc}
                         onChange={handleInputChange}
-                        disabled={userRole === 'doctor'}
+                        disabled={userRole !== 'admin' && userRole !== 'lab_admin'}
                         required
                       >
                         <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
@@ -677,10 +677,10 @@ export default function TestResultDetailPage({ params }: PageProps) {
                     <label className="font-bold text-sky-700 text-xs">Bác sĩ đọc kết quả (Gán phiếu) *</label>
                     <select
                       name="bacSiDoc"
-                      className="form-select text-xs font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600"
+                      className="form-select text-xs font-semibold border-sky-300 bg-sky-50/50 text-slate-800 disabled:bg-slate-100 disabled:text-slate-600 disabled:cursor-not-allowed"
                       value={formData.bacSiDoc}
                       onChange={handleInputChange}
-                      disabled={userRole === 'doctor'}
+                      disabled={userRole !== 'admin' && userRole !== 'lab_admin'}
                       required
                     >
                       <option value="Chưa phân loại">-- Chưa phân loại (Tạo phiếu nháp) --</option>
