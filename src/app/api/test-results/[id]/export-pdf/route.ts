@@ -41,6 +41,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       if (upper.includes('HÙNG') || upper.includes('HUNG')) return 'chu_ki_hung.png';
       if (upper.includes('DƯƠNG') || upper.includes('DUONG')) return 'chu_ki_duong.png';
       if (upper.includes('DŨNG') || upper.includes('DUNG')) return 'chu_ki_duong.png';
+      if (upper.includes('SƠN') || upper.includes('SON')) return 'chu_ki_son.png';
       return 'chu_ki_hung.png';
     };
 
