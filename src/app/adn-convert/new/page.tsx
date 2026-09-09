@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import SampleTypeSelect from '@/components/SampleTypeSelect';
+import ImageDropzone from '@/components/ImageDropzone';
 import {
   Dna,
   Save,
@@ -85,8 +87,8 @@ export default function NewAdnOrderPage() {
   }, [createType]);
 
   // Image Upload Helper (convert to JPEG & upload to Cloudinary if available)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
+    const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -447,16 +449,14 @@ export default function NewAdnOrderPage() {
                           />
                         </div>
                         <div className="form-group mb-0">
-                          <label>Loại mẫu</label>
-                          <input
-                            type="text"
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Loại mẫu</label>
+                          <SampleTypeSelect
                             value={sample.loaiMau ?? ''}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               const updated = [...mauDanhSach];
-                              updated[idx].loaiMau = e.target.value;
+                              updated[idx].loaiMau = val;
                               setMauDanhSach(updated);
                             }}
-                            className="form-input"
                           />
                         </div>
 
@@ -549,26 +549,36 @@ export default function NewAdnOrderPage() {
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                        <label className="btn btn-secondary text-xs py-1 px-3 cursor-pointer">
-                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" /> Ảnh Chân Dung Mẫu {sample.kyHieuMau}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              handleImageUpload(e, (b64) => {
-                                const updated = [...mauDanhSach];
-                                updated[idx].anhChanDung = b64;
-                                setMauDanhSach(updated);
-                              })
-                            }
-                            className="hidden"
-                          />
-                        </label>
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                        <ImageDropzone
+                          onFileSelected={(file) =>
+                            handleImageUpload(file, (b64) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].anhChanDung = b64;
+                              setMauDanhSach(updated);
+                            })
+                          }
+                        >
+                          <div className="btn btn-secondary text-xs py-1 px-3 cursor-pointer inline-flex items-center gap-1.5 shadow-2xs">
+                            <ImageIcon className="w-3.5 h-3.5 text-sky-600" /> Tải/Kéo thả Chân Dung Mẫu {sample.kyHieuMau}
+                          </div>
+                        </ImageDropzone>
                         {sample.anhChanDung ? (
                           <div className="flex items-center gap-2">
                             <img src={sample.anhChanDung} alt="Chân dung" className="w-8 h-10 object-cover rounded border" />
                             <span className="text-[11px] text-emerald-600 font-bold">✓ Đã có ảnh</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...mauDanhSach];
+                                updated[idx].anhChanDung = '';
+                                setMauDanhSach(updated);
+                              }}
+                              className="text-slate-400 hover:text-rose-600 text-xs p-1 cursor-pointer"
+                              title="Xóa ảnh"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         ) : (
                           <span className="text-[11px] text-slate-400">Chưa có ảnh chân dung</span>
@@ -590,34 +600,36 @@ export default function NewAdnOrderPage() {
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-slate-800">Đính kèm ảnh chụp mẫu khi gửi phòng Lab:</span>
-                  <label className="btn btn-primary text-xs cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    <span>Tải ảnh gửi mẫu</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {anhGuiMau ? (
-                  <div className="relative">
-                    <img src={anhGuiMau} alt="Ảnh gửi mẫu" className="h-44 object-cover rounded-lg border w-full" />
+                  {anhGuiMau && (
                     <button
                       type="button"
                       onClick={() => setAnhGuiMau('')}
-                      className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-lg text-xs font-bold hover:bg-red-700 shadow-md"
+                      className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
                     >
                       Xóa ảnh
                     </button>
+                  )}
+                </div>
+
+                {anhGuiMau ? (
+                  <div className="relative group rounded-xl overflow-hidden border border-slate-200 bg-white p-2">
+                    <img src={anhGuiMau} alt="Ảnh gửi mẫu" className="h-44 object-contain rounded-lg w-full" />
+                    <div className="mt-2 flex justify-center">
+                      <ImageDropzone
+                        onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhGuiMau(b64))}
+                      >
+                        <span className="px-3 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-xs font-bold shadow-2xs">
+                          Đổi / Kéo thả ảnh mới
+                        </span>
+                      </ImageDropzone>
+                    </div>
                   </div>
                 ) : (
-                  <div className="h-32 flex flex-col items-center justify-center bg-white border border-dashed border-slate-300 rounded-lg text-slate-400 text-xs gap-1">
-                    <ImageIcon className="w-6 h-6 text-slate-300" />
-                    <span>Chưa đính kèm ảnh gửi mẫu</span>
-                  </div>
+                  <ImageDropzone
+                    onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhGuiMau(b64))}
+                    label="Kéo & thả ảnh gửi mẫu vào đây hoặc bấm để chọn file"
+                    className="h-36 bg-white"
+                  />
                 )}
               </div>
             </div>

@@ -6,6 +6,8 @@ import { useSession } from 'next-auth/react';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import SampleTypeSelect from '@/components/SampleTypeSelect';
+import ImageDropzone from '@/components/ImageDropzone';
 import {
   Dna,
   FileText,
@@ -21,11 +23,7 @@ import {
   Lock as LockIcon,
   CheckCircle2,
   Package,
-  RotateCw,
-  RotateCcw,
-  Scissors,
   X,
-  Crop,
   Sparkles,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -42,6 +40,7 @@ interface SampleItem {
   noiCap?: string;
   noiThuongTru?: string;
   loaiMau?: string;
+  moiQuanHe?: string;
   anhChanDung?: string;
   anhCccdMatTruoc?: string;
   anhCccdMatSau?: string;
@@ -127,230 +126,6 @@ const compressBase64Image = (base64Str: string, maxWidth = 1400, quality = 0.75)
   });
 };
 
-interface ImageEditorModalProps {
-  imageUrl: string;
-  title: string;
-  onClose: () => void;
-  onSave: (newImageUrl: string) => void;
-}
-
-function ImageEditorModal({ imageUrl, title, onClose, onSave }: ImageEditorModalProps) {
-  const [rotation, setRotation] = useState<number>(0);
-  const [cropTop, setCropTop] = useState<number>(0);
-  const [cropBottom, setCropBottom] = useState<number>(0);
-  const [cropLeft, setCropLeft] = useState<number>(0);
-  const [cropRight, setCropRight] = useState<number>(0);
-  const [flipH, setFlipH] = useState<boolean>(false);
-  const [flipV, setFlipV] = useState<boolean>(false);
-
-  const canvasRef = React.useRef<HTMLCanvasElement | null>(null);
-  const [imgObj, setImgObj] = useState<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => setImgObj(img);
-    img.src = imageUrl;
-  }, [imageUrl]);
-
-  useEffect(() => {
-    if (!imgObj || !canvasRef.current) return;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const imgW = imgObj.width;
-    const imgH = imgObj.height;
-
-    const cropX = (imgW * cropLeft) / 100;
-    const cropY = (imgH * cropTop) / 100;
-    const cropW = Math.max(10, imgW * (1 - (cropLeft + cropRight) / 100));
-    const cropH = Math.max(10, imgH * (1 - (cropTop + cropBottom) / 100));
-
-    const isSwapped = rotation === 90 || rotation === 270;
-    const targetW = isSwapped ? cropH : cropW;
-    const targetH = isSwapped ? cropW : cropH;
-
-    const maxDim = 1400;
-    let finalW = targetW;
-    let finalH = targetH;
-    if (finalW > maxDim || finalH > maxDim) {
-      if (finalW > finalH) {
-        finalH = Math.round((finalH * maxDim) / finalW);
-        finalW = maxDim;
-      } else {
-        finalW = Math.round((finalW * maxDim) / finalH);
-        finalH = maxDim;
-      }
-    }
-
-    canvas.width = finalW;
-    canvas.height = finalH;
-
-    ctx.save();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, finalW, finalH);
-
-    ctx.translate(finalW / 2, finalH / 2);
-    ctx.rotate((rotation * Math.PI) / 180);
-    ctx.scale(flipH ? -1 : 1, flipV ? -1 : 1);
-
-    const drawW = isSwapped ? finalH : finalW;
-    const drawH = isSwapped ? finalW : finalH;
-
-    ctx.drawImage(
-      imgObj,
-      cropX, cropY, cropW, cropH,
-      -drawW / 2, -drawH / 2, drawW, drawH
-    );
-
-    ctx.restore();
-  }, [imgObj, rotation, cropTop, cropBottom, cropLeft, cropRight, flipH, flipV]);
-
-  const handleApply = () => {
-    if (!canvasRef.current) return;
-    const editedB64 = canvasRef.current.toDataURL('image/jpeg', 0.85);
-    onSave(editedB64);
-    onClose();
-  };
-
-  const rotateCw = () => setRotation((prev) => (prev + 90) % 360);
-  const rotateCcw = () => setRotation((prev) => (prev + 270) % 360);
-  const resetAll = () => {
-    setRotation(0);
-    setCropTop(0);
-    setCropBottom(0);
-    setCropLeft(0);
-    setCropRight(0);
-    setFlipH(false);
-    setFlipV(false);
-  };
-
-  return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-white rounded-2xl shadow-2xl max-w-4xl w-full border border-slate-200 overflow-hidden flex flex-col max-h-[90vh]">
-        <div className="p-4 bg-sky-700 text-white flex items-center justify-between">
-          <div className="flex items-center gap-2 font-bold text-sm">
-            <RotateCw className="w-5 h-5" />
-            <span>Chỉnh Sửa / Xoay & Cắt Ảnh: {title}</span>
-          </div>
-          <button type="button" onClick={onClose} className="hover:bg-white/20 p-1.5 rounded-lg transition-all cursor-pointer">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="p-6 overflow-y-auto flex-1 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="space-y-5 bg-slate-50 p-4 rounded-xl border border-slate-200 text-xs">
-            <div>
-              <label className="font-bold text-slate-800 block mb-2">1. Xoay ảnh (Rotation)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={rotateCw}
-                  className="btn bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold py-2 justify-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <RotateCw className="w-4 h-4" />
-                  <span>Xoay Phải 90°</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={rotateCcw}
-                  className="btn bg-slate-700 hover:bg-slate-800 text-white text-xs font-bold py-2 justify-center gap-1.5 shadow-2xs cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  <span>Xoay Trái 90°</span>
-                </button>
-              </div>
-              <div className="text-[11px] text-slate-500 font-semibold mt-1.5 text-center">Góc xoay hiện tại: {rotation}°</div>
-            </div>
-
-            <div>
-              <label className="font-bold text-slate-800 block mb-2">2. Lật ảnh (Flip)</label>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setFlipH(!flipH)}
-                  className={`btn text-xs font-bold py-2 justify-center cursor-pointer shadow-2xs ${flipH ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
-                >
-                  Lật Ngang {flipH && '✓'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFlipV(!flipV)}
-                  className={`btn text-xs font-bold py-2 justify-center cursor-pointer shadow-2xs ${flipV ? 'bg-indigo-600 text-white' : 'bg-white text-slate-700 border border-slate-300'}`}
-                >
-                  Lật Dọc {flipV && '✓'}
-                </button>
-              </div>
-            </div>
-
-            <div className="space-y-3 pt-2 border-t border-slate-200">
-              <label className="font-bold text-slate-800 block">3. Cắt xén ảnh (Crop Margins)</label>
-
-              <div>
-                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
-                  <span>Cắt Trên (Top)</span>
-                  <span>{cropTop}%</span>
-                </div>
-                <input type="range" min="0" max="40" value={cropTop} onChange={(e) => setCropTop(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
-                  <span>Cắt Dưới (Bottom)</span>
-                  <span>{cropBottom}%</span>
-                </div>
-                <input type="range" min="0" max="40" value={cropBottom} onChange={(e) => setCropBottom(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
-                  <span>Cắt Trái (Left)</span>
-                  <span>{cropLeft}%</span>
-                </div>
-                <input type="range" min="0" max="40" value={cropLeft} onChange={(e) => setCropLeft(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
-              </div>
-
-              <div>
-                <div className="flex justify-between text-[11px] text-slate-600 font-semibold mb-1">
-                  <span>Cắt Phải (Right)</span>
-                  <span>{cropRight}%</span>
-                </div>
-                <input type="range" min="0" max="40" value={cropRight} onChange={(e) => setCropRight(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg accent-sky-600 cursor-pointer" />
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={resetAll}
-              className="w-full text-center text-xs text-rose-600 hover:underline font-bold pt-2 cursor-pointer block"
-            >
-              Đặt lại ban đầu (Reset)
-            </button>
-          </div>
-
-          <div className="md:col-span-2 bg-slate-900 rounded-xl p-4 flex flex-col items-center justify-center min-h-[320px] shadow-inner relative overflow-hidden">
-            <span className="text-[11px] text-slate-400 font-semibold mb-2 block">XEM TRƯỚC HÌNH ẢNH SAU KHI SỬA</span>
-            <div className="max-w-full max-h-[420px] overflow-auto flex items-center justify-center p-2 border border-slate-700/50 rounded-lg bg-black/40">
-              <canvas ref={canvasRef} className="max-w-full max-h-[380px] object-contain shadow-lg rounded" />
-            </div>
-          </div>
-        </div>
-
-        <div className="p-4 bg-slate-100 border-t border-slate-200 flex items-center justify-end gap-3">
-          <button type="button" onClick={onClose} className="btn bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-bold py-2 px-4 shadow-xs cursor-pointer">
-            Hủy bỏ
-          </button>
-          <button type="button" onClick={handleApply} className="btn bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 px-5 shadow-sm justify-center gap-1.5 cursor-pointer">
-            <CheckCircle2 className="w-4 h-4" />
-            <span>Áp dụng & Lưu Ảnh</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
@@ -367,11 +142,6 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [uploadingChartFile, setUploadingChartFile] = useState(false);
 
   const [zoomImage, setZoomImage] = useState<{ url: string; title: string } | null>(null);
-  const [editingImage, setEditingImage] = useState<{
-    url: string;
-    title: string;
-    onSave: (newUrl: string) => void;
-  } | null>(null);
 
   const [anhChayMauList, setAnhChayMauList] = useState<string[]>([]);
 
@@ -534,7 +304,15 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
           const chartList = d.anhChayMauList || [];
           setAnhChayMauList(chartList);
 
-          const samples = d.mauDanhSach || [];
+          let samples = d.mauDanhSach || [];
+          const isLocusSample = (s: SampleItem) => {
+            const k = (s.kyHieuMau || '').trim().toUpperCase();
+            return /^(GATA\w+|DXS\d+|DYS\d+|D\d+S\d+|AMEL|HPRTB|SE\d+|TH\d+|TPOX|CSF1PO|FGA|VWA)/i.test(k) ||
+                   /^(Mẫu\s*(1\s*)?D\d*XS|Mẫu\s*GATA|Mẫu\s*DXS)/i.test(s.hoTen || '');
+          };
+          if (samples.length > 2 && samples.some(isLocusSample)) {
+            samples = samples.filter(s => !isLocusSample(s));
+          }
           setMauDanhSach(samples);
           const t1 = normalizeLociTable(d.table1 || [], samples);
           const t2 = normalizeLociTable(d.table2 || [], samples);
@@ -599,34 +377,67 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
       const alleles: Record<string, { a1: string; a2: string }> = {};
 
       sKeys.forEach((sKey, sIdx) => {
+        // 1. Direct match in alleles map
         if (
           item.alleles &&
           item.alleles[sKey] &&
           (item.alleles[sKey].a1 !== undefined || item.alleles[sKey].a2 !== undefined)
         ) {
           alleles[sKey] = {
-            a1: String(item.alleles[sKey].a1 || ''),
-            a2: String(item.alleles[sKey].a2 || ''),
+            a1: String(item.alleles[sKey].a1 ?? ''),
+            a2: String(item.alleles[sKey].a2 ?? ''),
           };
-        } else {
-          const num = sIdx + 1;
-          const a1 =
-            item[`m${num}_1`] ??
-            item[`M${num}_1`] ??
-            item[`m${sKey}_1`] ??
-            (num === 1 ? item.m1_1 : item.m2_1) ??
-            '';
-          const a2 =
-            item[`m${num}_2`] ??
-            item[`M${num}_2`] ??
-            item[`m${sKey}_2`] ??
-            (num === 1 ? item.m1_2 : item.m2_2) ??
-            '';
-          alleles[sKey] = {
-            a1: String(a1 || ''),
-            a2: String(a2 || ''),
-          };
+          return;
         }
+
+        // 2. Fuzzy match in alleles map (case-insensitive, substring, or index)
+        if (item.alleles && typeof item.alleles === 'object') {
+          const matchingKey = Object.keys(item.alleles).find(
+            (k) =>
+              k.toLowerCase() === sKey.toLowerCase() ||
+              sKey.toLowerCase().includes(k.toLowerCase()) ||
+              k.toLowerCase().includes(sKey.toLowerCase())
+          );
+          if (matchingKey && item.alleles[matchingKey]) {
+            alleles[sKey] = {
+              a1: String(item.alleles[matchingKey].a1 ?? ''),
+              a2: String(item.alleles[matchingKey].a2 ?? ''),
+            };
+            return;
+          }
+
+          // By index in alleles keys
+          const allKeys = Object.keys(item.alleles);
+          if (sIdx < allKeys.length) {
+            const valByIndex = item.alleles[allKeys[sIdx]];
+            if (valByIndex && (valByIndex.a1 !== undefined || valByIndex.a2 !== undefined)) {
+              alleles[sKey] = {
+                a1: String(valByIndex.a1 ?? ''),
+                a2: String(valByIndex.a2 ?? ''),
+              };
+              return;
+            }
+          }
+        }
+
+        // 3. Fallback to m1_1, m2_1 legacy fields
+        const num = sIdx + 1;
+        const a1 =
+          item[`m${num}_1`] ??
+          item[`M${num}_1`] ??
+          item[`m${sKey}_1`] ??
+          (num === 1 ? item.m1_1 : item.m2_1) ??
+          '';
+        const a2 =
+          item[`m${num}_2`] ??
+          item[`M${num}_2`] ??
+          item[`m${sKey}_2`] ??
+          (num === 1 ? item.m1_2 : item.m2_2) ??
+          '';
+        alleles[sKey] = {
+          a1: String(a1 || ''),
+          a2: String(a2 || ''),
+        };
       });
 
       return { ...item, locus, alleles };
@@ -634,8 +445,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   };
 
   // Helper for image upload (convert to JPEG & upload to Cloudinary if available)
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = async (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, callback: (urlOrB64: string) => void) => {
+    const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
     if (!file) return;
 
     const reader = new FileReader();
@@ -687,9 +498,14 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
     reader.readAsDataURL(file);
   };
 
-  // 1. Upload DOCX/PDF Result Files to parse Loci tables into the current order
-  const handleFileUploadLoci = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+  // 1. Upload DOCX/PDF Result Files from user's computer to parse Loci tables into the current order
+  const handleFileUploadLoci = async (e: React.ChangeEvent<HTMLInputElement> | File) => {
+    let files: FileList | File[] | null = null;
+    if (e instanceof File) {
+      files = [e];
+    } else if (e.target?.files) {
+      files = e.target.files;
+    }
     if (!files || files.length === 0) return;
 
     setUploadingResultFile(true);
@@ -716,14 +532,33 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
             const hasTable3 = d.table3 && d.table3.length > 0;
 
             if (!hasTable1 && !hasTable2 && !hasTable3) {
-              toast.error(`❌ Không đọc được dữ liệu bảng Loci từ file "${file.name}". Vui lòng kiểm tra lại file DOCX/PDF!`);
+              toast.error(`❌ Không đọc được dữ liệu bảng Loci từ file "${file.name}". Vui lòng kiểm tra lại cấu trúc bảng trong file!`);
               continue;
             }
 
-            // Fill Loci tables into form
-            if (hasTable1) setTable1(normalizeLociTable(d.table1, mauDanhSach));
-            if (hasTable2) setTable2(normalizeLociTable(d.table2, mauDanhSach));
-            if (hasTable3) setTable3(normalizeLociTable(d.table3, mauDanhSach));
+            // Synchronize sample codes if detected from file (e.g. BN260002XHK, CG260002XHK or B260001, C260001)
+            let currentSamples = [...mauDanhSach];
+            // Clean any locus-named samples first
+            currentSamples = currentSamples.filter(s => !/^(GATA\w+|DXS\d+|DYS\d+|D\d+S\d+|AMEL|HPRTB)/i.test((s.kyHieuMau || '').trim()));
+            if (d.samples && Array.isArray(d.samples) && d.samples.length > 0) {
+              const updatedSamples = [...currentSamples];
+              d.samples.forEach((sCode: string, idx: number) => {
+                if (idx < updatedSamples.length) {
+                  updatedSamples[idx] = {
+                    ...updatedSamples[idx],
+                    kyHieuMau: sCode || updatedSamples[idx].kyHieuMau,
+                  };
+                }
+              });
+              // Never push extra samples from locus parsing!
+              currentSamples = updatedSamples;
+              setMauDanhSach(updatedSamples);
+            }
+
+            // Fill Loci tables into form using current samples
+            if (hasTable1) setTable1(normalizeLociTable(d.table1, currentSamples));
+            if (hasTable2) setTable2(normalizeLociTable(d.table2, currentSamples));
+            if (hasTable3) setTable3(normalizeLociTable(d.table3, currentSamples));
             if (d.ketLuan) setKetLuan(d.ketLuan);
             if (d.doTinCay) setDoTinCay(d.doTinCay);
             if (d.totalLikelihoodRatio) setTotalLikelihoodRatio(d.totalLikelihoodRatio);
@@ -737,7 +572,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               const currentCode = String(soPhieu).replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
 
               if (fileCode && currentCode && !currentCode.includes(fileCode) && !fileCode.includes(currentCode)) {
-                toast.success(`Đã nạp dữ liệu bảng Locus từ file ${file.name} vào đơn hiện tại (Mã ca gốc trong file: ${d.soPhieu})!`, {
+                toast.success(`Đã nạp dữ liệu bảng Locus từ file ${file.name} (Mã ca gốc trong file: ${d.soPhieu})!`, {
                   duration: 6000,
                 });
               } else {
@@ -1170,26 +1005,58 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
   // Render Loci Table Editor
   const renderLociEditor = (tableData: LocusItem[], setTableData: (val: LocusItem[]) => void, title: string) => {
-    if (!mauDanhSach || mauDanhSach.length === 0) return null;
+    if (!mauDanhSach || mauDanhSach.length === 0 || !tableData || tableData.length === 0) return null;
     return (
       <div className="mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200 shadow-xs">
-        <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide mb-3">{title}</h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">{title} ({tableData.length} Locus)</h4>
+          <button
+            type="button"
+            onClick={() => {
+              const updated = [...tableData, { locus: '', alleles: {} }];
+              setTableData(updated);
+            }}
+            disabled={trangThai === 'da_tra_ket_qua'}
+            className="text-[11px] text-sky-600 hover:text-sky-800 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40"
+          >
+            <Plus className="w-3 h-3" />
+            <span>Thêm dòng</span>
+          </button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs text-center border-collapse bg-white rounded-lg overflow-hidden shadow-xs">
             <thead>
               <tr className="bg-sky-600 text-white font-bold">
-                <th className="p-2.5 border border-sky-700 w-28">Locus</th>
+                <th className="p-2 border border-sky-700 w-10 text-center">STT</th>
+                <th className="p-2.5 border border-sky-700 w-32">Locus</th>
                 {mauDanhSach.map((s, idx) => (
                   <th key={idx} className="p-2.5 border border-sky-700">
                     {s.kyHieuMau || `M${idx + 1}`} ({s.hoTen || 'Chưa nhập tên'})
                   </th>
                 ))}
+                <th className="p-2 border border-sky-700 w-10 text-center">Xóa</th>
               </tr>
             </thead>
             <tbody>
               {tableData.map((item, locIdx) => (
                 <tr key={locIdx} className="hover:bg-slate-100/80 transition-colors">
-                  <td className="p-2 font-bold text-slate-800 border border-slate-200 bg-slate-100">{item.locus}</td>
+                  <td className="p-1.5 text-center text-slate-400 font-mono text-[11px] border border-slate-200 bg-slate-50">
+                    {locIdx + 1}
+                  </td>
+                  <td className="p-1 border border-slate-200 bg-slate-50">
+                    <input
+                      type="text"
+                      value={item.locus}
+                      onChange={(e) => {
+                        const updated = [...tableData];
+                        updated[locIdx].locus = e.target.value;
+                        setTableData(updated);
+                      }}
+                      disabled={trangThai === 'da_tra_ket_qua'}
+                      className="w-full text-center font-bold text-slate-800 bg-transparent border-0 focus:ring-1 focus:ring-sky-500 rounded py-1 text-xs"
+                      placeholder="Tên Locus"
+                    />
+                  </td>
                   {mauDanhSach.map((s, sIdx) => {
                     const sKey = s.kyHieuMau || `M${sIdx + 1}`;
                     const currentVal = item.alleles?.[sKey] || { a1: '', a2: '' };
@@ -1229,6 +1096,20 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                       </td>
                     );
                   })}
+                  <td className="p-1 border border-slate-200 text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = tableData.filter((_, idx) => idx !== locIdx);
+                        setTableData(updated);
+                      }}
+                      disabled={trangThai === 'da_tra_ket_qua'}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors disabled:opacity-30 cursor-pointer"
+                      title="Xóa dòng locus này"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1527,17 +1408,15 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                           />
                         </div>
                         <div className="form-group mb-0">
-                          <label>Loại mẫu</label>
-                          <input
-                            type="text"
+                          <label className="block text-xs font-semibold text-slate-700 mb-1">Loại mẫu</label>
+                          <SampleTypeSelect
                             value={sample.loaiMau ?? ''}
-                            onChange={(e) => {
+                            onChange={(val) => {
                               const updated = [...mauDanhSach];
-                              updated[idx].loaiMau = e.target.value;
+                              updated[idx].loaiMau = val;
                               setMauDanhSach(updated);
                             }}
                             disabled={isReadOnly}
-                            className="form-input disabled:bg-slate-100 disabled:text-slate-600"
                           />
                         </div>
 
@@ -1634,23 +1513,22 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         )}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
-                        <label className="btn btn-secondary text-xs py-1 px-3 cursor-pointer">
-                          <ImageIcon className="w-3.5 h-3.5 text-sky-600" /> Ảnh Chân Dung Mẫu {sample.kyHieuMau}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) =>
-                              handleImageUpload(e, (b64) => {
-                                const updated = [...mauDanhSach];
-                                updated[idx].anhChanDung = b64;
-                                setMauDanhSach(updated);
-                                setTimeout(() => generatePdfPreview(), 300);
-                              })
-                            }
-                            className="hidden"
-                          />
-                        </label>
+                      <div className="pt-2 border-t border-slate-200 flex items-center justify-between gap-2">
+                        <ImageDropzone
+                          onFileSelected={(file) =>
+                            handleImageUpload(file, (b64) => {
+                              const updated = [...mauDanhSach];
+                              updated[idx].anhChanDung = b64;
+                              setMauDanhSach(updated);
+                              setTimeout(() => generatePdfPreview(), 300);
+                            })
+                          }
+                          disabled={isReadOnly}
+                        >
+                          <div className="btn btn-secondary text-xs py-1 px-3 cursor-pointer inline-flex items-center gap-1.5 shadow-2xs">
+                            <ImageIcon className="w-3.5 h-3.5 text-sky-600" /> Tải/Kéo thả Chân Dung Mẫu {sample.kyHieuMau}
+                          </div>
+                        </ImageDropzone>
                         {sample.anhChanDung ? (
                           <div className="flex items-center gap-2">
                             <img
@@ -1660,6 +1538,21 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               className="w-8 h-10 object-cover rounded border cursor-pointer hover:opacity-85 hover:scale-105 transition-all shadow-xs"
                             />
                             <span className="text-[11px] text-emerald-600 font-bold">✓ Đã có ảnh</span>
+                            {!isReadOnly && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].anhChanDung = '';
+                                  setMauDanhSach(updated);
+                                  setTimeout(() => generatePdfPreview(), 300);
+                                }}
+                                className="text-slate-400 hover:text-rose-600 text-xs p-1 cursor-pointer"
+                                title="Xóa ảnh chân dung"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <span className="text-[11px] text-slate-400">Chưa có ảnh chân dung</span>
@@ -1681,15 +1574,6 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800">Ảnh Gửi Mẫu (Bước 1):</span>
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
-                          Đổi ảnh
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, (b64) => setAnhGuiMau(b64))}
-                            className="hidden"
-                          />
-                        </label>
                         {anhGuiMau && (
                           <button
                             type="button"
@@ -1724,12 +1608,23 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                           >
                             <Eye className="w-3.5 h-3.5 text-slate-600" /> Xem phóng to
                           </button>
+                          <ImageDropzone
+                            onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhGuiMau(b64))}
+                            disabled={isReadOnly}
+                          >
+                            <span className="px-3 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                              Đổi / Kéo thả ảnh mới
+                            </span>
+                          </ImageDropzone>
                         </div>
                       </div>
                     ) : (
-                      <div className="h-36 flex items-center justify-center bg-white border rounded-xl text-slate-400 text-xs italic">
-                        Chưa đính kèm ảnh gửi mẫu
-                      </div>
+                      <ImageDropzone
+                        onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhGuiMau(b64))}
+                        disabled={isReadOnly}
+                        label="Kéo & thả ảnh gửi mẫu vào đây hoặc bấm để chọn file"
+                        className="h-36 bg-white"
+                      />
                     )}
                   </div>
 
@@ -1738,15 +1633,6 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-slate-800">Ảnh Nhận Mẫu (Bước 2):</span>
                       <div className="flex items-center gap-2">
-                        <label className="text-xs text-sky-600 hover:underline font-bold cursor-pointer">
-                          Đổi ảnh
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => handleImageUpload(e, (b64) => setAnhNhanMau(b64))}
-                            className="hidden"
-                          />
-                        </label>
                         {anhNhanMau && (
                           <button
                             type="button"
@@ -1781,23 +1667,34 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                           >
                             <Eye className="w-3.5 h-3.5 text-slate-600" /> Xem phóng to
                           </button>
+                          <ImageDropzone
+                            onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhNhanMau(b64))}
+                            disabled={isReadOnly}
+                          >
+                            <span className="px-3 py-1 bg-sky-50 hover:bg-sky-100 text-sky-700 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-all shadow-2xs">
+                              Đổi / Kéo thả ảnh mới
+                            </span>
+                          </ImageDropzone>
                         </div>
                       </div>
                     ) : (
-                      <div className="h-36 flex items-center justify-center bg-white border rounded-xl text-slate-400 text-xs italic">
-                        Chưa đính kèm ảnh nhận mẫu
-                      </div>
+                      <ImageDropzone
+                        onFileSelected={(file) => handleImageUpload(file, (b64) => setAnhNhanMau(b64))}
+                        disabled={isReadOnly}
+                        label="Kéo & thả ảnh nhận mẫu vào đây hoặc bấm để chọn file"
+                        className="h-36 bg-white"
+                      />
                     )}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Section 2: Upload File Kết Quả Locus & Đính Kèm Ảnh Đồ Thị Sắc Ký */}
+            {/* Section 2: Upload File Kết Quả Locus & Đính Kèm File PDF/Ảnh Đồ Thị Sắc Ký */}
             <div className="glass-card p-6 space-y-6">
               <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
                 <Upload className="w-5 h-5 text-sky-600" />
-                <span>2. Upload File Đọc Locus & Ảnh Đồ Thị Sắc Ký (GeneMapper)</span>
+                <span>2. Upload File Đọc Locus & File PDF/Ảnh Đồ Thị Sắc Ký (GeneMapper)</span>
               </h3>
 
               {/* 2 Separate Upload Action Cards */}
@@ -1817,25 +1714,25 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     <label className="btn btn-primary text-xs w-full cursor-pointer justify-center py-2.5 shadow-sm">
                       {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                       <span>Tải File Đọc Bảng Locus</span>
-                      <input type="file" accept=".docx,.pdf" multiple onChange={handleFileUploadLoci} className="hidden" />
+                      <input type="file" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt,.tsv" multiple onChange={handleFileUploadLoci} className="hidden" />
                     </label>
                   </div>
 
-                  {/* Button 2: Tải Ảnh Đồ Thị Sắc Ký / GeneMapper */}
+                  {/* Button 2: Tải File PDF / Ảnh Đồ Thị Sắc Ký / GeneMapper */}
                   <div className="bg-purple-50/90 p-4 rounded-xl border border-purple-200 flex flex-col justify-between space-y-3 shadow-xs">
                     <div>
                       <h4 className="text-xs font-bold text-purple-950 uppercase flex items-center gap-1.5">
                         <ImageIcon className="w-4 h-4 text-purple-600" />
-                        <span>2. Tải Ảnh Đồ Thị Sắc Ký / GeneMapper</span>
+                        <span>2. Tải File PDF / Ảnh Đồ Thị Sắc Ký (GeneMapper)</span>
                       </h4>
                       <p className="text-xs text-purple-800/80 mt-1">
-                        Tải ảnh biểu đồ sắc ký (hoặc file chứa ảnh). Tất cả ảnh sẽ được tự động đính kèm thành các trang phụ lục tiếp theo của file PDF kết quả.
+                        Tải file PDF kết quả điện di (bản peak) từ GeneMapper hoặc file ảnh biểu đồ sắc ký. Tất cả sẽ được tự động đính kèm thành các trang phụ lục tiếp theo của file PDF kết quả.
                       </p>
                     </div>
 
                     <label className="btn bg-purple-600 hover:bg-purple-700 text-white text-xs w-full cursor-pointer justify-center py-2.5 font-bold shadow-sm">
                       {uploadingChartFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
-                      <span>Tải Ảnh Đồ Thị Sắc Ký</span>
+                      <span>Tải File PDF / Ảnh Đồ Thị Sắc Ký (GeneMapper)</span>
                       <input type="file" accept="image/*,.docx,.pdf" multiple onChange={handleFileUploadChartImages} className="hidden" />
                     </label>
                   </div>
@@ -1872,42 +1769,20 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         />
                         <div className="mt-2 flex items-center justify-between gap-1">
                           <span className="text-[10px] font-bold text-purple-800">Trang {imgIdx + 1}</span>
-                          <div className="flex items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingImage({
-                                  url: imgB64,
-                                  title: `Phụ lục Đồ thị STR Trang ${imgIdx + 1}`,
-                                  onSave: (newUrl) => {
-                                    const updated = [...anhChayMauList];
-                                    updated[imgIdx] = newUrl;
-                                    setAnhChayMauList(updated);
-                                    setTimeout(() => generatePdfPreview(), 300);
-                                    toast.success('Đã cập nhật ảnh đồ thị!');
-                                  },
-                                })
-                              }
-                              className="p-1 text-sky-700 hover:bg-sky-50 rounded border border-sky-200 cursor-pointer"
-                              title="Xoay / Cắt ảnh"
-                            >
-                              <RotateCw className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const updated = [...anhChayMauList];
-                                updated.splice(imgIdx, 1);
-                                setAnhChayMauList(updated);
-                                setTimeout(() => generatePdfPreview(), 300);
-                                toast.success(`Đã xóa ảnh đồ thị trang ${imgIdx + 1}`);
-                              }}
-                              className="p-1 text-rose-600 hover:bg-rose-50 rounded border border-rose-200 cursor-pointer"
-                              title="Xóa ảnh này"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...anhChayMauList];
+                              updated.splice(imgIdx, 1);
+                              setAnhChayMauList(updated);
+                              setTimeout(() => generatePdfPreview(), 300);
+                              toast.success(`Đã xóa ảnh đồ thị trang ${imgIdx + 1}`);
+                            }}
+                            className="p-1 text-rose-600 hover:bg-rose-50 rounded border border-rose-200 cursor-pointer"
+                            title="Xóa ảnh này"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -1916,34 +1791,63 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               )}
 
               {/* Photos of CCCD per sample */}
+              {mauDanhSach.length > 2 && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      // Keep only the first 2 real samples
+                      const cleaned = mauDanhSach.slice(0, 2);
+                      setMauDanhSach(cleaned);
+                      setTimeout(() => generatePdfPreview(), 300);
+                      toast.success('Đã dọn dẹp, chỉ giữ lại 2 mẫu chính!');
+                    }}
+                    className="text-xs text-amber-700 bg-amber-50 hover:bg-amber-100 border border-amber-200 px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Dọn dẹp danh sách mẫu (chỉ giữ 2 mẫu ban đầu)</span>
+                  </button>
+                </div>
+              )}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {mauDanhSach.map((sample, idx) => (
                   <div key={idx} className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-4">
-                    <div className="font-bold text-xs text-sky-900 border-b border-slate-200 pb-2">
-                      Mẫu {sample.kyHieuMau}: {sample.hoTen || 'Chưa nhập tên'}
+                    <div className="font-bold text-xs text-sky-900 border-b border-slate-200 pb-2 flex items-center justify-between">
+                      <span>Mẫu {sample.kyHieuMau}: {sample.hoTen || 'Chưa nhập tên'}</span>
+                      {mauDanhSach.length > 2 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = mauDanhSach.filter((_, sIdx) => sIdx !== idx);
+                            setMauDanhSach(updated);
+                            setTimeout(() => generatePdfPreview(), 300);
+                            toast.success(`Đã xóa mẫu ${sample.kyHieuMau}!`);
+                          }}
+                          className="text-[11px] text-rose-500 hover:text-rose-700 flex items-center gap-1 font-semibold p-1 hover:bg-rose-50 rounded cursor-pointer"
+                          title="Xóa mẫu này"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                          <span>Xóa mẫu</span>
+                        </button>
+                      )}
                     </div>
 
                     {/* CCCD Mat Truoc */}
                     <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
                       <label className="block text-xs font-bold text-slate-800">Ảnh CCCD Mặt trước</label>
-                      <label className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs rounded-xl border border-sky-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
-                        <Upload className="w-4 h-4 text-sky-600" />
-                        <span>Tải ảnh CCCD Mặt trước</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleImageUpload(e, (b64) => {
-                              const updated = [...mauDanhSach];
-                              updated[idx].anhCccdMatTruoc = b64;
-                              setMauDanhSach(updated);
-                              setTimeout(() => generatePdfPreview(), 300);
-                            })
-                          }
-                          className="hidden"
-                        />
-                      </label>
-                      {sample.anhCccdMatTruoc ? (
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
+                            const updated = [...mauDanhSach];
+                            updated[idx].anhCccdMatTruoc = b64;
+                            setMauDanhSach(updated);
+                            setTimeout(() => generatePdfPreview(), 300);
+                          })
+                        }
+                        disabled={isReadOnly}
+                        label="Kéo & thả ảnh CCCD Mặt trước vào đây hoặc bấm để chọn file"
+                      />
+                      {sample.anhCccdMatTruoc && (
                         <div className="mt-2 flex items-center justify-between bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 shadow-xs">
                           <div
                             className="flex items-center gap-3 cursor-pointer"
@@ -1960,29 +1864,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingImage({
-                                  url: sample.anhCccdMatTruoc!,
-                                  title: `CCCD Mặt trước - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}`,
-                                  onSave: (newUrl) => {
-                                    const updated = [...mauDanhSach];
-                                    updated[idx].anhCccdMatTruoc = newUrl;
-                                    setMauDanhSach(updated);
-                                    setTimeout(() => generatePdfPreview(), 300);
-                                    toast.success('Đã cập nhật ảnh CCCD Mặt trước!');
-                                  },
-                                })
-                              }
-                              className="px-2.5 py-1.5 bg-white hover:bg-sky-50 text-sky-700 border border-sky-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
-                              title="Chỉnh sửa / Xoay / Cắt ảnh"
-                            >
-                              <RotateCw className="w-3.5 h-3.5 text-sky-600" />
-                              <span>Xoay / Cắt</span>
-                            </button>
-
+                          {!isReadOnly && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1997,34 +1879,27 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                             >
                               <Trash2 className="w-4 h-4 text-rose-500" />
                             </button>
-                          </div>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt trước</span>
                       )}
                     </div>
 
                     {/* CCCD Mat Sau */}
                     <div className="bg-white p-3 rounded-lg border border-slate-200 space-y-2">
                       <label className="block text-xs font-bold text-slate-800">Ảnh CCCD Mặt sau / Giấy khai sinh</label>
-                      <label className="px-3.5 py-2 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold text-xs rounded-xl border border-sky-300 cursor-pointer inline-flex items-center gap-2 transition-all shadow-xs">
-                        <Upload className="w-4 h-4 text-sky-600" />
-                        <span>Tải ảnh CCCD Mặt sau / Giấy khai sinh</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleImageUpload(e, (b64) => {
-                              const updated = [...mauDanhSach];
-                              updated[idx].anhCccdMatSau = b64;
-                              setMauDanhSach(updated);
-                              setTimeout(() => generatePdfPreview(), 300);
-                            })
-                          }
-                          className="hidden"
-                        />
-                      </label>
-                      {sample.anhCccdMatSau ? (
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
+                            const updated = [...mauDanhSach];
+                            updated[idx].anhCccdMatSau = b64;
+                            setMauDanhSach(updated);
+                            setTimeout(() => generatePdfPreview(), 300);
+                          })
+                        }
+                        disabled={isReadOnly}
+                        label="Kéo & thả ảnh CCCD Mặt sau / Giấy khai sinh vào đây hoặc bấm để chọn file"
+                      />
+                      {sample.anhCccdMatSau && (
                         <div className="mt-2 flex items-center justify-between bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 shadow-xs">
                           <div
                             className="flex items-center gap-3 cursor-pointer"
@@ -2041,29 +1916,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setEditingImage({
-                                  url: sample.anhCccdMatSau!,
-                                  title: `CCCD Mặt sau / Giấy khai sinh - Mẫu ${sample.kyHieuMau}: ${sample.hoTen}`,
-                                  onSave: (newUrl) => {
-                                    const updated = [...mauDanhSach];
-                                    updated[idx].anhCccdMatSau = newUrl;
-                                    setMauDanhSach(updated);
-                                    setTimeout(() => generatePdfPreview(), 300);
-                                    toast.success('Đã cập nhật ảnh CCCD Mặt sau!');
-                                  },
-                                })
-                              }
-                              className="px-2.5 py-1.5 bg-white hover:bg-sky-50 text-sky-700 border border-sky-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-all shadow-2xs cursor-pointer"
-                              title="Chỉnh sửa / Xoay / Cắt ảnh"
-                            >
-                              <RotateCw className="w-3.5 h-3.5 text-sky-600" />
-                              <span>Xoay / Cắt</span>
-                            </button>
-
+                          {!isReadOnly && (
                             <button
                               type="button"
                               onClick={() => {
@@ -2078,10 +1931,8 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                             >
                               <Trash2 className="w-4 h-4 text-rose-500" />
                             </button>
-                          </div>
+                          )}
                         </div>
-                      ) : (
-                        <span className="text-[11px] text-slate-400 block italic">Chưa chọn ảnh mặt sau</span>
                       )}
                     </div>
                   </div>
@@ -2091,14 +1942,100 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
             {/* Section 3: Bảng Kết quả phân tích Alil Locus */}
             <div className="glass-card p-6 space-y-4">
-              <h3 className="flex items-center gap-2 text-base font-bold text-sky-700 mb-4 pb-3 border-b border-slate-100">
-                <FileText className="w-5 h-5 text-sky-600" />
-                <span>3. Bảng Kết Quả Phân Tích Alil Locus</span>
-              </h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-3 border-b border-slate-100 gap-2">
+                <h3 className="flex items-center gap-2 text-base font-bold text-sky-700">
+                  <FileText className="w-5 h-5 text-sky-600" />
+                  <span>3. Bảng Kết Quả Phân Tích Alil Locus</span>
+                </h3>
 
-              {renderLociEditor(table1, setTable1, 'Bảng Locus 1 (D3S1358, vWA, D12S391, CSF1PO, Penta E...)')}
-              {renderLociEditor(table2, setTable2, 'Bảng Locus 2 (D2S1338, Penta D, AMEL, D22S1045...)')}
-              {renderLociEditor(table3, setTable3, 'Bảng Locus 3 (D8S1179, D5S818, D21S11, FGA...)')}
+                <div className="flex items-center gap-2">
+                  <label className="btn btn-primary text-xs cursor-pointer flex items-center gap-1.5 py-1.5 px-3 shadow-xs">
+                    {uploadingResultFile ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                    <span>{table1.length > 0 || table2.length > 0 || table3.length > 0 ? 'Tải lại file Loci khác' : 'Tải file kết quả (PDF/DOCX/CSV/Excel)'}</span>
+                    <input type="file" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt,.tsv" onChange={handleFileUploadLoci} className="hidden" />
+                  </label>
+
+                  {(table1.length > 0 || table2.length > 0 || table3.length > 0) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm('Bạn có chắc muốn xóa toàn bộ bảng Locus để tải file mới?')) {
+                          setTable1([]);
+                          setTable2([]);
+                          setTable3([]);
+                        }
+                      }}
+                      className="text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-2.5 py-1.5 rounded-lg border border-rose-200 transition-colors font-semibold cursor-pointer"
+                    >
+                      Xóa bảng
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {table1.length === 0 && table2.length === 0 && table3.length === 0 ? (
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      handleFileUploadLoci(e.dataTransfer.files[0]);
+                    }
+                  }}
+                  className="border-2 border-dashed border-sky-300 bg-sky-50/50 hover:bg-sky-50 rounded-2xl p-8 text-center flex flex-col items-center justify-center gap-4 transition-colors"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-inner">
+                    <FileText className="w-7 h-7" />
+                  </div>
+                  <div className="max-w-md">
+                    <h4 className="text-sm font-bold text-slate-800">Chưa có dữ liệu bảng Locus</h4>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      Kéo thả file kết quả (PDF, Word .docx, CSV, Excel) từ máy tính vào đây hoặc bấm nút bên dưới để chọn file. Hệ thống sẽ tự động phân tích và trích xuất đúng các Locus và Alil của từng mẫu theo cấu trúc file.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-center gap-3">
+                    <label className="btn btn-primary text-xs cursor-pointer py-2 px-4 shadow-sm flex items-center gap-2">
+                      {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                      <span>Chọn file từ máy tính (.pdf / .docx / .csv / .xlsx)</span>
+                      <input type="file" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt,.tsv" onChange={handleFileUploadLoci} className="hidden" />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTable1([{ locus: 'D3S1358', alleles: {} }]);
+                      }}
+                      className="btn btn-secondary text-xs py-2 px-3"
+                    >
+                      <span>+ Thêm dòng Locus thủ công</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {table1.length > 0 && renderLociEditor(table1, setTable1, 'Bảng Locus 1')}
+                  {table2.length > 0 && renderLociEditor(table2, setTable2, 'Bảng Locus 2')}
+                  {table3.length > 0 && renderLociEditor(table3, setTable3, 'Bảng Locus 3')}
+                  <div className="flex justify-end pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newRow: LocusItem = { locus: '', alleles: {} };
+                        if (table3.length > 0) setTable3([...table3, newRow]);
+                        else if (table2.length > 0) setTable2([...table2, newRow]);
+                        else setTable1([...table1, newRow]);
+                      }}
+                      className="text-xs text-sky-600 hover:text-sky-700 font-bold flex items-center gap-1 border border-sky-200 bg-sky-50 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Thêm dòng Locus mới</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Section 4: Kết luận & Chữ ký */}
@@ -2502,15 +2439,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
         </div>
       )}
 
-      {/* Modal Chỉnh Sửa / Xoay / Cắt Ảnh */}
-      {editingImage && (
-        <ImageEditorModal
-          imageUrl={editingImage.url}
-          title={editingImage.title}
-          onClose={() => setEditingImage(null)}
-          onSave={editingImage.onSave}
-        />
-      )}
+
 
       {/* Modal Convert Sang Genetrust */}
       {showGtModal && (

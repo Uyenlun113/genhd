@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, Suspense, useRef } from 'react
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import SampleTypeSelect from '@/components/SampleTypeSelect';
 import StatusBadge from '@/components/StatusBadge';
 import ConfirmModal from '@/components/ConfirmModal';
 import Link from 'next/link';
@@ -1000,12 +1001,10 @@ function DashboardContent() {
                   </div>
 
                   <div className="form-group">
-                    <label>Loại mẫu</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={editFormData.loaiMau}
-                      onChange={(e) => setEditFormData({ ...editFormData, loaiMau: e.target.value })}
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Loại mẫu</label>
+                    <SampleTypeSelect
+                      value={editFormData.loaiMau || ''}
+                      onChange={(val) => setEditFormData({ ...editFormData, loaiMau: val })}
                     />
                   </div>
 

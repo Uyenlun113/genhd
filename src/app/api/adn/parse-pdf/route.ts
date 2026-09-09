@@ -9,89 +9,9 @@ const execPromise = util.promisify(exec);
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
-    const isSample = formData.get('isSample') === 'true';
-
-    // Default sample data extracted from KQ - GT030726.pdf
-    const sampleData = {
-      soPhieu: 'GT030726',
-      ngayBanHanh: 'Hà Nội, ngày 31 tháng 07 năm 2026.',
-      ngayYeuCau: '28/07/2026',
-      nguoiYeuCau: 'Trịnh Ngọc Chư',
-      nguoiThuMau: 'Hoàng Văn Luận',
-      boKit: 'A27Plex STR Detection Kit',
-      m1: {
-        hoTen: 'Trịnh Ngọc Chư',
-        gioiTinh: 'Nam',
-        ngaySinh: '03/11/1938',
-        quocTich: 'Việt Nam',
-        cccd: '001038006689',
-        ngayCap: '13/06/2022',
-        noiCap: 'Cục Cảnh sát quản lý hành chính về trật tự xã hội',
-        noiThuongTru: 'Quận Cầu Giấy, TP Hà Nội',
-        kyHieuMau: 'M1',
-        loaiMau: 'Máu',
-        photoUrl: '/sample_m1.jpg',
-      },
-      m2: {
-        hoTen: 'JIANG JINLAN',
-        gioiTinh: 'Nữ',
-        ngaySinh: '14/04/1983',
-        giayChungSinhSo: 'E91665688',
-        quyenSo: '2026',
-        ngayCap: '28/12/2016',
-        noiCap: 'Cục xuất nhập cảnh Trung Quốc',
-        kyHieuMau: 'M2',
-        loaiMau: 'Máu',
-        photoUrl: '/sample_m2.jpg',
-      },
-      table1: [
-        { locus: 'D3S1358', m1_1: '16', m1_2: '17', m2_1: '17', m2_2: '17' },
-        { locus: 'vWA', m1_1: '16', m1_2: '17', m2_1: '17', m2_2: '19' },
-        { locus: 'D12S391', m1_1: '20', m1_2: '25', m2_1: '17', m2_2: '20' },
-        { locus: 'CSF1PO', m1_1: '12', m1_2: '12', m2_1: '11', m2_2: '12' },
-        { locus: 'Penta E', m1_1: '11', m1_2: '18', m2_1: '11', m2_2: '18' },
-        { locus: 'D2S441', m1_1: '10', m1_2: '15', m2_1: '10', m2_2: '15' },
-        { locus: 'D16S539', m1_1: '11', m1_2: '12', m2_1: '9', m2_2: '12' },
-        { locus: 'D7S820', m1_1: '11', m1_2: '13', m2_1: '11', m2_2: '13' },
-        { locus: 'D13S317', m1_1: '9', m1_2: '12', m2_1: '11', m2_2: '12' },
-      ],
-      table2: [
-        { locus: 'D2S1338', m1_1: '18', m1_2: '19', m2_1: '18', m2_2: '18' },
-        { locus: 'Penta D', m1_1: '7', m1_2: '13', m2_1: '7', m2_2: '11' },
-        { locus: 'Rs199815934', m1_1: '1', m1_2: '1', m2_1: 'nan', m2_2: 'nan' },
-        { locus: 'AMEL', m1_1: 'X', m1_2: 'Y', m2_1: 'X', m2_2: 'X' },
-        { locus: 'D22S1045', m1_1: '14', m1_2: '16', m2_1: '11', m2_2: '14' },
-        { locus: 'D19S433', m1_1: '13', m1_2: '17.2', m2_1: '14', m2_2: '17.2' },
-        { locus: 'D18S51', m1_1: '15', m1_2: '15', m2_1: '15', m2_2: '16' },
-        { locus: 'D6S1043', m1_1: '13', m1_2: '17', m2_1: '13', m2_2: '17' },
-        { locus: 'DYS391', m1_1: '11', m1_2: '11', m2_1: 'nan', m2_2: 'nan' },
-      ],
-      table3: [
-        { locus: 'D8S1179', m1_1: '14', m1_2: '15', m2_1: '15', m2_2: '16' },
-        { locus: 'D5S818', m1_1: '10', m1_2: '12', m2_1: '10', m2_2: '11' },
-        { locus: 'D21S11', m1_1: '28', m1_2: '32.2', m2_1: '28', m2_2: '29' },
-        { locus: 'FGA', m1_1: '23', m1_2: '26', m2_1: '22', m2_2: '23' },
-        { locus: 'D10S1248', m1_1: '13', m1_2: '15', m2_1: '13', m2_2: '13' },
-        { locus: 'TH01', m1_1: '7', m1_2: '9', m2_1: '7', m2_2: '9' },
-        { locus: 'D1S1656', m1_1: '15', m1_2: '17', m2_1: '15', m2_2: '17' },
-        { locus: 'TPOX', m1_1: '8', m1_2: '8', m2_1: '8', m2_2: '11' },
-        { locus: 'SE33', m1_1: '27.2', m1_2: '28.2', m2_1: '26.2', m2_2: '27.2' },
-      ],
-      ketLuan: 'có quan hệ huyết thống bố - con ( cha – con)',
-      doTinCay: '> 99,9999%',
-      totalLikelihoodRatio: '23109010868637.6',
-      probabilityOfPaternity: '99.9999999999957%',
-      kiemSoatKetQua: 'TS. BS. Nguyễn Khánh Dương',
-      daiDienDonVi: 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM',
-    };
-
-    if (isSample) {
-      return NextResponse.json({ success: true, data: sampleData });
-    }
-
     const file = formData.get('file') as File;
     if (!file) {
-      return NextResponse.json({ error: 'Không tìm thấy file tải lên' }, { status: 400 });
+      return NextResponse.json({ error: 'Không tìm thấy file tải lên từ máy tính' }, { status: 400 });
     }
 
     const tmpDir = path.join(process.cwd(), 'scratch');
@@ -99,17 +19,22 @@ export async function POST(request: NextRequest) {
       fs.mkdirSync(tmpDir, { recursive: true });
     }
 
-    const tmpPath = path.join(tmpDir, `upload_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '')}`);
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const tmpPath = path.join(tmpDir, `upload_${Date.now()}_${cleanFileName}`);
     const bytes = await file.arrayBuffer();
     fs.writeFileSync(tmpPath, Buffer.from(bytes));
 
     try {
       const scriptPath = path.join(process.cwd(), 'scripts', 'parse_adn_pdf.py');
-      // Auto-detect python executable: Linux usually has python3, Windows has python
       const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-      const { stdout } = await execPromise(`${pythonCmd} "${scriptPath}" "${tmpPath}"`, {
-        maxBuffer: 100 * 1024 * 1024, // 100MB max buffer to prevent overflow on base64 images
+      const { stdout, stderr } = await execPromise(`"${pythonCmd}" "${scriptPath}" "${tmpPath}"`, {
+        maxBuffer: 100 * 1024 * 1024, // 100MB buffer
       });
+
+      if (stderr) {
+        console.warn('Python parser stderr:', stderr);
+      }
+
       const parsedData = JSON.parse(stdout);
 
       // Clean up tmp file
@@ -117,23 +42,23 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Đã phân tích thành công dữ liệu từ file ${file.name}`,
+        message: `Đã đọc thành công bảng Locus từ file ${file.name}`,
         data: parsedData,
       });
-    } catch (parseErr) {
+    } catch (parseErr: any) {
       console.error('Python parse error:', parseErr);
       if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
 
       return NextResponse.json(
         {
           success: false,
-          error: `Không thể phân tích dữ liệu tự động từ file ${file.name}. Vui lòng kiểm tra lại file hoặc nhập bảng Loci thủ công.`,
+          error: `Không thể phân tích dữ liệu tự động từ file ${file.name}. Chi tiết: ${parseErr.message || 'Lỗi đọc file'}`,
         },
         { status: 400 }
       );
     }
-  } catch (error) {
-    console.error('Parse PDF error:', error);
-    return NextResponse.json({ error: 'Lỗi xử lý file PDF' }, { status: 500 });
+  } catch (error: any) {
+    console.error('Parse file error:', error);
+    return NextResponse.json({ error: 'Lỗi xử lý file tải lên' }, { status: 500 });
   }
 }

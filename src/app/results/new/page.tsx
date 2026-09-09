@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
+import SampleTypeSelect from '@/components/SampleTypeSelect';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { UserPlus, ArrowLeft, Save, Sparkles, Check, Flame } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -487,13 +488,10 @@ function NewResultFormContent() {
                 </div>
 
                 <div className="form-group mb-0">
-                  <label className="text-[11px] font-semibold text-slate-600">Loại mẫu</label>
-                  <input
-                    type="text"
-                    name="loaiMau"
-                    className="form-input py-1.5 px-3 text-xs"
-                    value={formData.loaiMau}
-                    onChange={handleChange}
+                  <label className="text-[11px] font-semibold text-slate-600 mb-1 block">Loại mẫu</label>
+                  <SampleTypeSelect
+                    value={formData.loaiMau || ''}
+                    onChange={(val) => setFormData((prev) => ({ ...prev, loaiMau: val }))}
                   />
                 </div>
 

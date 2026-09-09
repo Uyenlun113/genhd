@@ -1239,14 +1239,21 @@ export async function POST(request: NextRequest) {
 
         // Allele values for each locus
         lociList.forEach((locName, lIdx) => {
-          const matchedItem = dataRows.find((item) => (item.locus || '').toLowerCase() === locName.toLowerCase());
+          const matchedItem = dataRows.find((item) => (item.locus || '').trim().toLowerCase() === locName.trim().toLowerCase());
           let alleleVal = '';
           if (matchedItem) {
-            if (matchedItem.alleles && matchedItem.alleles[sKey]) {
-              alleleVal = formatAllelePair(matchedItem.alleles[sKey].a1, matchedItem.alleles[sKey].a2);
-            } else if (sKey === 'M1') {
+            let valObj = matchedItem.alleles?.[sKey];
+            if (!valObj && matchedItem.alleles) {
+              const foundKey = Object.keys(matchedItem.alleles).find(
+                (k) => k.toLowerCase() === sKey.toLowerCase() || sKey.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(sKey.toLowerCase())
+              );
+              if (foundKey) valObj = matchedItem.alleles[foundKey];
+            }
+            if (valObj && (valObj.a1 !== undefined || valObj.a2 !== undefined)) {
+              alleleVal = formatAllelePair(valObj.a1, valObj.a2);
+            } else if (sKey === 'M1' || sKey === sampleKeys[0]) {
               alleleVal = formatAllelePair(matchedItem.m1_1, matchedItem.m1_2);
-            } else if (sKey === 'M2') {
+            } else if (sKey === 'M2' || sKey === sampleKeys[1]) {
               alleleVal = formatAllelePair(matchedItem.m2_1, matchedItem.m2_2);
             }
           }
@@ -1268,9 +1275,13 @@ export async function POST(request: NextRequest) {
       currentY -= 3;
     };
 
-    drawStandard9LociTable(lociTable1Def, table1);
-    drawStandard9LociTable(lociTable2Def, table2);
-    drawStandard9LociTable(lociTable3Def, table3);
+    const loci1 = (table1 && table1.length > 0) ? table1.map((i: any) => i.locus).filter(Boolean) : lociTable1Def;
+    const loci2 = (table2 && table2.length > 0) ? table2.map((i: any) => i.locus).filter(Boolean) : lociTable2Def;
+    const loci3 = (table3 && table3.length > 0) ? table3.map((i: any) => i.locus).filter(Boolean) : lociTable3Def;
+
+    if (loci1.length > 0) drawStandard9LociTable(loci1, table1);
+    if (loci2.length > 0) drawStandard9LociTable(loci2, table2);
+    if (loci3.length > 0) drawStandard9LociTable(loci3, table3);
 
     // Summary Row for Total Likelyhood Ratio (LR) & Probability of paternity (POP)
     const lrRowH = 15;

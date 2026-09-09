@@ -111,23 +111,9 @@ export async function POST(request: NextRequest) {
     const isXchr = loaiXetNghiemADN === 'x_chr';
     const finalBoKit = boKit || (isXchr ? 'X18Plex STR Detection Kit' : isYchr ? 'Y27Plex STR Detection Kit' : 'A27Plex STR Detection Kit');
 
-    const defaultTable1 = isXchr
-      ? initLoci(['GATA172D05', 'GATA165B12', 'DXS6795', 'DXS981', 'DXS6807', 'DXS7133', 'DXS8378', 'DXS9902', 'DXS6810'])
-      : isYchr
-      ? initLoci(['DYS481', 'DYS389I', 'DYS635', 'DYS389II', 'DYS391', 'DYS533', 'DYS627', 'DYS460', 'DYS458'])
-      : initLoci(['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317']);
-
-    const defaultTable2 = isXchr
-      ? initLoci(['DXS10159', 'DXS7423', 'DXS7132', 'GATA31E08', 'DXS6789', 'AMEL', 'HPRTB', 'DXS6803', 'DXS101'])
-      : isYchr
-      ? initLoci(['DYS19', 'DYF387S1', 'DYS456', 'DYS385', 'DYS576', 'DYS437', 'DYS439', 'DYS392', 'DYS448'])
-      : initLoci(['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391']);
-
-    const defaultTable3 = isXchr
-      ? []
-      : isYchr
-      ? initLoci(['DYS518', 'DYS393', 'DYS570', 'DYS390', 'DYS438', 'Y_GATA_H4', 'DYS449'])
-      : initLoci(['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33']);
+    const finalTable1 = Array.isArray(body.table1) ? body.table1 : [];
+    const finalTable2 = Array.isArray(body.table2) ? body.table2 : [];
+    const finalTable3 = Array.isArray(body.table3) ? body.table3 : [];
 
     const {
       canBoXetNghiem = 'CÁN BỘ XÉT NGHIỆM',
@@ -149,9 +135,9 @@ export async function POST(request: NextRequest) {
       dieuKien: 'chua_xac_nhan',
       anhGuiMau,
       mauDanhSach: formattedMauDanhSach,
-      table1: defaultTable1,
-      table2: defaultTable2,
-      table3: defaultTable3,
+      table1: finalTable1,
+      table2: finalTable2,
+      table3: finalTable3,
       ketLuan: '',
       doTinCay: '> 99,9999%',
       totalLikelihoodRatio: body.totalLikelihoodRatio || '23109010868637.6',

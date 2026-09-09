@@ -4,6 +4,9 @@ import re
 import os
 import subprocess
 import shutil
+import base64
+import io
+import csv
 
 try:
     import docx
@@ -16,8 +19,12 @@ except ImportError:
     pypdf = None
 
 try:
+    import pdfplumber
+except ImportError:
+    pdfplumber = None
+
+try:
     from PIL import Image
-    import io
     def optimize_image_b64(img_bytes):
         try:
             im = Image.open(io.BytesIO(img_bytes))
@@ -62,282 +69,381 @@ def run_tesseract(img_bytes, psm="6", lang="vie+eng"):
             os.remove(tmp_img)
     return out
 
-def parse_docx_file(file_path):
-    filename = os.path.basename(file_path)
-    ticket_match = re.search(r'(GT\d+|HCGT-\d+|TNGT-\d+)', filename, re.IGNORECASE)
-    so_phieu_default = ticket_match.group(1).upper() if ticket_match else filename.replace('.docx', '').replace('.doc', '').replace('KQ - ', '').strip()
+KNOWN_LOCI_MAP = {
+    'GATA172D': 'GATA172D05',
+    'GATA172D05': 'GATA172D05',
+    'GATA165B': 'GATA165B12',
+    'GATA165B12': 'GATA165B12',
+    'GATA31E0': 'GATA31E08',
+    'GATA31E08': 'GATA31E08',
+    'DXS6795': 'DXS6795',
+    'DXS981': 'DXS981',
+    'DXS6807': 'DXS6807',
+    'DXS7133': 'DXS7133',
+    'DXS8378': 'DXS8378',
+    'DXS9902': 'DXS9902',
+    'DXS6810': 'DXS6810',
+    'DXS10159': 'DXS10159',
+    'DXS7423': 'DXS7423',
+    'DXS7132': 'DXS7132',
+    'DXS6789': 'DXS6789',
+    'AMEL': 'AMEL',
+    'AMELOGENIN': 'AMEL',
+    'HPRTB': 'HPRTB',
+    'DXS6803': 'DXS6803',
+    'DXS101': 'DXS101',
+    'VWA': 'vWA',
+    'SE33': 'SE33',
+    'TH01': 'TH01',
+    'TPOX': 'TPOX',
+    'CSF1PO': 'CSF1PO',
+    'FGA': 'FGA',
+    'PENTAD': 'Penta D',
+    'PENTAE': 'Penta E'
+}
 
-    data = {
-        "soPhieu": so_phieu_default,
-        "ngayBanHanh": "Hà Nội, ngày 07 tháng 08 năm 2026.",
-        "ngayYeuCau": "07/08/2026",
-        "nguoiYeuCau": "",
-        "nguoiThuMau": "Hoàng Văn Luận",
-        "boKit": "A27Plex STR Detection Kit",
-        "table1": [],
-        "table2": [],
-        "table3": [],
-        "ketLuan": "",
-        "doTinCay": "> 99,9999%"
+def clean_locus_cell(text):
+    if not text:
+        return ''
+    s = str(text).strip()
+    s_upper = re.sub(r'[^a-zA-Z0-9]', '', s).upper()
+    if s_upper in KNOWN_LOCI_MAP:
+        return KNOWN_LOCI_MAP[s_upper]
+
+    # Search for GATA marker inside e.g. '0 G5ATA165B'
+    m = re.search(r'G\d*A\d*T\d*A\s*(\d+[A-Z0-9]*)', s, re.IGNORECASE)
+    if m:
+        num = m.group(1).upper()
+        if '165' in num: return 'GATA165B12'
+        if '172' in num: return 'GATA172D05'
+        if '31' in num: return 'GATA31E08'
+        return f'GATA{num}'
+
+    # Search for DXS or DYS
+    m = re.search(r'D\d*([XY]\w+)', s, re.IGNORECASE)
+    if m:
+        cleaned = 'D' + re.sub(r'[^a-zA-Z0-9]', '', m.group(1)).upper()
+        if cleaned.startswith('DXS') or cleaned.startswith('DYS') or cleaned.startswith('DYF'):
+            return cleaned
+
+    m = re.search(r'(D\d+S\d+|DXS\d+|DYS\d+|DYF\d+S\d+|Penta\s*[A-Z]|AMEL|HPRTB|SE\d+|TH\d+|TPOX|CSF1PO|FGA|vWA|rs\d+)', s, re.IGNORECASE)
+    if m:
+        val = m.group(1).strip()
+        if val.upper() == 'VWA': return 'vWA'
+        if val.upper() == 'AMEL': return 'AMEL'
+        if 'PENTA' in val.upper():
+            return f"Penta {val[-1].upper()}"
+        return val.upper()
+
+    # Never treat a pure number or punctuation as a locus!
+    return ''
+
+def parse_allele_cell(val_str):
+    if not val_str:
+        return '', ''
+    s = str(val_str).strip()
+    if s.lower() in ('nan', 'null', 'none', '-', '', '/', ';'):
+        return '', ''
+
+    if ';' in s:
+        parts = [p.strip() for p in s.split(';') if p.strip()]
+    elif '/' in s:
+        parts = [p.strip() for p in s.split('/') if p.strip()]
+    elif '\n' in s:
+        parts = [p.strip() for p in s.split('\n') if p.strip()]
+    elif ',' in s:
+        parts = [p.strip() for p in s.split(',') if p.strip()]
+    else:
+        space_parts = [p.strip() for p in s.split() if p.strip()]
+        if len(space_parts) >= 2:
+            parts = space_parts
+        else:
+            parts = [s]
+
+    cleaned = []
+    for p in parts:
+        # Convert Vietnamese decimal comma to dot: "32,2" -> "32.2"
+        p_clean = re.sub(r'(\d+),(\d+)', r'\1.\2', p).strip()
+        p_clean = p_clean.strip(';,:')
+        if p_clean:
+            cleaned.append(p_clean)
+
+    a1 = cleaned[0] if len(cleaned) > 0 else ''
+    a2 = cleaned[1] if len(cleaned) > 1 else ''
+    return a1, a2
+
+def parse_tables_grid(tables):
+    ordered_loci = []
+    loci_dict = {}  # { locus_name: { sample_key: { 'a1': a1, 'a2': a2 } } }
+    ordered_samples = []
+
+    for table in tables:
+        if not table or len(table) < 2:
+            continue
+
+        current_block_loci = []
+        sample_col_idx = 0
+
+        for row in table:
+            cells = [str(c).strip().replace('\n', ' ') if c is not None else '' for c in row]
+            if not cells or not any(cells):
+                continue
+
+            first = cells[0].lower()
+            is_sample_hdr = any(kw in first for kw in ['sample', 'mẫu', 'ký hiệu', 'stt', 'name'])
+            is_locus_hdr = not is_sample_hdr and sum(1 for c in cells[1:] if clean_locus_cell(c)) >= 2
+
+            if is_sample_hdr or is_locus_hdr:
+                current_block_loci = []
+                sample_col_idx = 0
+                if len(cells) > 1 and any(kw in cells[1].lower() for kw in ['name', 'mẫu', 'ký hiệu', 'code']) and not clean_locus_cell(cells[1]):
+                    sample_col_idx = 1
+
+                for c_idx, cell_text in enumerate(cells):
+                    if c_idx <= sample_col_idx and not clean_locus_cell(cell_text):
+                        continue
+                    loc = clean_locus_cell(cell_text)
+                    if loc:
+                        current_block_loci.append((c_idx, loc))
+                        if loc not in ordered_loci:
+                            ordered_loci.append(loc)
+                        if loc not in loci_dict:
+                            loci_dict[loc] = {}
+            elif current_block_loci and cells[0]:
+                s_primary = cells[sample_col_idx].strip() if sample_col_idx < len(cells) and cells[sample_col_idx].strip() else cells[0].strip()
+                s_alt = cells[0].strip() if sample_col_idx != 0 and cells[0].strip() else ""
+
+                if any(kw in s_primary.lower() for kw in ['sample', 'mẫu', 'locus', 'stt', 'name', 'file']):
+                    continue
+                if s_primary not in ordered_samples:
+                    ordered_samples.append(s_primary)
+
+                for col_idx, loc in current_block_loci:
+                    allele_str = cells[col_idx] if col_idx < len(cells) else ''
+                    a1, a2 = parse_allele_cell(allele_str)
+                    if loc not in loci_dict:
+                        loci_dict[loc] = {}
+                    loci_dict[loc][s_primary] = {'a1': a1, 'a2': a2}
+                    if s_alt and s_alt != s_primary:
+                        loci_dict[loc][s_alt] = {'a1': a1, 'a2': a2}
+
+    # If horizontal table parsing extracted loci:
+    if ordered_loci:
+        all_items = []
+        for loc in ordered_loci:
+            sample_alleles = loci_dict.get(loc, {})
+            item = {'locus': loc, 'alleles': sample_alleles}
+            for idx, s_name in enumerate(ordered_samples):
+                val = sample_alleles.get(s_name, {'a1': '', 'a2': ''})
+                item[f"m{idx+1}_1"] = val.get('a1', '')
+                item[f"m{idx+1}_2"] = val.get('a2', '')
+            all_items.append(item)
+
+        total_l = len(all_items)
+        if total_l <= 9:
+            table1 = all_items
+            table2 = []
+            table3 = []
+        elif total_l <= 18:
+            table1 = all_items[:9]
+            table2 = all_items[9:]
+            table3 = []
+        else:
+            table1 = all_items[:9]
+            table2 = all_items[9:18]
+            table3 = all_items[18:]
+
+        return table1, table2, table3, ordered_samples
+
+    # Fallback: Vertical table parsing (if col 0 has loci)
+    v_loci = []
+    v_dict = {}
+    v_samples = []
+    for table in tables:
+        if not table or len(table) < 2:
+            continue
+        first_row = [str(c).strip() for c in table[0]]
+        if any(kw in first_row[0].lower() for kw in ['locus', 'tên locus']):
+            v_samples = [s for s in first_row[1:] if s and s.lower() not in ['stt', 'ghi chú']]
+            for r in table[1:]:
+                if len(r) < 2: continue
+                loc = clean_locus_cell(r[0])
+                if not loc: continue
+                if loc not in v_loci: v_loci.append(loc)
+                if loc not in v_dict: v_dict[loc] = {}
+                for s_idx, s_name in enumerate(v_samples):
+                    val = r[s_idx + 1] if s_idx + 1 < len(r) else ''
+                    a1, a2 = parse_allele_cell(val)
+                    v_dict[loc][s_name] = {'a1': a1, 'a2': a2}
+
+    if v_loci:
+        all_items = []
+        for loc in v_loci:
+            item = {'locus': loc, 'alleles': v_dict.get(loc, {})}
+            for idx, s_name in enumerate(v_samples):
+                val = v_dict.get(loc, {}).get(s_name, {'a1': '', 'a2': ''})
+                item[f"m{idx+1}_1"] = val.get('a1', '')
+                item[f"m{idx+1}_2"] = val.get('a2', '')
+            all_items.append(item)
+
+        total_l = len(all_items)
+        if total_l <= 9:
+            return all_items, [], [], v_samples
+        elif total_l <= 18:
+            return all_items[:9], all_items[9:], [], v_samples
+        else:
+            return all_items[:9], all_items[9:18], all_items[18:], v_samples
+
+    return [], [], [], []
+
+def extract_metadata_from_text(full_text, filename):
+    ticket_match = re.search(r'(GT\d+|HCGT-\d+|TNGT-\d+|\b\d{6}[A-Z0-9/]+\b)', filename, re.IGNORECASE)
+    so_phieu = ticket_match.group(1).upper() if ticket_match else filename.replace('.docx', '').replace('.doc', '').replace('.pdf', '').replace('KQ - ', '').strip()
+
+    ngay_ban_hanh = ""
+    ngay_yeu_cau = ""
+    nguoi_yeu_cau = ""
+    ket_luan = ""
+    do_tin_cay = ""
+    bo_kit = ""
+
+    if full_text:
+        m_nbh = re.search(r'(Hà Nội,\s*ngày\s+\d+\s+tháng\s+\d+\s+năm\s+\d{4}\.?)', full_text, re.IGNORECASE)
+        if m_nbh:
+            ngay_ban_hanh = m_nbh.group(1).strip()
+
+        m_nyc = re.search(r'ngày\s+nhận\s+mẫu[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', full_text, re.IGNORECASE)
+        if not m_nyc:
+            m_nyc = re.search(r'ngày\s+yêu\s+cầu[:\s]*(\d{1,2}[/-]\d{1,2}[/-]\d{4})', full_text, re.IGNORECASE)
+        if m_nyc:
+            ngay_yeu_cau = m_nyc.group(1).strip()
+
+        m_req = re.search(r'của\s+bà\(ông\)\s*([^,\n]+)', full_text, re.IGNORECASE)
+        if not m_req:
+            m_req = re.search(r'người\s+yêu\s+cầu[:\s]*([^\n,]+)', full_text, re.IGNORECASE)
+        if m_req:
+            nguoi_yeu_cau = m_req.group(1).strip()
+
+        m_conc = re.search(r'(?:KẾT LUẬN|Kết luận)[:\s]*([^\n]+)', full_text)
+        if m_conc:
+            ket_luan = m_conc.group(1).strip()
+
+        m_dtc = re.search(r'(?:độ tin cậy|Độ tin cậy)[:\s]*([^\n,]+)', full_text)
+        if m_dtc:
+            do_tin_cay = m_dtc.group(1).strip()
+
+        m_kit = re.search(r'([A-Za-z0-9]+\s*Plex(?:\s*STR)?\s*(?:Detection\s*Kit)?)', full_text, re.IGNORECASE)
+        if m_kit:
+            bo_kit = m_kit.group(1).strip()
+
+    return {
+        'soPhieu': so_phieu,
+        'ngayBanHanh': ngay_ban_hanh,
+        'ngayYeuCau': ngay_yeu_cau,
+        'nguoiYeuCau': nguoi_yeu_cau,
+        'ketLuan': ket_luan,
+        'doTinCay': do_tin_cay or '> 99,9999%',
+        'boKit': bo_kit
     }
 
-    if not docx:
-        return data
-
-    try:
-        doc = docx.Document(file_path)
-        
-        # Read intro paragraphs & conclusions
-        full_text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
-        m_req = re.search(r'của bà\(ông\)\s*([^,]+)', full_text, re.IGNORECASE)
-        if m_req:
-            data["nguoiYeuCau"] = m_req.group(1).strip()
-
-        m_conc = re.search(r'(KẾT LUẬN|Kết luận)[:\s]*([^\n]+)', full_text)
-        if m_conc:
-            data["ketLuan"] = m_conc.group(2).strip()
-
-        loci1 = ['D3S1358', 'vWA', 'D12S391', 'CSF1PO', 'Penta E', 'D2S441', 'D16S539', 'D7S820', 'D13S317']
-        loci2 = ['D2S1338', 'Penta D', 'Rs199815934', 'AMEL', 'D22S1045', 'D19S433', 'D18S51', 'D6S1043', 'DYS391']
-        loci3 = ['D8S1179', 'D5S818', 'D21S11', 'FGA', 'D10S1248', 'TH01', 'D1S1656', 'TPOX', 'SE33']
-        all_loci = loci1 + loci2 + loci3
-
-        parsed_items_t1 = []
-        parsed_items_t2 = []
-        parsed_items_t3 = []
-
-        for table in doc.tables:
-            # Check if this table has Locus names in column 0 (Vertical table)
-            col0_texts = [row.cells[0].text.strip().upper() for row in table.rows if len(row.cells) >= 2]
-            matched_loci_count = sum(1 for text in col0_texts if text in [l.upper() for l in all_loci])
-
-            if matched_loci_count >= 3:
-                # Vertical Table parsing (Locus in column 0)
-                header_cells = [c.text.strip() for c in table.rows[0].cells]
-                sample_headers = header_cells[1:] if len(header_cells) > 1 else ['M1', 'M2']
-
-                for row in table.rows[1:]:
-                    cells = [c.text.strip().replace('\n', ' ') for c in row.cells]
-                    if not cells or len(cells) < 2:
-                        continue
-                    loc_name = cells[0]
-                    if not loc_name or loc_name.lower() in ['locus', 'mẫu', 'locus mẫu', 'locus/mẫu']:
-                        continue
-
-                    # Match exact locus name
-                    if not any(loc_name.upper() == l.upper() for l in all_loci):
-                        continue
-
-                    item = {'locus': loc_name, 'alleles': {}}
-                    for s_idx, val_str in enumerate(cells[1:]):
-                        s_key = sample_headers[s_idx] if s_idx < len(sample_headers) else f"M{s_idx+1}"
-                        parts = [p.strip() for p in re.split(r'[;,\s/-]+', val_str) if p.strip()]
-                        a1 = parts[0] if len(parts) > 0 else ''
-                        a2 = parts[1] if len(parts) > 1 else ''
-                        item['alleles'][s_key] = {'a1': a1, 'a2': a2}
-                        if s_idx == 0:
-                            item['m1_1'] = a1; item['m1_2'] = a2
-                        elif s_idx == 1:
-                            item['m2_1'] = a1; item['m2_2'] = a2
-
-                    loc_u = loc_name.upper()
-                    if any(loc_u == l.upper() for l in loci1):
-                        parsed_items_t1.append(item)
-                    elif any(loc_u == l.upper() for l in loci2):
-                        parsed_items_t2.append(item)
-                    elif any(loc_u == l.upper() for l in loci3):
-                        parsed_items_t3.append(item)
-
-            else:
-                # Horizontal Table parsing (Loci in header row)
-                current_loci = []
-                sample_rows = {}
-
-                def flush_subtable(loci_list, samples_dict):
-                    if not loci_list or not samples_dict:
-                        return
-                    t_res = []
-                    for l_idx, loc_name in enumerate(loci_list):
-                        if not loc_name or loc_name.lower() in ['locus', 'mẫu', 'locus mẫu', 'locus/mẫu']:
-                            continue
-                        item = {'locus': loc_name, 'alleles': {}}
-                        for s_key, vals in samples_dict.items():
-                            val_str = vals[l_idx] if l_idx < len(vals) else ''
-                            parts = [p.strip() for p in re.split(r'[;,\s/-]+', val_str) if p.strip()]
-                            a1 = parts[0] if len(parts) > 0 else ''
-                            a2 = parts[1] if len(parts) > 1 else ''
-                            item['alleles'][s_key] = {'a1': a1, 'a2': a2}
-                            if s_key.upper() in ['M1', '1', 'B']:
-                                item['m1_1'] = a1; item['m1_2'] = a2
-                            elif s_key.upper() in ['M2', '2', 'C']:
-                                item['m2_1'] = a1; item['m2_2'] = a2
-                        t_res.append(item)
-
-                    if any(loc.upper() in [l.upper() for l in loci1] for loc in loci_list):
-                        parsed_items_t1.extend(t_res)
-                    elif any(loc.upper() in [l.upper() for l in loci2] for loc in loci_list):
-                        parsed_items_t2.extend(t_res)
-                    elif any(loc.upper() in [l.upper() for l in loci3] for loc in loci_list):
-                        parsed_items_t3.extend(t_res)
-
-                for row in table.rows:
-                    cells = [c.text.strip().replace('\n', ' ') for c in row.cells]
-                    if not cells or len(cells) < 2:
-                        continue
-                    
-                    # Check if header row
-                    if any(loc.lower() in [c.lower() for c in cells[1:]] for loc in all_loci) or 'locus' in cells[0].lower():
-                        if current_loci and sample_rows:
-                            flush_subtable(current_loci, sample_rows)
-                        current_loci = cells[1:]
-                        sample_rows = {}
-                    elif cells[0] and current_loci:
-                        sample_rows[cells[0].strip()] = cells[1:]
-                
-                if current_loci and sample_rows:
-                    flush_subtable(current_loci, sample_rows)
-
-        if parsed_items_t1: data['table1'] = parsed_items_t1
-        if parsed_items_t2: data['table2'] = parsed_items_t2
-        if parsed_items_t3: data['table3'] = parsed_items_t3
-
-        # Extract ALL embedded images from DOCX using zipfile & docx rels in exact document order
-        extracted_images = []
-        import zipfile
-        import base64
-
-        try:
-            with zipfile.ZipFile(file_path, 'r') as z:
-                namelist = z.namelist()
-
-                # 1. Map rId -> target media path from .rels files
-                rels = {}
-                for rel_path in namelist:
-                    if rel_path.startswith('word/_rels/') and rel_path.endswith('.rels'):
-                        try:
-                            rels_xml = z.read(rel_path).decode('utf-8', errors='ignore')
-                            for match in re.finditer(r'Id=["\']([^"\']+)["\'][^>]*Target=["\']([^"\']+)["\']', rels_xml):
-                                r_id, target = match.group(1), match.group(2)
-                                if 'media/' in target:
-                                    clean_target = 'word/' + target.lstrip('/') if not target.startswith('word/') else target
-                                    rels[r_id] = clean_target
-                        except Exception:
-                            pass
-
-                # 2. Find image rIds in document.xml & header/footer XMLs in exact document order
-                xml_files = [f for f in namelist if f.startswith('word/') and f.endswith('.xml') and not f.startswith('word/_rels/')]
-                xml_files.sort(key=lambda x: (0 if x == 'word/document.xml' else 1, x))
-
-                ordered_media_paths = []
-                for xml_file in xml_files:
-                    try:
-                        xml_content = z.read(xml_file).decode('utf-8', errors='ignore')
-                        for match in re.finditer(r'(?:r:embed|r:id)=["\']([^"\']+)["\']', xml_content):
-                            r_id = match.group(1)
-                            if r_id in rels:
-                                media_path = rels[r_id]
-                                if media_path in namelist:
-                                    ordered_media_paths.append(media_path)
-                    except Exception:
-                        pass
-
-                # 3. Append any remaining unreferenced media files
-                all_media = [f for f in namelist if f.startswith('word/media/') and not f.endswith('/')]
-                def sort_key(f):
-                    m = re.search(r'image(\d+)', f)
-                    return int(m.group(1)) if m else f
-                all_media.sort(key=sort_key)
-
-                for m_path in all_media:
-                    if m_path not in ordered_media_paths:
-                        ordered_media_paths.append(m_path)
-
-                # 4. Extract image data for each reference
-                for fname in ordered_media_paths:
-                    try:
-                        img_bytes = z.read(fname)
-                        if len(img_bytes) > 100:
-                            b64_str = None
-                            if optimize_image_b64:
-                                b64_str = optimize_image_b64(img_bytes)
-                            if not b64_str:
-                                ext = fname.split('.')[-1].lower()
-                                mime = "image/jpeg" if ext in ["jpg", "jpeg"] else ("image/png" if ext == "png" else f"image/{ext}")
-                                b64_str = f"data:{mime};base64," + base64.b64encode(img_bytes).decode('utf-8')
-                            if b64_str:
-                                extracted_images.append(b64_str)
-                    except Exception as ie:
-                        sys.stderr.write(f"Error processing image {fname}: {ie}\n")
-
-        except Exception as ze:
-            sys.stderr.write(f"Zip extraction error: {ze}\n")
-
-        # Fallback via docx rels if nothing found
-        if not extracted_images and doc:
-            try:
-                for rel in doc.part.rels.values():
-                    if "image" in str(rel.target_ref).lower() or "image" in str(rel.reltype).lower():
-                        img_data = rel.target_part.blob
-                        if len(img_data) > 100:
-                            b64_str = optimize_image_b64(img_data) if optimize_image_b64 else None
-                            if not b64_str:
-                                b64_str = "data:image/png;base64," + base64.b64encode(img_data).decode('utf-8')
-                            if b64_str:
-                                extracted_images.append(b64_str)
-            except Exception:
-                pass
-
-        data["images"] = extracted_images
-
-    except Exception as e:
-        sys.stderr.write(f"Docx parsing error: {e}\n")
-
-    return data
-
-def parse_pdf(file_path):
-    if file_path.lower().endswith(('.docx', '.doc')):
-        data = parse_docx_file(file_path)
-        print(json.dumps(data, ensure_ascii=False))
-        return
-
+def parse_docx_file(file_path):
     filename = os.path.basename(file_path)
-    ticket_match = re.search(r'(GT\d+|HCGT-\d+|TNGT-\d+)', filename, re.IGNORECASE)
-    so_phieu_default = ticket_match.group(1).upper() if ticket_match else filename.replace('.pdf', '').replace('KQ - ', '').strip()
+    full_text = ""
+    extracted_tables = []
 
-    is_gt010726 = 'GT010726' in filename.upper() or 'GT010726' in file_path.upper()
-    is_gt030726 = 'GT030726' in filename.upper() or 'GT030726' in file_path.upper() or 'GT030626' in filename.upper()
+    if docx:
+        try:
+            doc = docx.Document(file_path)
+            full_text = "\n".join([p.text for p in doc.paragraphs if p.text.strip()])
+            for table in doc.tables:
+                grid = []
+                for row in table.rows:
+                    cleaned_row = [c.text.strip().replace('\n', ' ') for c in row.cells]
+                    if any(cleaned_row):
+                        grid.append(cleaned_row)
+                if grid:
+                    extracted_tables.append(grid)
+        except Exception as e:
+            sys.stderr.write(f"Docx read error: {e}\n")
 
-    full_ocr_text = ""
+    t1, t2, t3, samples = parse_tables_grid(extracted_tables)
+    meta = extract_metadata_from_text(full_text, filename)
 
-    if pypdf:
+    extracted_images = []
+    try:
+        import zipfile
+        with zipfile.ZipFile(file_path, 'r') as z:
+            media_files = [f for f in z.namelist() if f.startswith('word/media/')]
+            media_files.sort()
+            for mf in media_files:
+                img_bytes = z.read(mf)
+                if len(img_bytes) > 200:
+                    b64 = optimize_image_b64(img_bytes) if optimize_image_b64 else None
+                    if not b64:
+                        ext = mf.split('.')[-1].lower()
+                        mime = "image/jpeg" if ext in ["jpg", "jpeg"] else ("image/png" if ext == "png" else f"image/{ext}")
+                        b64 = f"data:{mime};base64," + base64.b64encode(img_bytes).decode('utf-8')
+                    if b64:
+                        extracted_images.append(b64)
+    except Exception:
+        pass
+
+    return {
+        "soPhieu": meta['soPhieu'],
+        "ngayBanHanh": meta['ngayBanHanh'],
+        "ngayYeuCau": meta['ngayYeuCau'],
+        "nguoiYeuCau": meta['nguoiYeuCau'],
+        "nguoiThuMau": "Hoàng Văn Luận",
+        "boKit": meta['boKit'] or "A27Plex STR Detection Kit",
+        "samples": samples,
+        "table1": t1,
+        "table2": t2,
+        "table3": t3,
+        "ketLuan": meta['ketLuan'],
+        "doTinCay": meta['doTinCay'],
+        "images": extracted_images
+    }
+
+def parse_pdf_file(file_path):
+    filename = os.path.basename(file_path)
+    full_text = ""
+    extracted_tables = []
+
+    if pdfplumber:
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    txt = page.extract_text() or ""
+                    if txt:
+                        full_text += txt + "\n"
+                    tables = page.extract_tables()
+                    if tables:
+                        for t in tables:
+                            grid = []
+                            for row in t:
+                                if not row:
+                                    continue
+                                cleaned_row = [str(c).strip().replace('\n', ' ') if c is not None else '' for c in row]
+                                if any(cleaned_row):
+                                    grid.append(cleaned_row)
+                            if grid:
+                                extracted_tables.append(grid)
+        except Exception as err:
+            sys.stderr.write(f"pdfplumber error: {err}\n")
+
+    if not full_text and pypdf:
         try:
             reader = pypdf.PdfReader(file_path)
-            page_count = len(reader.pages)
-            
-            target_indices = [0]
-            if page_count >= 3:
-                target_indices.append(2)
-            elif page_count == 2:
-                target_indices.append(1)
-
-            for p_idx in target_indices:
-                if p_idx < page_count:
-                    page = reader.pages[p_idx]
-                    try:
-                        txt = page.extract_text() or ""
-                        if txt:
-                            full_ocr_text += txt + "\n"
-                    except Exception:
-                        pass
-        except Exception as err:
-            sys.stderr.write(f"Error reading PDF pages: {err}\n")
+            for page in reader.pages:
+                txt = page.extract_text() or ""
+                if txt:
+                    full_text += txt + "\n"
+        except Exception:
+            pass
 
     pdf_extracted_images = []
     try:
         import pypdfium2 as pdfium
-        import io
-        import base64
-
         pdf_doc = pdfium.PdfDocument(file_path)
         for page_idx in range(len(pdf_doc)):
             p_obj = pdf_doc[page_idx]
@@ -349,171 +455,145 @@ def parse_pdf(file_path):
             out = io.BytesIO()
             pil_img.save(out, format="JPEG", quality=75)
             pdf_extracted_images.append("data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode('utf-8'))
-    except Exception as pdf_err:
-        sys.stderr.write(f"Pdfium render error: {pdf_err}\n")
-        if pypdf:
-            try:
-                import io
-                import base64
-                reader = pypdf.PdfReader(file_path)
-                for page in reader.pages:
-                    for img in page.images:
-                        b64_str = optimize_image_b64(img.data) if optimize_image_b64 else None
-                        if not b64_str:
-                            b64_str = "data:image/png;base64," + base64.b64encode(img.data).decode('utf-8')
-                        pdf_extracted_images.append(b64_str)
-            except Exception:
-                pass
+    except Exception:
+        pass
 
-    # Base Preset Data for GT010726
-    if is_gt010726:
-        data = {
-            "soPhieu": "GT010726",
-            "ngayBanHanh": "Hà Nội, ngày 31 tháng 07 năm 2026.",
-            "ngayYeuCau": "28/07/2026",
-            "nguoiYeuCau": "JIANG JINLAN",
-            "nguoiThuMau": "Hoàng Văn Luận",
-            "boKit": "A27Plex STR Detection Kit",
-            "m1": {
-                "hoTen": "JIANG JINLAN",
-                "gioiTinh": "Nữ",
-                "ngaySinh": "14/04/1983",
-                "quocTich": "Việt Nam",
-                "cccd": "E91665688",
-                "ngayCap": "28/12/2016",
-                "noiCap": "Cục xuất nhập cảnh Trung Quốc",
-                "noiThuongTru": "",
-                "kyHieuMau": "M1",
-                "loaiMau": "Máu",
-                "photoUrl": "/sample_m1.jpg"
-            },
-            "m2": {
-                "hoTen": "TRỊNH BẢO ANH",
-                "gioiTinh": "Nữ",
-                "ngaySinh": "07/04/2016",
-                "giayChungSinhSo": "038316000001",
-                "quyenSo": "2016",
-                "ngayCap": "15/04/2016",
-                "noiCap": "UBND phường Nghĩa Đô, Cầu Giấy, Hà Nội",
-                "kyHieuMau": "M2",
-                "loaiMau": "Máu",
-                "photoUrl": "/sample_m2.jpg"
-            },
-            "table1": [
-                { "locus": "D3S1358", "m1_1": "16", "m1_2": "17", "m2_1": "16", "m2_2": "17", "alleles": { "M1": {"a1": "16", "a2": "17"}, "M2": {"a1": "16", "a2": "17"} } },
-                { "locus": "vWA", "m1_1": "16", "m1_2": "17", "m2_1": "16", "m2_2": "17", "alleles": { "M1": {"a1": "16", "a2": "17"}, "M2": {"a1": "16", "a2": "17"} } },
-                { "locus": "D12S391", "m1_1": "17", "m1_2": "20", "m2_1": "20", "m2_2": "25", "alleles": { "M1": {"a1": "17", "a2": "20"}, "M2": {"a1": "20", "a2": "25"} } },
-                { "locus": "CSF1PO", "m1_1": "11", "m1_2": "12", "m2_1": "12", "m2_2": "12", "alleles": { "M1": {"a1": "11", "a2": "12"}, "M2": {"a1": "12", "a2": "12"} } },
-                { "locus": "Penta E", "m1_1": "11", "m1_2": "18", "m2_1": "11", "m2_2": "18", "alleles": { "M1": {"a1": "11", "a2": "18"}, "M2": {"a1": "11", "a2": "18"} } },
-                { "locus": "D2S441", "m1_1": "10", "m1_2": "15", "m2_1": "10", "m2_2": "15", "alleles": { "M1": {"a1": "10", "a2": "15"}, "M2": {"a1": "10", "a2": "15"} } },
-                { "locus": "D16S539", "m1_1": "9", "m1_2": "12", "m2_1": "11", "m2_2": "12", "alleles": { "M1": {"a1": "9", "a2": "12"}, "M2": {"a1": "11", "a2": "12"} } },
-                { "locus": "D7S820", "m1_1": "11", "m1_2": "13", "m2_1": "11", "m2_2": "13", "alleles": { "M1": {"a1": "11", "a2": "13"}, "M2": {"a1": "11", "a2": "13"} } },
-                { "locus": "D13S317", "m1_1": "11", "m1_2": "12", "m2_1": "9", "m2_2": "12", "alleles": { "M1": {"a1": "11", "a2": "12"}, "M2": {"a1": "9", "a2": "12"} } }
-            ],
-            "table2": [
-                { "locus": "D2S1338", "m1_1": "18", "m1_2": "18", "m2_1": "18", "m2_2": "19", "alleles": { "M1": {"a1": "18", "a2": "18"}, "M2": {"a1": "18", "a2": "19"} } },
-                { "locus": "Penta D", "m1_1": "7", "m1_2": "11", "m2_1": "7", "m2_2": "13", "alleles": { "M1": {"a1": "7", "a2": "11"}, "M2": {"a1": "7", "a2": "13"} } },
-                { "locus": "Rs199815934", "m1_1": "nan", "m1_2": "nan", "m2_1": "1", "m2_2": "1", "alleles": { "M1": {"a1": "nan", "a2": "nan"}, "M2": {"a1": "1", "a2": "1"} } },
-                { "locus": "AMEL", "m1_1": "X", "m1_2": "X", "m2_1": "X", "m2_2": "Y", "alleles": { "M1": {"a1": "X", "a2": "X"}, "M2": {"a1": "X", "a2": "Y"} } },
-                { "locus": "D22S1045", "m1_1": "11", "m1_2": "14", "m2_1": "14", "m2_2": "16", "alleles": { "M1": {"a1": "11", "a2": "14"}, "M2": {"a1": "14", "a2": "16"} } },
-                { "locus": "D19S433", "m1_1": "14", "m1_2": "17.2", "m2_1": "13", "m2_2": "17.2", "alleles": { "M1": {"a1": "14", "a2": "17.2"}, "M2": {"a1": "13", "a2": "17.2"} } },
-                { "locus": "D18S51", "m1_1": "15", "m1_2": "16", "m2_1": "15", "m2_2": "15", "alleles": { "M1": {"a1": "15", "a2": "16"}, "M2": {"a1": "15", "a2": "15"} } },
-                { "locus": "D6S1043", "m1_1": "13", "m1_2": "17", "m2_1": "13", "m2_2": "17", "alleles": { "M1": {"a1": "13", "a2": "17"}, "M2": {"a1": "13", "a2": "17"} } },
-                { "locus": "DYS391", "m1_1": "nan", "m1_2": "nan", "m2_1": "11", "m2_2": "11", "alleles": { "M1": {"a1": "nan", "a2": "nan"}, "M2": {"a1": "11", "a2": "11"} } }
-            ],
-            "table3": [
-                { "locus": "D8S1179", "m1_1": "15", "m1_2": "16", "m2_1": "14", "m2_2": "15", "alleles": { "M1": {"a1": "15", "a2": "16"}, "M2": {"a1": "14", "a2": "15"} } },
-                { "locus": "D5S818", "m1_1": "10", "m1_2": "11", "m2_1": "10", "m2_2": "12", "alleles": { "M1": {"a1": "10", "a2": "11"}, "M2": {"a1": "10", "a2": "12"} } },
-                { "locus": "D21S11", "m1_1": "28", "m1_2": "29", "m2_1": "28", "m2_2": "32.2", "alleles": { "M1": {"a1": "28", "a2": "29"}, "M2": {"a1": "28", "a2": "32.2"} } },
-                { "locus": "FGA", "m1_1": "22", "m1_2": "23", "m2_1": "23", "m2_2": "26", "alleles": { "M1": {"a1": "22", "a2": "23"}, "M2": {"a1": "23", "a2": "26"} } },
-                { "locus": "D10S1248", "m1_1": "13", "m1_2": "13", "m2_1": "13", "m2_2": "15", "alleles": { "M1": {"a1": "13", "a2": "13"}, "M2": {"a1": "13", "a2": "15"} } },
-                { "locus": "TH01", "m1_1": "7", "m1_2": "9", "m2_1": "7", "m2_2": "9", "alleles": { "M1": {"a1": "7", "a2": "9"}, "M2": {"a1": "7", "a2": "9"} } },
-                { "locus": "D1S1656", "m1_1": "15", "m1_2": "17", "m2_1": "15", "m2_2": "17", "alleles": { "M1": {"a1": "15", "a2": "17"}, "M2": {"a1": "15", "a2": "17"} } },
-                { "locus": "TPOX", "m1_1": "8", "m1_2": "11", "m2_1": "8", "m2_2": "8", "alleles": { "M1": {"a1": "8", "a2": "11"}, "M2": {"a1": "8", "a2": "8"} } },
-                { "locus": "SE33", "m1_1": "26.2", "m1_2": "27.2", "m2_1": "27.2", "m2_2": "28.2", "alleles": { "M1": {"a1": "26.2", "a2": "27.2"}, "M2": {"a1": "27.2", "a2": "28.2"} } }
-            ],
-            "ketLuan": "có quan hệ huyết thống mẹ - con",
-            "doTinCay": "> 99,9999%",
-            "kiemSoatKetQua": "TS. BS. Nguyễn Khánh Dương",
-            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH",
-            "images": pdf_extracted_images
-        }
+    t1, t2, t3, samples = parse_tables_grid(extracted_tables)
+    meta = extract_metadata_from_text(full_text, filename)
+
+    return {
+        "soPhieu": meta['soPhieu'],
+        "ngayBanHanh": meta['ngayBanHanh'],
+        "ngayYeuCau": meta['ngayYeuCau'],
+        "nguoiYeuCau": meta['nguoiYeuCau'],
+        "nguoiThuMau": "Hoàng Văn Luận",
+        "boKit": meta['boKit'] or "A27Plex STR Detection Kit",
+        "samples": samples,
+        "table1": t1,
+        "table2": t2,
+        "table3": t3,
+        "ketLuan": meta['ketLuan'],
+        "doTinCay": meta['doTinCay'],
+        "images": pdf_extracted_images
+    }
+
+def parse_csv_file(file_path):
+    filename = os.path.basename(file_path)
+    full_text = ""
+    extracted_tables = []
+    rows = []
+
+    for encoding in ['utf-8-sig', 'utf-8', 'latin1', 'cp1252']:
+        try:
+            with open(file_path, 'r', encoding=encoding, errors='replace') as f:
+                content = f.read()
+                if not content.strip():
+                    continue
+                full_text = content
+
+                lines = [l for l in content.splitlines() if l.strip()]
+                sample_header = "\n".join(lines[:10])
+                delimiter = ','
+                if sample_header.count('\t') > sample_header.count(','):
+                    delimiter = '\t'
+                elif sample_header.count(';') > sample_header.count(','):
+                    delimiter = ';'
+
+                reader = csv.reader(io.StringIO(content), delimiter=delimiter)
+                for r in reader:
+                    cleaned_row = [str(c).strip() for c in r]
+                    if any(cleaned_row):
+                        rows.append(cleaned_row)
+            if rows:
+                break
+        except Exception as e:
+            sys.stderr.write(f"CSV read error ({encoding}): {e}\n")
+            continue
+
+    if rows:
+        extracted_tables.append(rows)
+
+    t1, t2, t3, samples = parse_tables_grid(extracted_tables)
+    meta = extract_metadata_from_text(full_text, filename)
+
+    return {
+        "soPhieu": meta['soPhieu'],
+        "ngayBanHanh": meta['ngayBanHanh'],
+        "ngayYeuCau": meta['ngayYeuCau'],
+        "nguoiYeuCau": meta['nguoiYeuCau'],
+        "nguoiThuMau": "Hoàng Văn Luận",
+        "boKit": meta['boKit'] or "STR Detection Kit",
+        "samples": samples,
+        "table1": t1,
+        "table2": t2,
+        "table3": t3,
+        "ketLuan": meta['ketLuan'],
+        "doTinCay": meta['doTinCay'],
+        "images": []
+    }
+
+def parse_excel_file(file_path):
+    filename = os.path.basename(file_path)
+    full_text = ""
+    extracted_tables = []
+
+    try:
+        import openpyxl
+        wb = openpyxl.load_workbook(file_path, data_only=True)
+        for sheet in wb.worksheets:
+            grid = []
+            for row in sheet.iter_rows(values_only=True):
+                if not row:
+                    continue
+                cleaned_row = [str(c).strip() if c is not None else '' for c in row]
+                if any(cleaned_row):
+                    grid.append(cleaned_row)
+                    full_text += " ".join(cleaned_row) + "\n"
+            if grid:
+                extracted_tables.append(grid)
+    except Exception as e:
+        sys.stderr.write(f"Excel openpyxl error: {e}\n")
+
+    t1, t2, t3, samples = parse_tables_grid(extracted_tables)
+    meta = extract_metadata_from_text(full_text, filename)
+
+    return {
+        "soPhieu": meta['soPhieu'],
+        "ngayBanHanh": meta['ngayBanHanh'],
+        "ngayYeuCau": meta['ngayYeuCau'],
+        "nguoiYeuCau": meta['nguoiYeuCau'],
+        "nguoiThuMau": "Hoàng Văn Luận",
+        "boKit": meta['boKit'] or "STR Detection Kit",
+        "samples": samples,
+        "table1": t1,
+        "table2": t2,
+        "table3": t3,
+        "ketLuan": meta['ketLuan'],
+        "doTinCay": meta['doTinCay'],
+        "images": []
+    }
+
+def main():
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "No file specified"}))
+        return
+
+    file_path = sys.argv[1]
+    if not os.path.exists(file_path):
+        print(json.dumps({"error": f"File not found: {file_path}"}))
+        return
+
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in ('.docx', '.doc'):
+        data = parse_docx_file(file_path)
+    elif ext in ('.csv', '.txt', '.tsv'):
+        data = parse_csv_file(file_path)
+    elif ext in ('.xlsx', '.xls'):
+        data = parse_excel_file(file_path)
     else:
-        # Standard default preset
-        data = {
-            "soPhieu": so_phieu_default,
-            "ngayBanHanh": "Hà Nội, ngày 07 tháng 08 năm 2026.",
-            "ngayYeuCau": "07/08/2026",
-            "nguoiYeuCau": f"Khách hàng {so_phieu_default}",
-            "nguoiThuMau": "Hoàng Văn Luận",
-            "boKit": "A27Plex STR Detection Kit",
-            "m1": {
-                "hoTen": f"Bệnh nhân {so_phieu_default}",
-                "gioiTinh": "Nam",
-                "ngaySinh": "03/11/1938",
-                "quocTich": "Việt Nam",
-                "cccd": "001038006689",
-                "ngayCap": "13/06/2022",
-                "noiCap": "Cục Cảnh sát quản lý hành chính về trật tự xã hội",
-                "noiThuongTru": "Quận Cầu Giấy, TP Hà Nội",
-                "kyHieuMau": "M1",
-                "loaiMau": "Máu"
-            },
-            "m2": {
-                "hoTen": f"Người liên quan {so_phieu_default}",
-                "gioiTinh": "Nữ",
-                "ngaySinh": "14/04/1983",
-                "giayChungSinhSo": "E91665688",
-                "quyenSo": "2026",
-                "ngayCap": "28/12/2016",
-                "noiCap": "Cục xuất nhập cảnh Trung Quốc",
-                "kyHieuMau": "M2",
-                "loaiMau": "Máu"
-            },
-            "table1": [
-                { "locus": "D3S1358", "m1_1": "16", "m1_2": "17", "m2_1": "17", "m2_2": "17", "alleles": { "M1": {"a1": "16", "a2": "17"}, "M2": {"a1": "17", "a2": "17"} } },
-                { "locus": "vWA", "m1_1": "16", "m1_2": "17", "m2_1": "17", "m2_2": "19", "alleles": { "M1": {"a1": "16", "a2": "17"}, "M2": {"a1": "17", "a2": "19"} } },
-                { "locus": "D12S391", "m1_1": "20", "m1_2": "25", "m2_1": "17", "m2_2": "20", "alleles": { "M1": {"a1": "20", "a2": "25"}, "M2": {"a1": "17", "a2": "20"} } },
-                { "locus": "CSF1PO", "m1_1": "12", "m1_2": "12", "m2_1": "11", "m2_2": "12", "alleles": { "M1": {"a1": "12", "a2": "12"}, "M2": {"a1": "11", "a2": "12"} } },
-                { "locus": "Penta E", "m1_1": "11", "m1_2": "18", "m2_1": "11", "m2_2": "18", "alleles": { "M1": {"a1": "11", "a2": "18"}, "M2": {"a1": "11", "a2": "18"} } },
-                { "locus": "D2S441", "m1_1": "10", "m1_2": "15", "m2_1": "10", "m2_2": "15", "alleles": { "M1": {"a1": "10", "a2": "15"}, "M2": {"a1": "10", "a2": "15"} } },
-                { "locus": "D16S539", "m1_1": "11", "m1_2": "12", "m2_1": "9", "m2_2": "12", "alleles": { "M1": {"a1": "11", "a2": "12"}, "M2": {"a1": "9", "a2": "12"} } },
-                { "locus": "D7S820", "m1_1": "11", "m1_2": "13", "m2_1": "11", "m2_2": "13", "alleles": { "M1": {"a1": "11", "a2": "13"}, "M2": {"a1": "11", "a2": "13"} } },
-                { "locus": "D13S317", "m1_1": "9", "m1_2": "12", "m2_1": "11", "m2_2": "12", "alleles": { "M1": {"a1": "9", "a2": "12"}, "M2": {"a1": "11", "a2": "12"} } }
-            ],
-            "table2": [
-                { "locus": "D2S1338", "m1_1": "18", "m1_2": "19", "m2_1": "18", "m2_2": "18", "alleles": { "M1": {"a1": "18", "a2": "19"}, "M2": {"a1": "18", "a2": "18"} } },
-                { "locus": "Penta D", "m1_1": "7", "m1_2": "13", "m2_1": "7", "m2_2": "11", "alleles": { "M1": {"a1": "7", "a2": "13"}, "M2": {"a1": "7", "a2": "11"} } },
-                { "locus": "Rs199815934", "m1_1": "1", "m1_2": "1", "m2_1": "nan", "m2_2": "nan", "alleles": { "M1": {"a1": "1", "a2": "1"}, "M2": {"a1": "nan", "a2": "nan"} } },
-                { "locus": "AMEL", "m1_1": "X", "m1_2": "Y", "m2_1": "X", "m2_2": "X", "alleles": { "M1": {"a1": "X", "a2": "Y"}, "M2": {"a1": "X", "a2": "X"} } },
-                { "locus": "D22S1045", "m1_1": "14", "m1_2": "16", "m2_1": "11", "m2_2": "14", "alleles": { "M1": {"a1": "14", "a2": "16"}, "M2": {"a1": "11", "a2": "14"} } },
-                { "locus": "D19S433", "m1_1": "13", "m1_2": "17.2", "m2_1": "14", "m2_2": "17.2", "alleles": { "M1": {"a1": "13", "a2": "17.2"}, "M2": {"a1": "14", "a2": "17.2"} } },
-                { "locus": "D18S51", "m1_1": "15", "m1_2": "15", "m2_1": "15", "m2_2": "16", "alleles": { "M1": {"a1": "15", "a2": "15"}, "M2": {"a1": "15", "a2": "16"} } },
-                { "locus": "D6S1043", "m1_1": "13", "m1_2": "17", "m2_1": "13", "m2_2": "17", "alleles": { "M1": {"a1": "13", "a2": "17"}, "M2": {"a1": "13", "a2": "17"} } },
-                { "locus": "DYS391", "m1_1": "11", "m1_2": "11", "m2_1": "nan", "m2_2": "nan", "alleles": { "M1": {"a1": "11", "a2": "11"}, "M2": {"a1": "nan", "a2": "nan"} } }
-            ],
-            "table3": [
-                { "locus": "D8S1179", "m1_1": "14", "m1_2": "15", "m2_1": "15", "m2_2": "16", "alleles": { "M1": {"a1": "14", "a2": "15"}, "M2": {"a1": "15", "a2": "16"} } },
-                { "locus": "D5S818", "m1_1": "10", "m1_2": "12", "m2_1": "10", "m2_2": "11", "alleles": { "M1": {"a1": "10", "a2": "12"}, "M2": {"a1": "10", "a2": "11"} } },
-                { "locus": "D21S11", "m1_1": "28", "m1_2": "32.2", "m2_1": "28", "m2_2": "29", "alleles": { "M1": {"a1": "28", "a2": "32.2"}, "M2": {"a1": "28", "a2": "29"} } },
-                { "locus": "FGA", "m1_1": "23", "m1_2": "26", "m2_1": "22", "m2_2": "23", "alleles": { "M1": {"a1": "23", "a2": "26"}, "M2": {"a1": "22", "a2": "23"} } },
-                { "locus": "D10S1248", "m1_1": "13", "m1_2": "15", "m2_1": "13", "m2_2": "13", "alleles": { "M1": {"a1": "13", "a2": "15"}, "M2": {"a1": "13", "a2": "13"} } },
-                { "locus": "TH01", "m1_1": "7", "m1_2": "9", "m2_1": "7", "m2_2": "9", "alleles": { "M1": {"a1": "7", "a2": "9"}, "M2": {"a1": "7", "a2": "9"} } },
-                { "locus": "D1S1656", "m1_1": "15", "m1_2": "17", "m2_1": "15", "m2_2": "17", "alleles": { "M1": {"a1": "15", "a2": "17"}, "M2": {"a1": "15", "a2": "17"} } },
-                { "locus": "TPOX", "m1_1": "8", "m1_2": "8", "m2_1": "8", "m2_2": "11", "alleles": { "M1": {"a1": "8", "a2": "8"}, "M2": {"a1": "8", "a2": "11"} } },
-                { "locus": "SE33", "m1_1": "27.2", "m1_2": "28.2", "m2_1": "26.2", "m2_2": "27.2", "alleles": { "M1": {"a1": "27.2", "a2": "28.2"}, "M2": {"a1": "26.2", "a2": "27.2"} } }
-            ],
-            "ketLuan": "có quan hệ huyết thống bố - con ( cha – con)",
-            "doTinCay": "> 99,9999%",
-            "kiemSoatKetQua": "TS. BS. Nguyễn Khánh Dương",
-            "daiDienDonVi": "CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH",
-            "images": pdf_extracted_images
-        }
+        data = parse_pdf_file(file_path)
 
     print(json.dumps(data, ensure_ascii=False))
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
-        parse_pdf(sys.argv[1])
-    else:
-        print(json.dumps({"error": "No file specified"}))
+    main()

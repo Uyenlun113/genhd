@@ -7,6 +7,8 @@ import TopHeader from '@/components/TopHeader';
 import Sidebar from '@/components/Sidebar';
 import Header from '@/components/Header';
 import ConfirmModal from '@/components/ConfirmModal';
+import SampleTypeSelect from '@/components/SampleTypeSelect';
+import ImageDropzone from '@/components/ImageDropzone';
 import {
   PlusCircle,
   Download,
@@ -319,8 +321,8 @@ export default function AdnConvertListPage() {
   // ---------------------------------------------------------
   // Helper functions for image file reading
   // ---------------------------------------------------------
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = (fileOrEvent: File | React.ChangeEvent<HTMLInputElement>, callback: (base64: string) => void) => {
+    const file = fileOrEvent instanceof File ? fileOrEvent : fileOrEvent.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
@@ -477,6 +479,17 @@ export default function AdnConvertListPage() {
         const json = await res.json();
         if (json.data) {
           const d = json.data;
+          if (d.samples && Array.isArray(d.samples) && d.samples.length > 0) {
+            setResultSamples((prev: any) => {
+              const updated = [...prev];
+              d.samples.forEach((sCode: string, idx: number) => {
+                if (idx < updated.length) {
+                  updated[idx] = { ...updated[idx], kyHieuMau: sCode };
+                }
+              });
+              return updated;
+            });
+          }
           if (d.table1) setResultTable1(d.table1);
           if (d.table2) setResultTable2(d.table2);
           if (d.table3) setResultTable3(d.table3);
@@ -484,7 +497,7 @@ export default function AdnConvertListPage() {
           if (d.doTinCay) setResultDoTinCay(d.doTinCay);
           if (d.totalLikelihoodRatio) setResultTotalLikelihoodRatio(d.totalLikelihoodRatio);
           if (d.probabilityOfPaternity) setResultProbabilityOfPaternity(d.probabilityOfPaternity);
-          toast.success(`Đã tự động giải mã dữ liệu bảng Locus từ file ${file.name}!`);
+          toast.success(`Đã tự động đọc dữ liệu bảng Locus từ file ${file.name}!`);
         }
       } else {
         toast.error('Không thể tự đọc file, hãy cập nhật bảng thủ công.');
@@ -1382,16 +1395,13 @@ export default function AdnConvertListPage() {
                       </div>
                       <div>
                         <label className="block font-semibold text-slate-700 mb-1">Loại mẫu</label>
-                        <input
-                          type="text"
-                          value={sample.loaiMau}
-                          onChange={(e) => {
+                        <SampleTypeSelect
+                          value={sample.loaiMau || ''}
+                          onChange={(val) => {
                             const updated = [...createSamples];
-                            updated[idx].loaiMau = e.target.value;
+                            updated[idx].loaiMau = val;
                             setCreateSamples(updated);
                           }}
-                          placeholder="Máu, Tế bào..."
-                          className="w-full p-2 border border-slate-300 rounded-md"
                         />
                       </div>
 
@@ -1457,22 +1467,20 @@ export default function AdnConvertListPage() {
                     </div>
 
                     {/* Upload Ảnh chân dung mẫu */}
-                    <div className="pt-2 border-t flex items-center justify-between">
-                      <label className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1.5">
-                        <ImageIcon className="w-4 h-4 text-indigo-600" /> Tải Ảnh Chân Dung Mẫu {sample.kyHieuMau} lên
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) =>
-                            handleImageUpload(e, (b64) => {
-                              const updated = [...createSamples];
-                              updated[idx].anhChanDung = b64;
-                              setCreateSamples(updated);
-                            })
-                          }
-                          className="hidden"
-                        />
-                      </label>
+                    <div className="pt-2 border-t flex items-center justify-between gap-2">
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
+                            const updated = [...createSamples];
+                            updated[idx].anhChanDung = b64;
+                            setCreateSamples(updated);
+                          })
+                        }
+                      >
+                        <span className="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs rounded-lg cursor-pointer flex items-center gap-1.5 shadow-2xs">
+                          <ImageIcon className="w-4 h-4 text-indigo-600" /> Tải/Kéo thả Chân Dung Mẫu {sample.kyHieuMau}
+                        </span>
+                      </ImageDropzone>
                       {sample.anhChanDung ? (
                         <div className="flex items-center gap-2">
                           <img src={sample.anhChanDung} alt="Chân dung mẫu" className="w-10 h-12 object-cover rounded border" />
@@ -1492,22 +1500,27 @@ export default function AdnConvertListPage() {
                   3. Đính kèm Ảnh gửi mẫu
                 </h4>
                 <div className="flex items-center gap-4">
-                  <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5">
-                    <ImageIcon className="w-4 h-4" /> Tải ảnh gửi mẫu lên
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageUpload(e, (b64) => setCreateAnhGuiMau(b64))}
-                      className="hidden"
-                    />
-                  </label>
+                  <ImageDropzone
+                    onFileSelected={(file) => handleImageUpload(file, (b64) => setCreateAnhGuiMau(b64))}
+                  >
+                    <span className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg text-xs cursor-pointer inline-flex items-center gap-1.5 shadow-xs">
+                      <ImageIcon className="w-4 h-4" /> Tải/Kéo thả ảnh gửi mẫu
+                    </span>
+                  </ImageDropzone>
                   {createAnhGuiMau ? (
                     <div className="flex items-center gap-2">
                       <img src={createAnhGuiMau} alt="Ảnh gửi mẫu" className="w-16 h-12 object-cover rounded-lg border" />
                       <span className="text-xs text-emerald-600 font-bold">✓ Đã đính kèm ảnh</span>
+                      <button
+                        type="button"
+                        onClick={() => setCreateAnhGuiMau('')}
+                        className="text-xs text-rose-600 hover:underline font-bold cursor-pointer"
+                      >
+                        Xóa
+                      </button>
                     </div>
                   ) : (
-                    <span className="text-xs text-slate-400">Chưa đính kèm ảnh gửi mẫu</span>
+                    <span className="text-xs text-slate-400">Chưa đính kèm ảnh gửi mẫu (có thể kéo thả)</span>
                   )}
                 </div>
               </div>
@@ -1557,31 +1570,27 @@ export default function AdnConvertListPage() {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-2">Đính kèm Ảnh nhận mẫu (*)</label>
-                <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-sky-300 rounded-xl bg-sky-50/50 hover:bg-sky-50 transition-colors">
-                  {receiveAnhNhanMau ? (
-                    <div className="space-y-2 text-center">
-                      <img src={receiveAnhNhanMau} alt="Ảnh nhận mẫu" className="max-h-40 mx-auto rounded-lg shadow-sm border" />
+                {receiveAnhNhanMau ? (
+                  <div className="space-y-2 text-center p-4 border border-slate-200 rounded-xl bg-white">
+                    <img src={receiveAnhNhanMau} alt="Ảnh nhận mẫu" className="max-h-40 mx-auto rounded-lg shadow-sm border" />
+                    <ImageDropzone
+                      onFileSelected={(file) => handleImageUpload(file, (b64) => setReceiveAnhNhanMau(b64))}
+                    >
                       <button
                         type="button"
-                        onClick={() => setReceiveAnhNhanMau('')}
-                        className="text-xs text-red-600 hover:underline font-bold"
+                        className="text-xs text-sky-600 hover:underline font-bold"
                       >
-                        Đổi ảnh khác
+                        Đổi / Kéo thả ảnh khác
                       </button>
-                    </div>
-                  ) : (
-                    <label className="cursor-pointer text-center space-y-2">
-                      <Upload className="w-8 h-8 mx-auto text-sky-600" />
-                      <span className="block text-xs font-bold text-sky-700">Tải ảnh nhận mẫu lên</span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageUpload(e, (b64) => setReceiveAnhNhanMau(b64))}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
-                </div>
+                    </ImageDropzone>
+                  </div>
+                ) : (
+                  <ImageDropzone
+                    onFileSelected={(file) => handleImageUpload(file, (b64) => setReceiveAnhNhanMau(b64))}
+                    label="Kéo & thả ảnh nhận mẫu vào đây hoặc bấm để chọn"
+                    className="p-6 bg-sky-50/50 border-sky-300"
+                  />
+                )}
               </div>
 
               {/* Confirm conditions for running test */}
@@ -1665,7 +1674,7 @@ export default function AdnConvertListPage() {
                   <Upload className="w-6 h-6 text-indigo-600" />
                   <span>Cập Nhật Kết Quả Xét Nghiệm ADN</span>
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">Tải file DOCX/PDF kết quả + Ảnh CCCD 2 mặt + Ảnh kết quả chạy GeneMapper cho từng mẫu.</p>
+                <p className="text-xs text-slate-500 mt-0.5">Tải file DOCX/PDF kết quả + Ảnh CCCD 2 mặt + File PDF/Ảnh kết quả chạy GeneMapper cho từng mẫu.</p>
               </div>
               <button onClick={() => setShowUploadResultModal(false)} className="text-slate-400 hover:text-slate-600 font-bold">
                 ✕
@@ -1675,15 +1684,15 @@ export default function AdnConvertListPage() {
             {/* 1. Upload DOCX/PDF Result File to parse Loci tables (Image 2) */}
             <div className="bg-indigo-50/80 p-4 rounded-xl border border-indigo-200 space-y-3">
               <h4 className="text-xs font-bold text-indigo-900 uppercase tracking-wide flex items-center gap-2">
-                <FileText className="w-4 h-4" /> 1. Upload File DOCX hoặc PDF Kết quả Locus (như Ảnh 2)
+                <FileText className="w-4 h-4" /> 1. Upload File Kết quả Locus (DOCX, PDF, CSV, Excel)
               </h4>
               <div className="flex items-center gap-4">
                 <label className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl cursor-pointer flex items-center gap-2 shadow-xs">
                   {uploadingResultFile ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                  <span>Chọn File Kết Quả DOCX / PDF</span>
+                  <span>Chọn File Kết Quả (DOCX / PDF / CSV / Excel)</span>
                   <input
                     type="file"
-                    accept=".docx,.pdf"
+                    accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt,.tsv"
                     onChange={handleFileUploadResult}
                     className="hidden"
                   />
@@ -1697,7 +1706,7 @@ export default function AdnConvertListPage() {
             {/* 2. Upload CCCD Photos & Run Result Photos for EACH sample */}
             <div className="space-y-4">
               <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                2. Upload Ảnh CCCD (Mặt trước/sau) & Ảnh biểu đồ chạy (GeneMapper - Ảnh 3) từng người
+                2. Upload Ảnh CCCD (Mặt trước/sau) & File PDF/Ảnh biểu đồ chạy GeneMapper từng người
               </h4>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1733,62 +1742,95 @@ export default function AdnConvertListPage() {
                     {/* CCCD Mat Truoc */}
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">Ảnh CCCD Mặt trước</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleImageUpload(e, (b64) => {
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
                             const updated = [...resultSamples];
                             updated[idx].anhCccdMatTruoc = b64;
                             setResultSamples(updated);
                           })
                         }
-                        className="text-xs w-full"
+                        label="Kéo & thả ảnh CCCD Mặt trước vào đây hoặc bấm để chọn"
                       />
                       {sample.anhCccdMatTruoc && (
-                        <img src={sample.anhCccdMatTruoc} alt="CCCD Mặt trước" className="mt-2 h-20 rounded border object-cover" />
+                        <div className="mt-2 flex items-center justify-between">
+                          <img src={sample.anhCccdMatTruoc} alt="CCCD Mặt trước" className="h-20 rounded border object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...resultSamples];
+                              updated[idx].anhCccdMatTruoc = '';
+                              setResultSamples(updated);
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold"
+                          >
+                            Xóa
+                          </button>
+                        </div>
                       )}
                     </div>
 
                     {/* CCCD Mat Sau */}
                     <div>
                       <label className="block text-[11px] font-semibold text-slate-700 mb-1">Ảnh CCCD Mặt sau / Giấy khai sinh</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleImageUpload(e, (b64) => {
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
                             const updated = [...resultSamples];
                             updated[idx].anhCccdMatSau = b64;
                             setResultSamples(updated);
                           })
                         }
-                        className="text-xs w-full"
+                        label="Kéo & thả ảnh CCCD Mặt sau vào đây hoặc bấm để chọn"
                       />
                       {sample.anhCccdMatSau && (
-                        <img src={sample.anhCccdMatSau} alt="CCCD Mặt sau" className="mt-2 h-20 rounded border object-cover" />
+                        <div className="mt-2 flex items-center justify-between">
+                          <img src={sample.anhCccdMatSau} alt="CCCD Mặt sau" className="h-20 rounded border object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...resultSamples];
+                              updated[idx].anhCccdMatSau = '';
+                              setResultSamples(updated);
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold"
+                          >
+                            Xóa
+                          </button>
+                        </div>
                       )}
                     </div>
 
-                    {/* Ảnh Kết quả chạy GeneMapper (Image 3) */}
+                    {/* Ảnh / File PDF Kết quả chạy GeneMapper */}
                     <div className="pt-2 border-t border-slate-200">
                       <label className="block text-[11px] font-bold text-purple-800 mb-1">
-                        Ảnh Kết quả chạy ADN (Biểu đồ GeneMapper - Ảnh 3)
+                        File PDF / Ảnh Kết quả chạy ADN (Biểu đồ điện di GeneMapper)
                       </label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) =>
-                          handleImageUpload(e, (b64) => {
+                      <ImageDropzone
+                        onFileSelected={(file) =>
+                          handleImageUpload(file, (b64) => {
                             const updated = [...resultSamples];
                             updated[idx].anhKetQuaChay = b64;
                             setResultSamples(updated);
                           })
                         }
-                        className="text-xs w-full"
+                        label="Kéo & thả file PDF / ảnh đồ thị GeneMapper vào đây"
                       />
                       {sample.anhKetQuaChay && (
-                        <img src={sample.anhKetQuaChay} alt="Biểu đồ chạy" className="mt-2 h-24 rounded border object-cover" />
+                        <div className="mt-2 flex items-center justify-between">
+                          <img src={sample.anhKetQuaChay} alt="Biểu đồ chạy" className="h-24 rounded border object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = [...resultSamples];
+                              updated[idx].anhKetQuaChay = '';
+                              setResultSamples(updated);
+                            }}
+                            className="text-xs text-rose-600 hover:underline font-bold"
+                          >
+                            Xóa
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1798,10 +1840,22 @@ export default function AdnConvertListPage() {
 
             {/* 3. Loci Allele Table Editors */}
             <div className="space-y-4">
-              <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">3. Bảng Kết quả phân tích Alil Locus</h4>
-              {renderLociEditor(resultTable1, setResultTable1, 'Bảng Locus 1 (D3S1358, vWA, D12S391, CSF1PO, Penta E...)')}
-              {renderLociEditor(resultTable2, setResultTable2, 'Bảng Locus 2 (D2S1338, Penta D, AMEL, D22S1045...)')}
-              {renderLociEditor(resultTable3, setResultTable3, 'Bảng Locus 3 (D8S1179, D5S818, D21S11, FGA...)')}
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wide">3. Bảng Kết quả phân tích Alil Locus</h4>
+                <label className="btn btn-primary text-xs cursor-pointer flex items-center gap-1.5 py-1 px-3 shadow-xs">
+                  {uploadingResultFile ? <Loader2 className="w-3 h-3 animate-spin" /> : <Upload className="w-3 h-3" />}
+                  <span>Tải file kết quả (PDF/DOCX/CSV/Excel)</span>
+                  <input type="file" accept=".docx,.doc,.pdf,.csv,.xlsx,.xls,.txt,.tsv" onChange={handleFileUploadResult} className="hidden" />
+                </label>
+              </div>
+              {resultTable1.length > 0 && renderLociEditor(resultTable1, setResultTable1, 'Bảng Locus 1')}
+              {resultTable2.length > 0 && renderLociEditor(resultTable2, setResultTable2, 'Bảng Locus 2')}
+              {resultTable3.length > 0 && renderLociEditor(resultTable3, setResultTable3, 'Bảng Locus 3')}
+              {resultTable1.length === 0 && resultTable2.length === 0 && resultTable3.length === 0 && (
+                <div className="border border-dashed border-slate-300 rounded-xl p-6 text-center text-slate-500 text-xs">
+                  Chưa có dữ liệu bảng Locus. Hãy bấm nút "Tải file kết quả (PDF/DOCX/CSV/Excel)" ở trên để tự động đọc bảng Locus từ file của bạn.
+                </div>
+              )}
             </div>
 
             {/* 4. Conclusion & Signatures Info */}
