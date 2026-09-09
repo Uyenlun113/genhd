@@ -78,6 +78,7 @@ export async function GET(request: NextRequest, { params }: Params) {
       hpvHighRiskOtherResult: testResult.hpvHighRiskOtherResult,
       hpvLowRiskResult: testResult.hpvLowRiskResult,
       hpvOtherTypesResult: testResult.hpvOtherTypesResult,
+      hienBieuDo: testResult.hienBieuDo,
 
       // Soi Tươi & Giải Phẫu Bệnh
       chanDoanLamSang: testResult.chanDoanLamSang,

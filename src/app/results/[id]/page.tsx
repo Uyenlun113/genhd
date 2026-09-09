@@ -129,6 +129,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
     trangThai: 'nhap_thong_tin',
     daKy: false,
     daKy2: false,
+    hienBieuDo: false,
     anhTeBao: '',
     anhHpv: '',
     pdfDaKy: '',
@@ -152,6 +153,7 @@ export default function TestResultDetailPage({ params }: PageProps) {
           bacSiDoc2: data.bacSiDoc2 || assignedDoctor,
           daKy: data.daKy || false,
           daKy2: data.daKy2 || false,
+          hienBieuDo: data.hienBieuDo !== undefined ? data.hienBieuDo : !!data.anhHpv,
           anhTeBao: data.anhTeBao || '',
           anhHpv: data.anhHpv || '',
           ketLuan: data.ketLuan || '',
@@ -1446,6 +1448,50 @@ export default function TestResultDetailPage({ params }: PageProps) {
                               )}
                             </div>
 
+                            {/* Ô CHỌN & KHUNG HIỂN THỊ BIỂU ĐỒ HPV */}
+                            <div className="mt-2 mb-4">
+                              <div className="flex items-center gap-2 p-3 bg-indigo-50/60 rounded-xl border border-indigo-200 mb-4">
+                                <input
+                                  type="checkbox"
+                                  id="hienBieuDo"
+                                  name="hienBieuDo"
+                                  checked={formData.hienBieuDo || false}
+                                  onChange={handleInputChange}
+                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                                />
+                                <label
+                                  htmlFor="hienBieuDo"
+                                  className="text-xs font-bold text-indigo-900 cursor-pointer select-none"
+                                >
+                                  Đính kèm / Tải lên biểu đồ HPV (Real-time PCR)
+                                </label>
+                              </div>
+
+                              {formData.hienBieuDo && (
+                                <div className="p-4 bg-white rounded-xl border-2 border-dashed border-sky-400 shadow-2xs transition-all">
+                                  <div className="text-xs font-bold text-sky-800 tracking-wide pb-2 mb-3 border-b border-sky-100 flex items-center justify-between">
+                                    <span>BIỂU ĐỒ TÍN HIỆU TẢI LƯỢNG KẾT QUẢ (REAL-TIME PCR)</span>
+                                  </div>
+
+                                  <div className="p-3 bg-slate-50/80 rounded-lg border border-slate-200 text-center min-h-[120px] flex flex-col items-center justify-center">
+                                    {!formData.anhHpv && (
+                                      <span className="text-xs italic text-slate-400 mb-3 block">
+                                        [ Khung hiển thị đồ thị tín hiệu huỳnh quang Real-time PCR / Đồ thị điện di ]
+                                      </span>
+                                    )}
+                                    <FileUpload
+                                      accept="image/*"
+                                      label="Tải ảnh biểu đồ HPV"
+                                      value={formData.anhHpv}
+                                      isImage={true}
+                                      disabled={false}
+                                      onChange={(url) => handleImageUploadPart(1, url)}
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
                             {/* Kết luận & Khuyến nghị HPV */}
                             <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-100 mb-6">
                               <div className="form-group">
@@ -1473,8 +1519,6 @@ export default function TestResultDetailPage({ params }: PageProps) {
                                 />
                               </div>
                             </div>
-
-
 
                             {/* THÔNG TIN BÁC SĨ ĐỌC & KÝ DUYỆT TRỰC TIẾP CHO PHẦN HPV */}
                             <div className="p-4 bg-indigo-50/60 rounded-xl border border-indigo-200 flex flex-wrap items-center justify-between gap-4">

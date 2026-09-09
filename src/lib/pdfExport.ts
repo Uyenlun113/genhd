@@ -62,6 +62,7 @@ export interface ITestResultData {
   bacSiDoc?: string;
   bacSiDoc2?: string;
   bacSiTitle?: string;
+  hienBieuDo?: boolean;
   anhTeBao?: string;
   anhHpv?: string;
   signatureImage?: string;
@@ -1087,10 +1088,121 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       );
     });
 
-    // Position Conclusion box directly below Genotype table
-    const tableBottomY = gTableY - gTableH;
+    // Position Conclusion box or Chart box below Genotype table
+    const actualTableBottom = gTableY - totalBodyH;
     const ketLuanBoxH = 44;
-    const ketLuanBoxY = tableBottomY - 16 - ketLuanBoxH;
+    const marginGap = 12;
+
+    let chartBoxH = 0;
+    let chartBoxY = actualTableBottom;
+
+    if (data.hienBieuDo) {
+      chartBoxH = 120;
+      chartBoxY = actualTableBottom - marginGap - chartBoxH;
+
+      // 1. Draw Outer Chart Container Box (Dashed Blue Border)
+      const dashArray = [3, 3];
+      page1.drawLine({ start: { x: tableX, y: chartBoxY }, end: { x: tableX + tableW, y: chartBoxY }, color: primaryBlue, thickness: 1, dashArray });
+      page1.drawLine({ start: { x: tableX + tableW, y: chartBoxY }, end: { x: tableX + tableW, y: chartBoxY + chartBoxH }, color: primaryBlue, thickness: 1, dashArray });
+      page1.drawLine({ start: { x: tableX + tableW, y: chartBoxY + chartBoxH }, end: { x: tableX, y: chartBoxY + chartBoxH }, color: primaryBlue, thickness: 1, dashArray });
+      page1.drawLine({ start: { x: tableX, y: chartBoxY + chartBoxH }, end: { x: tableX, y: chartBoxY }, color: primaryBlue, thickness: 1, dashArray });
+
+      // 2. Chart Section Title
+      drawTextOnPage(
+        page1,
+        'BIỂU ĐỒ TÍN HIỆU TẢI LƯỢNG KẾT QUẢ (REAL-TIME PCR)',
+        tableX + 10,
+        chartBoxY + chartBoxH - 16,
+        9.5,
+        true,
+        primaryBlue
+      );
+
+      // 2.5 Horizontal divider line below title
+      page1.drawLine({
+        start: { x: tableX + 6, y: chartBoxY + chartBoxH - 22 },
+        end: { x: tableX + tableW - 6, y: chartBoxY + chartBoxH - 22 },
+        thickness: 0.5,
+        color: borderGray,
+      });
+
+      // 3. Inner Image Box Frame
+      const innerImgX = tableX + 8;
+      const innerImgY = chartBoxY + 8;
+      const innerImgW = tableW - 16;
+      const innerImgH = chartBoxH - 34;
+
+      page1.drawRectangle({
+        x: innerImgX,
+        y: innerImgY,
+        width: innerImgW,
+        height: innerImgH,
+        color: whiteColor,
+        borderColor: borderGray,
+        borderWidth: 0.8,
+      });
+
+      // 4. Render Chart Image inside frame if anhHpv provided
+      if (data.anhHpv && data.anhHpv.length > 20) {
+        try {
+          let imageBytes: Buffer;
+          if (data.anhHpv.startsWith('http://') || data.anhHpv.startsWith('https://')) {
+            const res = await fetch(data.anhHpv);
+            const arrayBuffer = await res.arrayBuffer();
+            imageBytes = Buffer.from(arrayBuffer);
+          } else {
+            const base64Data = data.anhHpv.replace(/^data:image\/\w+;base64,/, '');
+            imageBytes = Buffer.from(base64Data, 'base64');
+          }
+
+          let img: any = null;
+          try {
+            img = await pdfDoc.embedPng(imageBytes);
+          } catch {
+            try {
+              img = await pdfDoc.embedJpg(imageBytes);
+            } catch {
+              const sharp = require('sharp');
+              const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
+              img = await pdfDoc.embedPng(cleanPngBytes);
+            }
+          }
+
+          if (img) {
+            const drawW = innerImgW * (2 / 3);
+            const drawH = innerImgH - 6;
+
+            const imgX = innerImgX + (innerImgW - drawW) / 2;
+            const imgY = innerImgY + 3;
+
+            page1.drawImage(img, {
+              x: imgX,
+              y: imgY,
+              width: drawW,
+              height: drawH,
+            });
+          }
+        } catch (err) {
+          console.error('Failed to embed HPV chart image on PDF:', err);
+        }
+      } else {
+        // Placeholder text if image is not yet uploaded
+        drawCenteredText(
+          page1,
+          '[ Khung hiển thị đồ thị tín hiệu huỳnh quang Real-time PCR / Đồ thị điện di ]',
+          innerImgX,
+          innerImgX + innerImgW,
+          innerImgY + innerImgH / 2 - 4,
+          9,
+          false,
+          rgb(0.55, 0.6, 0.65)
+        );
+      }
+    }
+
+    const ketLuanBoxY = data.hienBieuDo
+      ? chartBoxY - marginGap - ketLuanBoxH
+      : actualTableBottom - marginGap - ketLuanBoxH;
 
     // Kết luận Box
     page1.drawRectangle({

@@ -86,6 +86,7 @@ export interface ITestResult extends Document {
 
   daKy: boolean;
   daKy2?: boolean;
+  hienBieuDo?: boolean; // Tùy chọn hiện / đính kèm biểu đồ HPV
   anhTeBao: string; // Ảnh soi tế bào
   anhHpv?: string; // Ảnh biểu đồ HPV Realtime PCR
   pdfDaKy: string;
@@ -176,6 +177,7 @@ const TestResultSchema = new Schema<ITestResult>(
 
     daKy: { type: Boolean, default: false },
     daKy2: { type: Boolean, default: false },
+    hienBieuDo: { type: Boolean, default: false },
     anhTeBao: { type: String, default: '' },
     anhHpv: { type: String, default: '' },
     pdfDaKy: { type: String, default: '' },
