@@ -156,7 +156,7 @@ function DashboardContent() {
       if (doctorFilter) {
         query.set('doctor', doctorFilter);
       }
-      if (userRole === 'admin' && creatorFilter) {
+      if ((userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') && creatorFilter) {
         query.set('creator', creatorFilter);
       }
       if (startDate) {
@@ -206,7 +206,7 @@ function DashboardContent() {
           setDoctors(data || []);
         }
 
-        if (userRole === 'admin') {
+        if (userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') {
           const allRes = await fetch('/api/users');
           if (allRes.ok) {
             const allData = await allRes.json();
@@ -544,8 +544,8 @@ function DashboardContent() {
                 )}
               </div>
 
-              {/* Creator Filter Dropdown (ADMIN ONLY) */}
-              {userRole === 'admin' && (
+              {/* Creator Filter Dropdown (ADMIN & LAB ADMIN) */}
+              {(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') && (
                 <div className="flex items-center gap-1.5">
                   <span className="font-bold text-slate-600 flex items-center gap-1">
                     <User className="w-3.5 h-3.5 text-purple-600" />
@@ -582,7 +582,7 @@ function DashboardContent() {
                     <th>Mã số</th>
                     <th>Họ và tên</th>
                     <th>Năm sinh</th>
-                    {userRole === 'admin' && <th>Nguồn</th>}
+                    {(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') && <th>Nguồn</th>}
                     <th>BS Đọc KQ</th>
                     <th>Trạng thái</th>
                     <th>Thời gian trả / Dự kiến</th>
@@ -593,13 +593,13 @@ function DashboardContent() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={userRole === 'admin' ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
                         Đang tải dữ liệu...
                       </td>
                     </tr>
                   ) : results.length === 0 ? (
                     <tr>
-                      <td colSpan={userRole === 'admin' ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
+                      <td colSpan={(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') ? 9 : 8} className="text-center py-10 text-slate-400 text-sm">
                         Không tìm thấy phiếu xét nghiệm nào
                       </td>
                     </tr>
@@ -645,7 +645,7 @@ function DashboardContent() {
                           <td className="font-bold text-sky-600">{item.maSo}</td>
                           <td className="font-semibold text-slate-800">{item.hoTen}</td>
                           <td>{item.namSinh}</td>
-                          {userRole === 'admin' && (
+                          {(userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn') && (
                             <td className="text-xs text-slate-700 font-medium">
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100/80 text-slate-700 text-[11px] font-medium border border-slate-200">
                                 <User className="w-3 h-3 text-slate-500 shrink-0" />

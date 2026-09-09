@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
     const creator = searchParams.get('creator');
 
     // Filter by doctor name if provided, or if user is doctor viewing their own menu
-    if (creator && userRole === 'admin') {
+    if (creator && (userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn')) {
       query.nguoiNhap = creator;
     }
 

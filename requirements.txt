@@ -1,0 +1,7 @@
+# Python dependencies for tool-genHD DNA/Locus/PDF parser
+pypdfium2>=4.30.0
+pypdf>=4.0.0
+pdfplumber>=0.10.0
+pillow>=10.0.0
+python-docx>=1.0.0
+openpyxl>=3.1.0

@@ -442,6 +442,7 @@ def parse_pdf_file(file_path):
             pass
 
     pdf_extracted_images = []
+    # Method 1: Try pypdfium2 (high quality page rendering)
     try:
         import pypdfium2 as pdfium
         pdf_doc = pdfium.PdfDocument(file_path)
@@ -455,8 +456,42 @@ def parse_pdf_file(file_path):
             out = io.BytesIO()
             pil_img.save(out, format="JPEG", quality=75)
             pdf_extracted_images.append("data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode('utf-8'))
-    except Exception:
-        pass
+    except Exception as err:
+        sys.stderr.write(f"pdfium extraction warning: {err}\n")
+
+    # Method 2: Fallback to pypdf embedded image extraction if pdfium produced nothing
+    if not pdf_extracted_images and pypdf:
+        try:
+            reader = pypdf.PdfReader(file_path)
+            for page in reader.pages:
+                if hasattr(page, 'images'):
+                    for img_obj in page.images:
+                        img_bytes = img_obj.data
+                        b64 = optimize_image_b64(img_bytes) if optimize_image_b64 else None
+                        if not b64:
+                            ext = getattr(img_obj, 'name', 'img.jpeg').split('.')[-1].lower()
+                            mime = "image/jpeg" if ext in ["jpg", "jpeg"] else ("image/png" if ext == "png" else f"image/{ext}")
+                            b64 = f"data:{mime};base64," + base64.b64encode(img_bytes).decode('utf-8')
+                        pdf_extracted_images.append(b64)
+        except Exception as err:
+            sys.stderr.write(f"pypdf image extraction warning: {err}\n")
+
+    # Method 3: Fallback to pdfplumber page rendering if still empty
+    if not pdf_extracted_images and pdfplumber:
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    im = page.to_image(resolution=150)
+                    pil_img = im.original
+                    pil_img.thumbnail((1400, 1400))
+                    if pil_img.mode in ("RGBA", "P", "LA", "CMYK"):
+                        pil_img = pil_img.convert("RGB")
+                    out = io.BytesIO()
+                    pil_img.save(out, format="JPEG", quality=75)
+                    pdf_extracted_images.append("data:image/jpeg;base64," + base64.b64encode(out.getvalue()).decode('utf-8'))
+        except Exception as err:
+            sys.stderr.write(f"pdfplumber render warning: {err}\n")
+
 
     t1, t2, t3, samples = parse_tables_grid(extracted_tables)
     meta = extract_metadata_from_text(full_text, filename)

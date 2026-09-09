@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       query.loaiXetNghiem = category;
     }
 
-    if (creator && userRole === 'admin') {
+    if (creator && (userRole === 'admin' || userRole === 'lab_admin' || userRole === 'lab_adn')) {
       query.nguoiNhap = creator;
     }
 
