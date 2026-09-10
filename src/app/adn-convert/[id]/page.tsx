@@ -161,6 +161,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
   const [totalLikelihoodRatio, setTotalLikelihoodRatio] = useState('23109010868637.6');
   const [probabilityOfPaternity, setProbabilityOfPaternity] = useState('99.9999999999957%');
   const [trangThai, setTrangThai] = useState<'gui_mau' | 'dang_chay_mau' | 'da_tra_ket_qua'>('gui_mau');
+  const isLocusDisabled = trangThai === 'da_tra_ket_qua' && !isAdmin;
   const [dieuKien, setDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien' | 'chua_xac_nhan'>('chua_xac_nhan');
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveDieuKien, setReceiveDieuKien] = useState<'du_dieu_kien' | 'khong_du_dieu_kien'>('du_dieu_kien');
@@ -1016,7 +1017,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
               const updated = [...tableData, { locus: '', alleles: {} }];
               setTableData(updated);
             }}
-            disabled={trangThai === 'da_tra_ket_qua'}
+            disabled={isLocusDisabled}
             className="text-[11px] text-sky-600 hover:text-sky-800 font-semibold flex items-center gap-1 cursor-pointer disabled:opacity-40"
           >
             <Plus className="w-3 h-3" />
@@ -1052,7 +1053,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         updated[locIdx].locus = e.target.value;
                         setTableData(updated);
                       }}
-                      disabled={trangThai === 'da_tra_ket_qua'}
+                      disabled={isLocusDisabled}
                       className="w-full text-center font-bold text-slate-800 bg-transparent border-0 focus:ring-1 focus:ring-sky-500 rounded py-1 text-xs"
                       placeholder="Tên Locus"
                     />
@@ -1073,7 +1074,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               updated[locIdx].alleles[sKey].a1 = e.target.value;
                               setTableData(updated);
                             }}
-                            disabled={trangThai === 'da_tra_ket_qua'}
+                            disabled={isLocusDisabled}
                             className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold disabled:bg-slate-100 disabled:text-slate-500"
                             placeholder="Alil 1"
                           />
@@ -1088,7 +1089,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                               updated[locIdx].alleles[sKey].a2 = e.target.value;
                               setTableData(updated);
                             }}
-                            disabled={trangThai === 'da_tra_ket_qua'}
+                            disabled={isLocusDisabled}
                             className="w-12 text-center border border-slate-300 rounded-md py-1 text-xs focus:ring-1 focus:ring-sky-500 font-mono font-bold disabled:bg-slate-100 disabled:text-slate-500"
                             placeholder="Alil 2"
                           />
@@ -1103,7 +1104,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         const updated = tableData.filter((_, idx) => idx !== locIdx);
                         setTableData(updated);
                       }}
-                      disabled={trangThai === 'da_tra_ket_qua'}
+                      disabled={isLocusDisabled}
                       className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors disabled:opacity-30 cursor-pointer"
                       title="Xóa dòng locus này"
                     >
@@ -2052,7 +2053,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                   value={ketLuan}
                   onChange={(e) => setKetLuan(e.target.value)}
                   placeholder="VD: có quan hệ huyết thống bố - con ( cha – con)"
-                  disabled={trangThai === 'da_tra_ket_qua'}
+                  disabled={isLocusDisabled}
                   className="form-textarea font-bold text-red-600 disabled:bg-slate-100 disabled:text-slate-500"
                 />
               </div>
@@ -2064,7 +2065,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     type="text"
                     value={totalLikelihoodRatio}
                     onChange={(e) => setTotalLikelihoodRatio(e.target.value)}
-                    disabled={trangThai === 'da_tra_ket_qua'}
+                    disabled={isLocusDisabled}
                     placeholder="VD: 23109010868637.6"
                     className="form-input font-medium disabled:bg-slate-100 disabled:text-slate-500"
                   />
@@ -2076,7 +2077,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     type="text"
                     value={probabilityOfPaternity}
                     onChange={(e) => setProbabilityOfPaternity(e.target.value)}
-                    disabled={trangThai === 'da_tra_ket_qua'}
+                    disabled={isLocusDisabled}
                     placeholder="VD: 99.9999999999957%"
                     className="form-input font-medium disabled:bg-slate-100 disabled:text-slate-500"
                   />
@@ -2090,7 +2091,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                     type="text"
                     value={doTinCay}
                     onChange={(e) => setDoTinCay(e.target.value)}
-                    disabled={trangThai === 'da_tra_ket_qua'}
+                    disabled={isLocusDisabled}
                     className="form-input disabled:bg-slate-100 disabled:text-slate-500"
                   />
                 </div>
