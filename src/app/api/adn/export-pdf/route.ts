@@ -51,29 +51,31 @@ const formatAllelePair = (v1: any, v2: any) => {
   return a1 || a2 || '';
 };
 
-const formatDateVN = (dateStr: any): string => {
+const formatNgayBanHanhVN = (dateStr: any): string => {
   if (!dateStr) {
     const now = new Date();
-    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
-    const m = now.getMonth() + 1 < 10 ? `0${now.getMonth() + 1}` : `${now.getMonth() + 1}`;
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
     return `Hà Nội, ngày ${d} tháng ${m} năm ${now.getFullYear()}`;
   }
   const trimmed = String(dateStr).trim();
   if (!trimmed) {
     const now = new Date();
-    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
-    const m = now.getMonth() + 1 < 10 ? `0${now.getMonth() + 1}` : `${now.getMonth() + 1}`;
+    const d = String(now.getDate()).padStart(2, '0');
+    const m = String(now.getMonth() + 1).padStart(2, '0');
     return `Hà Nội, ngày ${d} tháng ${m} năm ${now.getFullYear()}`;
+  }
+
+  if (trimmed.startsWith('Hà Nội,')) {
+    return trimmed;
   }
 
   const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
   if (vnMatch) {
-    const d = parseInt(vnMatch[1], 10);
-    const m = parseInt(vnMatch[2], 10);
+    const d = String(parseInt(vnMatch[1], 10)).padStart(2, '0');
+    const m = String(parseInt(vnMatch[2], 10)).padStart(2, '0');
     const y = vnMatch[3];
-    const dd = d < 10 ? `0${d}` : `${d}`;
-    const mm = m < 10 ? `0${m}` : `${m}`;
-    return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
+    return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
   }
 
   if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T')) {
@@ -81,45 +83,47 @@ const formatDateVN = (dateStr: any): string => {
     const parts = ymd.split('-');
     if (parts.length === 3) {
       const y = parts[0];
-      const m = parseInt(parts[1], 10);
-      const d = parseInt(parts[2], 10);
-      const dd = d < 10 ? `0${d}` : `${d}`;
-      const mm = m < 10 ? `0${m}` : `${m}`;
-      return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
+      const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+      return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
     }
   }
 
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
     const parts = trimmed.split('/');
-    const d = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
+    const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+    const m = String(parseInt(parts[1], 10)).padStart(2, '0');
     const y = parts[2];
-    const dd = d < 10 ? `0${d}` : `${d}`;
-    const mm = m < 10 ? `0${m}` : `${m}`;
-    return `Hà Nội, ngày ${dd} tháng ${mm} năm ${y}`;
+    return `Hà Nội, ngày ${d} tháng ${m} năm ${y}`;
   }
 
-  return trimmed;
+  return `Hà Nội, ${trimmed}`;
 };
+
+const formatDateVN = formatNgayBanHanhVN;
 
 const MONTH_NAMES_EN = [
   'January', 'February', 'March', 'April', 'May', 'June',
   'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-const formatDateEN = (dateStr: any): string => {
+const formatNgayBanHanhEN = (dateStr: any): string => {
   if (!dateStr) {
     const now = new Date();
-    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const d = String(now.getDate()).padStart(2, '0');
     const mName = MONTH_NAMES_EN[now.getMonth()];
     return `Hanoi, ${mName} ${d}, ${now.getFullYear()}`;
   }
   const trimmed = String(dateStr).trim();
   if (!trimmed) {
     const now = new Date();
-    const d = now.getDate() < 10 ? `0${now.getDate()}` : `${now.getDate()}`;
+    const d = String(now.getDate()).padStart(2, '0');
     const mName = MONTH_NAMES_EN[now.getMonth()];
     return `Hanoi, ${mName} ${d}, ${now.getFullYear()}`;
+  }
+
+  if (trimmed.startsWith('Hanoi,')) {
+    return trimmed;
   }
 
   const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
@@ -141,14 +145,63 @@ const formatDateEN = (dateStr: any): string => {
   }
 
   if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
-    const [d, m, y] = trimmed.split('/');
-    const mIdx = parseInt(m, 10) - 1;
-    const dayNum = parseInt(d, 10);
-    const dd = dayNum < 10 ? `0${dayNum}` : `${dayNum}`;
-    return `Hanoi, ${MONTH_NAMES_EN[mIdx] || m} ${dd}, ${y}`;
+    const parts = trimmed.split('/');
+    const d = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10) - 1;
+    const y = parts[2];
+    const monthName = MONTH_NAMES_EN[m] || `${m + 1}`;
+    return `Hanoi, ${monthName} ${d < 10 ? '0' + d : d}, ${y}`;
+  }
+
+  return `Hanoi, ${trimmed}`;
+};
+
+const formatDateEN = formatNgayBanHanhEN;
+
+const formatSimpleDateVN = (dateStr: any): string => {
+  if (!dateStr) return '';
+  let trimmed = String(dateStr).trim();
+  if (!trimmed) return '';
+
+  trimmed = trimmed
+    .replace(/^Hà\s+Nội,\s*(ngày\s+)?/i, '')
+    .replace(/^Hanoi,\s*/i, '')
+    .trim();
+
+  if (!trimmed) return '';
+
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed) || trimmed.includes('T')) {
+    const ymd = trimmed.split('T')[0];
+    const parts = ymd.split('-');
+    if (parts.length === 3) {
+      const y = parts[0];
+      const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+      const d = String(parseInt(parts[2], 10)).padStart(2, '0');
+      return `${d}/${m}/${y}`;
+    }
+  }
+
+  const vnMatch = trimmed.match(/ngày\s+(\d{1,2})\s+tháng\s+(\d{1,2})\s+năm\s+(\d{4})/i);
+  if (vnMatch) {
+    const d = String(parseInt(vnMatch[1], 10)).padStart(2, '0');
+    const m = String(parseInt(vnMatch[2], 10)).padStart(2, '0');
+    const y = vnMatch[3];
+    return `${d}/${m}/${y}`;
+  }
+
+  if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(trimmed)) {
+    const parts = trimmed.split('/');
+    const d = String(parseInt(parts[0], 10)).padStart(2, '0');
+    const m = String(parseInt(parts[1], 10)).padStart(2, '0');
+    const y = parts[2];
+    return `${d}/${m}/${y}`;
   }
 
   return trimmed;
+};
+
+const formatSimpleDateEN = (dateStr: any): string => {
+  return formatSimpleDateVN(dateStr);
 };
 
 const removeVietnameseTones = (str: string): string => {
@@ -635,7 +688,7 @@ export async function POST(request: NextRequest) {
 
     // Intro text
     currentY -= 18;
-    const formattedNgayYeuCau = (isEn ? formatDateEN(ngayYeuCau) : formatDateVN(ngayYeuCau)) || '...................';
+    const formattedNgayYeuCau = (isEn ? formatSimpleDateEN(ngayYeuCau) : formatSimpleDateVN(ngayYeuCau)) || '...................';
     const compName = isGtMode
       ? (isEn ? 'Genetrust Vietnam Joint Stock Company' : 'Công ty Cổ phần Genetrust Việt Nam')
       : (isEn ? 'HK-Tech Technology and Trading Joint Stock Company' : 'Công ty Cổ phần công nghệ và thương mại HK- Teck');
@@ -675,8 +728,8 @@ export async function POST(request: NextRequest) {
       const labelKey = sample.kyHieuMau || `M${idx + 1}`;
       const name = (isEn ? toEnglishText(sample.hoTen, 'name') : sample.hoTen) || '...................';
       const gender = (isEn ? toEnglishText(sample.gioiTinh, 'gender') : sample.gioiTinh) || '......';
-      const dob = (isEn ? formatDateEN(sample.ngaySinh) : formatDateVN(sample.ngaySinh)) || '........';
-      const sampleNgayCap = (isEn ? formatDateEN(sample.ngayCap) : formatDateVN(sample.ngayCap)) || '...................';
+      const dob = (isEn ? formatSimpleDateEN(sample.ngaySinh) : formatSimpleDateVN(sample.ngaySinh)) || '........';
+      const sampleNgayCap = (isEn ? formatSimpleDateEN(sample.ngayCap) : formatSimpleDateVN(sample.ngayCap)) || '...................';
       const sampleType = (isEn ? toEnglishText(sample.loaiMau, 'sampleType') : sample.loaiMau) || 'Máu';
       const nationality = (isEn ? toEnglishText(sample.quocTich, 'nationality') : (sample.quocTich || 'Việt Nam'));
       const noiCap = (isEn ? toEnglishText(sample.noiCap, 'agency') : sample.noiCap) || '...................';
