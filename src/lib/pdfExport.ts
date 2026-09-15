@@ -253,6 +253,41 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     return lines;
   };
 
+  const wrapTextByWidth = (text: string, fontToUse: any, fontSize: number, maxWidth: number): string[] => {
+    if (!text) return [];
+    const rawLines = text.split(/\r?\n/);
+    const lines: string[] = [];
+
+    for (const rawLine of rawLines) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) {
+        lines.push('');
+        continue;
+      }
+      const words = trimmed.split(/\s+/);
+      let currentLine = '';
+
+      for (const word of words) {
+        const testLine = (currentLine + ' ' + word).trim();
+        let testWidth = 0;
+        try {
+          testWidth = fontToUse ? fontToUse.widthOfTextAtSize(testLine, fontSize) : testLine.length * (fontSize * 0.55);
+        } catch {
+          testWidth = testLine.length * (fontSize * 0.55);
+        }
+
+        if (testWidth > maxWidth && currentLine) {
+          lines.push(currentLine.trim());
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      if (currentLine.trim()) lines.push(currentLine.trim());
+    }
+    return lines;
+  };
+
   // Embed Logo
   let logoImage: any = null;
   const logoPath = path.join(process.cwd(), 'public', 'logo.png');
@@ -500,7 +535,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     let currentY = 535;
 
     // Section 1: ĐẠI THỂ
-    const dtLines = wrapTextLines(data.daiThe || '', 85);
+    const dtLines = wrapTextByWidth(data.daiThe || '', font, 9, tableW - 16);
     const dtHeaderH = 20;
     const dtContentH = Math.max(30, dtLines.length * 13 + 10);
     const daiTheH = dtHeaderH + dtContentH;
@@ -531,7 +566,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     currentY = daiTheTopY - daiTheH - 8;
 
     // Section 2: VI THỂ
-    const vtLines = wrapTextLines(data.viThe || '', 85);
+    const vtLines = wrapTextByWidth(data.viThe || '', font, 9, tableW - 16);
     const vtHeaderH = 20;
     const vtContentH = Math.max(30, vtLines.length * 13 + 10);
     const viTheH = vtHeaderH + vtContentH;
@@ -562,7 +597,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     currentY = viTheTopY - viTheH - 8;
 
     // Section 3: KẾT LUẬN
-    const klLines = wrapTextLines(data.ketLuan || '', 75);
+    const klLines = wrapTextByWidth(data.ketLuan || '', boldFont, 9.5, tableW - 95);
     const klLineCount = Math.max(1, klLines.length);
     const ketLuanBoxH = Math.max(40, klLineCount * 13 + 16);
     const ketLuanTopY = currentY;
@@ -583,10 +618,10 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       drawTextOnPage(page1, lText, tableX + 85, ketLuanTopY - 16 - lIdx * 13, 9.5, true, blackColor);
     });
 
-    currentY = ketLuanBoxY - 10;
+    currentY = ketLuanBoxY - 15;
 
     // Doctor Signature & Test Image
-    const sigYStart = Math.min(220, currentY - 5);
+    const sigYStart = Math.max(160, currentY - 25);
     if (data.anhTeBao && data.anhTeBao.length > 20) {
       const anhTeBaoUrl = data.anhTeBao;
       try {
