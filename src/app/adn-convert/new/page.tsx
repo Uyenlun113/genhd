@@ -27,6 +27,7 @@ interface SampleItem {
   quocTich?: string;
   cccd?: string;
   quyenSo?: string;
+  loaiGiayTo?: string;
   ngayCap?: string;
   noiCap?: string;
   noiThuongTru?: string;
@@ -148,10 +149,7 @@ export default function NewAdnOrderPage() {
       toast.error('Vui lòng nhập Số phiếu / Mã ca');
       return;
     }
-    if (!nguoiYeuCau.trim()) {
-      toast.error('Vui lòng nhập Người yêu cầu');
-      return;
-    }
+    // nguoiYeuCau is optional
 
     const baseCode = (soPhieu || '').split('/')[0].trim();
     const formattedMauDanhSach = mauDanhSach.map((s, idx) => {
@@ -407,7 +405,7 @@ export default function NewAdnOrderPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div className="form-group mb-0">
-                          <label>Họ tên</label>
+                          <label>{(createType === 'phap_ly' && idx > 0 && (sample.loaiGiayTo === 'giay_chung_sinh' || (!sample.loaiGiayTo && (sample.quyenSo || true)))) ? 'Tên dự kiến' : 'Họ tên'}</label>
                           <input
                             type="text"
                             value={sample.hoTen}
@@ -416,7 +414,7 @@ export default function NewAdnOrderPage() {
                               updated[idx].hoTen = e.target.value;
                               setMauDanhSach(updated);
                             }}
-                            placeholder="Nhập họ tên mẫu"
+                            placeholder={createType === 'phap_ly' && idx > 0 ? "Nhập tên mẫu con" : "Nhập họ tên mẫu"}
                             className="form-input font-bold"
                           />
                         </div>
@@ -464,7 +462,35 @@ export default function NewAdnOrderPage() {
                         {createType === 'phap_ly' && (
                           <>
                             <div className="form-group mb-0">
-                              <label>CCCD / Passport / Chứng sinh số</label>
+                              <label>Loại giấy tờ</label>
+                              <select
+                                value={sample.loaiGiayTo || (idx > 0 ? 'giay_chung_sinh' : 'cccd')}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].loaiGiayTo = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                className="form-select"
+                              >
+                                <option value="cccd">CCCD</option>
+                                <option value="ho_chieu">Hộ chiếu</option>
+                                <option value="gks">Giấy khai sinh</option>
+                                <option value="giay_chung_sinh">Giấy chứng sinh</option>
+                                <option value="khac">Khác</option>
+                              </select>
+                            </div>
+                            <div className="form-group mb-0">
+                              <label>
+                                {sample.loaiGiayTo === 'cccd'
+                                  ? 'Số CCCD'
+                                  : sample.loaiGiayTo === 'ho_chieu'
+                                  ? 'Số Hộ chiếu'
+                                  : sample.loaiGiayTo === 'gks'
+                                  ? 'Số Giấy khai sinh'
+                                  : sample.loaiGiayTo === 'giay_chung_sinh'
+                                  ? 'Giấy chứng sinh số'
+                                  : 'CCCD / Passport / Chứng sinh số'}
+                              </label>
                               <input
                                 type="text"
                                 value={sample.cccd || ''}

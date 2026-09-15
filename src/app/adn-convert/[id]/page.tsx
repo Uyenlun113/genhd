@@ -40,6 +40,7 @@ interface SampleItem {
   noiCap?: string;
   noiThuongTru?: string;
   loaiMau?: string;
+  loaiGiayTo?: string;
   moiQuanHe?: string;
   anhChanDung?: string;
   anhCccdMatTruoc?: string;
@@ -1365,7 +1366,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
                       <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                         <div className="form-group mb-0">
-                          <label>Họ tên</label>
+                          <label>{(loaiXetNghiemADN === 'phap_ly' && idx > 0 && (sample.loaiGiayTo === 'giay_chung_sinh' || (!sample.loaiGiayTo && (sample.quyenSo || true)))) ? 'Tên dự kiến' : 'Họ tên'}</label>
                           <input
                             type="text"
                             value={sample.hoTen}
@@ -1425,7 +1426,36 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
                         {loaiXetNghiemADN === 'phap_ly' && (
                           <>
                             <div className="form-group mb-0">
-                              <label>CCCD / Passport / Chứng sinh số</label>
+                              <label>Loại giấy tờ</label>
+                              <select
+                                value={sample.loaiGiayTo || (idx > 0 ? 'giay_chung_sinh' : 'cccd')}
+                                onChange={(e) => {
+                                  const updated = [...mauDanhSach];
+                                  updated[idx].loaiGiayTo = e.target.value;
+                                  setMauDanhSach(updated);
+                                }}
+                                disabled={isReadOnly}
+                                className="form-select disabled:bg-slate-100 disabled:text-slate-600"
+                              >
+                                <option value="cccd">CCCD</option>
+                                <option value="ho_chieu">Hộ chiếu</option>
+                                <option value="gks">Giấy khai sinh</option>
+                                <option value="giay_chung_sinh">Giấy chứng sinh</option>
+                                <option value="khac">Khác</option>
+                              </select>
+                            </div>
+                            <div className="form-group mb-0">
+                              <label>
+                                {sample.loaiGiayTo === 'cccd'
+                                  ? 'Số CCCD'
+                                  : sample.loaiGiayTo === 'ho_chieu'
+                                  ? 'Số Hộ chiếu'
+                                  : sample.loaiGiayTo === 'gks'
+                                  ? 'Số Giấy khai sinh'
+                                  : sample.loaiGiayTo === 'giay_chung_sinh'
+                                  ? 'Giấy chứng sinh số'
+                                  : 'CCCD / Passport / Chứng sinh số'}
+                              </label>
                               <input
                                 type="text"
                                 value={sample.cccd || ''}
@@ -2086,7 +2116,7 @@ export default function AdnOrderDetailPage({ params }: { params: Promise<{ id: s
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="form-group mb-0">
-                  <label>Độ tin cậy</label>
+                  <label>Xác suất</label>
                   <input
                     type="text"
                     value={doTinCay}

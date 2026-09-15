@@ -44,6 +44,7 @@ interface SampleItem {
   quocTich?: string;
   cccd?: string;
   quyenSo?: string;
+  loaiGiayTo?: string;
   ngayCap?: string;
   noiCap?: string;
   noiThuongTru?: string;
@@ -362,10 +363,7 @@ export default function AdnConvertListPage() {
 
   const handleCreateOrderSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!createNguoiYeuCau) {
-      toast.error('Vui lòng nhập tên người yêu cầu');
-      return;
-    }
+    // nguoiYeuCau is optional
 
     setLoading(true);
     try {
@@ -1867,7 +1865,7 @@ export default function AdnConvertListPage() {
                   rows={2}
                   value={resultKetLuan}
                   onChange={(e) => setResultKetLuan(e.target.value)}
-                  placeholder="VD: có quan hệ huyết thống bố - con ( cha – con) độ tin cậy > 99,9999%"
+                  placeholder="VD: có quan hệ huyết thống bố - con ( cha – con) với xác suất > 99,9999%"
                   className="w-full p-2 border border-slate-300 rounded-lg text-xs font-bold text-red-600"
                 />
               </div>
@@ -1895,7 +1893,7 @@ export default function AdnConvertListPage() {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Độ tin cậy</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Xác suất</label>
                   <input
                     type="text"
                     value={resultDoTinCay}
@@ -2071,7 +2069,7 @@ export default function AdnConvertListPage() {
                     <div>
                       <div className="font-bold text-blue-900 text-xs uppercase">
                         {activeOrder.loaiXetNghiemADN === 'tu_nguyen'
-                          ? 'VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN\nCÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'
+                          ? 'VIỆN NGHIÊN CỨU VÀ PHÂN TÍCH DI TRUYỀN\nCÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK – TECH'
                           : 'CÔNG TY CỔ PHẦN GENETRUST VIỆT NAM'}
                       </div>
                       <div className="text-[9px] italic text-slate-600">
@@ -2144,7 +2142,7 @@ export default function AdnConvertListPage() {
                   <div className="pt-2">
                     <div className="font-bold text-blue-900 text-xs">KẾT LUẬN:</div>
                     <div className="font-bold text-red-600 text-xs mt-1">
-                      {activeOrder.ketLuan || 'có quan hệ huyết thống độ tin cậy > 99,9999%'}
+                      {activeOrder.ketLuan || 'có quan hệ huyết thống với xác suất > 99,9999%'}
                     </div>
                   </div>
 

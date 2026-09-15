@@ -563,7 +563,7 @@ export async function POST(request: NextRequest) {
         color: primaryBlue,
       });
       currentY -= 12;
-      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
+      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK – TECH'), {
         x: headerX,
         y: currentY,
         size: 9.5,
@@ -604,7 +604,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Header for ADN Pháp lý (Image 2)
-      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK-TECH'), {
+      page1.drawText(nfc(isEn ? 'HK-TECH TECHNOLOGY AND TRADING JOINT STOCK COMPANY' : 'CÔNG TY CỔ PHẦN CÔNG NGHỆ VÀ THƯƠNG MẠI HK – TECH'), {
         x: headerX,
         y: currentY,
         size: 10,
@@ -691,7 +691,7 @@ export async function POST(request: NextRequest) {
     const formattedNgayYeuCau = (isEn ? formatSimpleDateEN(ngayYeuCau) : formatSimpleDateVN(ngayYeuCau)) || '...................';
     const compName = isGtMode
       ? (isEn ? 'Genetrust Vietnam Joint Stock Company' : 'Công ty Cổ phần Genetrust Việt Nam')
-      : (isEn ? 'HK-Tech Technology and Trading Joint Stock Company' : 'Công ty Cổ phần công nghệ và thương mại HK- Teck');
+      : (isEn ? 'HK-Tech Technology and Trading Joint Stock Company' : 'Công ty cổ phần công nghệ và thương mại HK – Tech');
     const nguoiYeuCauDisplay = isEn ? toEnglishText(nguoiYeuCau, 'name') : (nguoiYeuCau || '...................');
     let introStr = '';
     if (isEn) {
@@ -827,7 +827,8 @@ export async function POST(request: NextRequest) {
               color: darkColor,
             });
             currentY -= 15;
-            page1.drawText(nfc(`ID/Passport No.: ${sample.cccd || '...................'}   Date of Issue: ${sampleNgayCap}`), {
+            const docLabel0En = sample.loaiGiayTo === 'cccd' ? 'ID Card No.' : sample.loaiGiayTo === 'ho_chieu' ? 'Passport No.' : sample.loaiGiayTo === 'gks' ? 'Birth Certificate No.' : sample.loaiGiayTo === 'giay_chung_sinh' ? 'Birth Certificate No.' : 'ID/Passport No.';
+            page1.drawText(nfc(`${docLabel0En}: ${sample.cccd || '...................'}   Date of Issue: ${sampleNgayCap}`), {
               x: textX,
               y: currentY,
               size: 13,
@@ -876,7 +877,8 @@ export async function POST(request: NextRequest) {
               color: darkColor,
             });
             currentY -= 15;
-            page1.drawText(nfc(`CCCD/Passport: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
+            const docLabel0Vn = sample.loaiGiayTo === 'cccd' ? 'CCCD' : sample.loaiGiayTo === 'ho_chieu' ? 'Hộ chiếu' : sample.loaiGiayTo === 'gks' ? 'Giấy khai sinh' : sample.loaiGiayTo === 'giay_chung_sinh' ? 'Giấy chứng sinh số' : 'CCCD/Passport';
+            page1.drawText(nfc(`${docLabel0Vn}: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
               x: textX,
               y: currentY,
               size: 13,
@@ -910,7 +912,58 @@ export async function POST(request: NextRequest) {
             currentY -= 18;
           }
         } else {
-          if (isEn) {
+          const isBirthCert = sample.loaiGiayTo === 'giay_chung_sinh' || (!sample.loaiGiayTo && (sample.quyenSo || true));
+          if (!isBirthCert) {
+            page1.drawText(nfc(`${idx + 1}.  Họ tên: ${name}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontBold,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Giới tính: ${gender}   Ngày sinh: ${dob}   Quốc tịch: ${sample.quocTich || 'Việt Nam'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            const docLabelChild = sample.loaiGiayTo === 'cccd' ? 'CCCD' : sample.loaiGiayTo === 'ho_chieu' ? 'Hộ chiếu' : sample.loaiGiayTo === 'gks' ? 'Giấy khai sinh' : sample.loaiGiayTo === 'giay_chung_sinh' ? 'Giấy chứng sinh số' : 'CCCD/GKS/Hộ chiếu';
+            page1.drawText(nfc(`${docLabelChild}: ${sample.cccd || '...................'}   Ngày cấp: ${sampleNgayCap}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Nơi cấp: ${sample.noiCap || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Nơi thường trú: ${sample.noiThuongTru || '...................'}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 15;
+            page1.drawText(nfc(`Ký hiệu mẫu: ${labelKey}`), {
+              x: textX,
+              y: currentY,
+              size: 13,
+              font: fontRegular,
+              color: darkColor,
+            });
+            currentY -= 18;
+          } else if (isEn) {
             page1.drawText(nfc(`${idx + 1}.  Intended Name: ${name}`), {
               x: textX,
               y: currentY,
@@ -1014,7 +1067,7 @@ export async function POST(request: NextRequest) {
       ] : [
         `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
         '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
-        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
+        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK – Tech đặt.',
         '-  Phương pháp xét nghiệm: Phân tích nhiễm sắc thể X.',
         '-  Các mẫu được tách chiết ADN bằng bộ kit ReliaPrep gDNA Miniprep (Promega, Mỹ).',
         `-  Mẫu ADN sau khi tách chiết được khuếch đại bằng bộ kit ${boKit || 'X18Plex STR Detection Kit'}, sử dụng máy chu trình nhiệt MultiGene OptiMax Cycler (Labnet, Mỹ).`,
@@ -1045,7 +1098,7 @@ export async function POST(request: NextRequest) {
       ] : [
         `-  Người nhận mẫu: ${nguoiThuMau || 'Hoàng Văn Luận'}`,
         '-  Mẫu và các thông tin ghi trên mẫu do người yêu cầu xét nghiệm tự cung cấp và chịu trách nhiệm.',
-        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK- TECK đặt.',
+        '-  Các ký hiệu mẫu do Công ty cổ phần công nghệ và thương mại HK – Tech đặt.',
         '-  Phương pháp xét nghiệm: Phân tích nhiễm sắc thể Y.',
         '-  Các mẫu được tách chiết ADN bằng bộ kit ReliaPrep gDNA Miniprep (Promega, Mỹ).',
         `-  Mẫu ADN sau khi tách chiết được khuếch đại bằng bộ kit ${boKit || 'Y27Plex STR Detection Kit'}, sử dụng máy chu trình nhiệt MultiGene OptiMax Cycler (Labnet, Mỹ).`,
@@ -1114,7 +1167,7 @@ export async function POST(request: NextRequest) {
           color: darkColor,
         });
         currentY -= 12;
-        page1.drawText(nfc(`-  Các ký hiệu mẫu do ${isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty cổ phần công nghệ và thương mại HK- TECK'} đặt.`), {
+        page1.drawText(nfc(`-  Các ký hiệu mẫu do ${isGtMode ? 'Công ty Cổ phần Genetrust Việt Nam' : 'Công ty cổ phần công nghệ và thương mại HK – Tech'} đặt.`), {
           x: margin,
           y: currentY,
           size: 10,
@@ -1443,14 +1496,23 @@ export async function POST(request: NextRequest) {
       rawKetLuan.toLowerCase().startsWith('người có mẫu') ||
       rawKetLuan.toLowerCase().startsWith('sample donor');
 
+    const normK = rawKetLuan.toLowerCase();
+    const isExcluded =
+      probabilityOfPaternity === '0' ||
+      probabilityOfPaternity === '0%' ||
+      probabilityOfPaternity === '0.0' ||
+      doTinCay === '0' ||
+      doTinCay === '0%' ||
+      normK.includes('không cùng') ||
+      normK.includes('không có');
+
     let conclusionFullText = '';
     if (isEn) {
       if (isAlreadyFullSentence) {
         conclusionFullText = rawKetLuan;
       } else {
-        const normK = rawKetLuan.toLowerCase();
         let relationStr = 'is the biological father of';
-        if (normK.includes('không') || normK.includes('not') || normK.includes('excluded')) {
+        if (isExcluded) {
           if (normK.includes('mẹ') || normK.includes('mother')) {
             relationStr = 'is excluded as the biological mother of';
           } else if (loaiXetNghiemADN === 'x_chr') {
@@ -1473,40 +1535,48 @@ export async function POST(request: NextRequest) {
         }
 
         const confidenceVal = (doTinCay || '> 99,9999%').trim().replace(/,/g, '.');
-        const confidenceStr = `with a probability of ${confidenceVal}`;
+        const confidenceStr = isExcluded ? '' : ` with a probability of ${confidenceVal}`;
 
         if (loaiXetNghiemADN === 'tu_nguyen' || loaiXetNghiemADN === 'y_chr' || loaiXetNghiemADN === 'x_chr') {
-          conclusionFullText = `Sample donor ${m1Name} (Code: ${m1Key}) ${relationStr} sample donor ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `Sample donor ${m1Name} (Code: ${m1Key}) ${relationStr} sample donor ${m2Name} (Code: ${m2Key})${confidenceStr}.`;
         } else {
-          conclusionFullText = `${m1Name} (Code: ${m1Key}) ${relationStr} child ${m2Name} (Code: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `${m1Name} (Code: ${m1Key}) ${relationStr} child ${m2Name} (Code: ${m2Key})${confidenceStr}.`;
         }
       }
     } else {
       if (isAlreadyFullSentence) {
         conclusionFullText = rawKetLuan;
       } else {
-        const phrase = rawKetLuan;
+        const phrase = isExcluded ? 'không cùng huyết thống' : rawKetLuan;
         const confidenceVal = (doTinCay || '> 99,9999%').trim();
-        const confidenceStr = confidenceVal.toLowerCase().startsWith('độ tin cậy')
-          ? confidenceVal
-          : `độ tin cậy ${confidenceVal}`;
+        let confidenceStr = '';
+        if (!isExcluded) {
+          confidenceStr = confidenceVal.toLowerCase().startsWith('với xác suất')
+            ? ` ${confidenceVal}`
+            : confidenceVal.toLowerCase().startsWith('độ tin cậy')
+            ? ` với xác suất ${confidenceVal.replace(/^độ tin cậy\s*/i, '')}`
+            : ` với xác suất ${confidenceVal}`;
+        }
+
+        const child2IsBirthCert = mauDanhSach[1]?.loaiGiayTo === 'giay_chung_sinh' || (!mauDanhSach[1]?.loaiGiayTo && (mauDanhSach[1]?.quyenSo || true));
+        const childTitle = child2IsBirthCert ? 'người có tên dự kiến ' : '';
 
         if (loaiXetNghiemADN === 'x_chr') {
-          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể X'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : (isExcluded ? 'không cùng huyết thống theo dòng nhiễm sắc thể X' : 'có quan hệ huyết thống theo dòng nhiễm sắc thể X')} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key})${confidenceStr}.`;
         } else if (loaiXetNghiemADN === 'y_chr') {
-          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : 'có quan hệ huyết thống theo dòng nhiễm sắc thể Y'} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase.includes('theo dòng') ? phrase : (isExcluded ? 'không cùng huyết thống theo dòng nhiễm sắc thể Y' : 'có quan hệ huyết thống theo dòng nhiễm sắc thể Y')} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key})${confidenceStr}.`;
         } else if (loaiXetNghiemADN === 'tu_nguyen') {
-          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `Người có mẫu ghi tên ${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có mẫu ghi tên ${m2Name} (Kí hiệu: ${m2Key})${confidenceStr}.`;
         } else {
           // ADN Pháp lý
-          conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với người có tên dự kiến ${m2Name} (Kí hiệu: ${m2Key}) ${confidenceStr}.`;
+          conclusionFullText = `${m1Name} (Kí hiệu: ${m1Key}) ${phrase} với ${childTitle}${m2Name} (Kí hiệu: ${m2Key})${confidenceStr}.`;
         }
       }
     }
 
     const redPhraseRegex = isEn
-      ? /(is\s+the\s+biological\s+father\s+of|is\s+excluded\s+as\s+the\s+biological\s+father\s+of|is\s+the\s+biological\s+mother\s+of|is\s+excluded\s+as\s+the\s+biological\s+mother\s+of|has\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|does\s+not\s+have\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|has\s+a\s+biological\s+relationship\s+with)/i
-      : /((không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+X|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+Y|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống)/i;
+      ? /(is\s+the\s+biological\s+father\s+of|is\s+excluded\s+as\s+the\s+biological\s+father\s+of|is\s+the\s+biological\s+mother\s+of|is\s+excluded\s+as\s+the\s+biological\s+mother\s+of|is\s+excluded\s+as\s+having\s+a\s+biological\s+relationship\s+with|has\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|does\s+not\s+have\s+a\s+biological\s+relationship\s+along\s+the\s+[XY]-chromosome\s+lineage\s+with|has\s+a\s+biological\s+relationship\s+with)/i
+      : /(không\s+cùng\s+huyết\s+thống|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+X|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+theo\s+dòng\s+nhiễm\s+sắc\s+thể\s+Y|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+bố\s*-\s*con\s*\(\s*cha\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống\s+mẹ\s*-\s*con\s*\(\s*mẹ\s*–\s*con\s*\)|(không\s+)?có\s+quan\s+hệ\s+huyết\s+thống|không\s+có\s+quan\s+hệ)/i;
     const match = conclusionFullText.match(redPhraseRegex);
     const wordTokens: { word: string; color: any }[] = [];
 
@@ -1520,7 +1590,8 @@ export async function POST(request: NextRequest) {
       matchedStr.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: redColor }));
       partAfter.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: darkColor }));
     } else {
-      conclusionFullText.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: darkColor }));
+      // Manual full sentence entry: highlight in RED
+      conclusionFullText.split(/\s+/).filter(Boolean).forEach((w) => wordTokens.push({ word: w, color: isAlreadyFullSentence ? redColor : darkColor }));
     }
 
     let concCurrentX = margin;

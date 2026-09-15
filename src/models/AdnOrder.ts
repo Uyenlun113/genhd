@@ -12,6 +12,7 @@ export interface ISampleItem {
   noiCap?: string;
   noiThuongTru?: string;
   loaiMau?: string; // Máu, Tế bào niêm mạc miệng...
+  loaiGiayTo?: string; // 'giay_chung_sinh' | 'cccd' | 'gks' | 'ho_chieu' | 'khac'
   anhChanDung?: string; // Base64 or Cloudinary URL (Ảnh chân dung mẫu)
   anhCccdMatTruoc?: string; // Base64 or Cloudinary URL
   anhCccdMatSau?: string; // Base64 or Cloudinary URL
@@ -76,6 +77,7 @@ const SampleItemSchema = new Schema({
   noiCap: { type: String, default: '' },
   noiThuongTru: { type: String, default: '' },
   loaiMau: { type: String, default: 'Máu' },
+  loaiGiayTo: { type: String, default: '' },
   anhChanDung: { type: String, default: '' },
   anhCccdMatTruoc: { type: String, default: '' },
   anhCccdMatSau: { type: String, default: '' },
