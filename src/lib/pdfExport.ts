@@ -228,19 +228,28 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
 
   const wrapTextLines = (text: string, maxLen = 70): string[] => {
     if (!text) return [];
-    const words = text.split(' ');
+    const rawLines = text.split(/\r?\n/);
     const lines: string[] = [];
-    let currentLine = '';
 
-    for (const word of words) {
-      if ((currentLine + ' ' + word).trim().length > maxLen) {
-        lines.push(currentLine.trim());
-        currentLine = word;
-      } else {
-        currentLine += (currentLine ? ' ' : '') + word;
+    for (const rawLine of rawLines) {
+      const trimmed = rawLine.trim();
+      if (!trimmed) {
+        lines.push('');
+        continue;
       }
+      const words = trimmed.split(/\s+/);
+      let currentLine = '';
+
+      for (const word of words) {
+        if ((currentLine + ' ' + word).trim().length > maxLen) {
+          lines.push(currentLine.trim());
+          currentLine = word;
+        } else {
+          currentLine += (currentLine ? ' ' : '') + word;
+        }
+      }
+      if (currentLine.trim()) lines.push(currentLine.trim());
     }
-    if (currentLine.trim()) lines.push(currentLine.trim());
     return lines;
   };
 
@@ -488,12 +497,18 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
     drawCenteredText(page1, 'KẾT QUẢ GIẢI PHẪU BỆNH', tableX, tableX + tableW, secY + 6, 11, true, primaryBlue);
 
+    let currentY = 535;
+
     // Section 1: ĐẠI THỂ
-    const daiTheY = 505;
-    const daiTheH = 65;
+    const dtLines = wrapTextLines(data.daiThe || '', 85);
+    const dtHeaderH = 20;
+    const dtContentH = Math.max(30, dtLines.length * 13 + 10);
+    const daiTheH = dtHeaderH + dtContentH;
+    const daiTheTopY = currentY;
+
     page1.drawRectangle({
       x: tableX,
-      y: daiTheY - daiTheH,
+      y: daiTheTopY - daiTheH,
       width: tableW,
       height: daiTheH,
       color: whiteColor,
@@ -502,24 +517,29 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
     page1.drawRectangle({
       x: tableX,
-      y: daiTheY - 20,
+      y: daiTheTopY - dtHeaderH,
       width: tableW,
-      height: 20,
+      height: dtHeaderH,
       color: primaryBlue,
     });
-    drawCenteredText(page1, 'ĐẠI THỂ', tableX, tableX + tableW, daiTheY - 14, 10, true, whiteColor);
+    drawCenteredText(page1, 'ĐẠI THỂ', tableX, tableX + tableW, daiTheTopY - 14, 10, true, whiteColor);
 
-    const dtLines = wrapTextLines(data.daiThe || '', 85);
     dtLines.forEach((lineText, lIdx) => {
-      drawTextOnPage(page1, lineText, tableX + 8, daiTheY - 33 - lIdx * 13, 9, false, blackColor);
+      drawTextOnPage(page1, lineText, tableX + 8, daiTheTopY - dtHeaderH - 13 - lIdx * 13, 9, false, blackColor);
     });
 
+    currentY = daiTheTopY - daiTheH - 8;
+
     // Section 2: VI THỂ
-    const viTheY = 430;
-    const viTheH = 95;
+    const vtLines = wrapTextLines(data.viThe || '', 85);
+    const vtHeaderH = 20;
+    const vtContentH = Math.max(30, vtLines.length * 13 + 10);
+    const viTheH = vtHeaderH + vtContentH;
+    const viTheTopY = currentY;
+
     page1.drawRectangle({
       x: tableX,
-      y: viTheY - viTheH,
+      y: viTheTopY - viTheH,
       width: tableW,
       height: viTheH,
       color: whiteColor,
@@ -528,21 +548,26 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
     });
     page1.drawRectangle({
       x: tableX,
-      y: viTheY - 20,
+      y: viTheTopY - vtHeaderH,
       width: tableW,
-      height: 20,
+      height: vtHeaderH,
       color: primaryBlue,
     });
-    drawCenteredText(page1, 'VI THỂ', tableX, tableX + tableW, viTheY - 14, 10, true, whiteColor);
+    drawCenteredText(page1, 'VI THỂ', tableX, tableX + tableW, viTheTopY - 14, 10, true, whiteColor);
 
-    const vtLines = wrapTextLines(data.viThe || '', 85);
     vtLines.forEach((lineText, lIdx) => {
-      drawTextOnPage(page1, lineText, tableX + 8, viTheY - 33 - lIdx * 13, 9, false, blackColor);
+      drawTextOnPage(page1, lineText, tableX + 8, viTheTopY - vtHeaderH - 13 - lIdx * 13, 9, false, blackColor);
     });
 
+    currentY = viTheTopY - viTheH - 8;
+
     // Section 3: KẾT LUẬN
-    const ketLuanBoxY = 280;
-    const ketLuanBoxH = 45;
+    const klLines = wrapTextLines(data.ketLuan || '', 75);
+    const klLineCount = Math.max(1, klLines.length);
+    const ketLuanBoxH = Math.max(40, klLineCount * 13 + 16);
+    const ketLuanTopY = currentY;
+    const ketLuanBoxY = ketLuanTopY - ketLuanBoxH;
+
     page1.drawRectangle({
       x: tableX,
       y: ketLuanBoxY,
@@ -553,13 +578,15 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       borderWidth: 1,
     });
 
-    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanBoxY + ketLuanBoxH - 16, 9.5, true, primaryBlue);
-    const klLines = wrapTextLines(data.ketLuan || '', 75);
+    drawTextOnPage(page1, 'KẾT LUẬN:', tableX + 10, ketLuanTopY - 16, 9.5, true, primaryBlue);
     klLines.forEach((lText, lIdx) => {
-      drawTextOnPage(page1, lText, tableX + 85, ketLuanBoxY + ketLuanBoxH - 16 - lIdx * 13, 9.5, true, blackColor);
+      drawTextOnPage(page1, lText, tableX + 85, ketLuanTopY - 16 - lIdx * 13, 9.5, true, blackColor);
     });
 
+    currentY = ketLuanBoxY - 10;
+
     // Doctor Signature & Test Image
+    const sigYStart = Math.min(220, currentY - 5);
     if (data.anhTeBao && data.anhTeBao.length > 20) {
       const anhTeBaoUrl = data.anhTeBao;
       try {
@@ -589,7 +616,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
         if (img) {
           page1.drawImage(img, {
             x: tableX + 20,
-            y: 92,
+            y: sigYStart - 128,
             width: 170,
             height: 115,
           });
@@ -599,7 +626,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
       }
     }
 
-    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, 220);
+    drawDoctorSignatureBlock(page1, data.ngayXetNghiem, sigYStart);
 
     drawWatermarkOverlay(page1);
     drawTextOnPage(page1, 'Trang 1 / 1', 515, 8, 7.5, false, rgb(0.5, 0.5, 0.5));

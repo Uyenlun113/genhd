@@ -397,16 +397,25 @@ export async function POST(request: NextRequest) {
     const logoHkPath = path.join(process.cwd(), 'public', 'logo.png');
     const logoHkJpgPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
 
-    let logoImageRun: ImageRun | null = null;
+    let activeLogoPath: string | null = null;
+    let logoW = 65;
+    let logoH = 65;
+
     if (isGtMode && fs.existsSync(logoGtPath)) {
-      logoImageRun = await getImageRunHelper(logoGtPath, 110, 55);
+      activeLogoPath = logoGtPath;
+      logoW = 65;
+      logoH = 65;
     } else if (fs.existsSync(logoHkPath)) {
-      logoImageRun = await getImageRunHelper(logoHkPath, 90, 55);
+      activeLogoPath = logoHkPath;
+      logoW = 65;
+      logoH = 65;
     } else if (fs.existsSync(logoHkJpgPath)) {
-      logoImageRun = await getImageRunHelper(logoHkJpgPath, 90, 55);
+      activeLogoPath = logoHkJpgPath;
+      logoW = 65;
+      logoH = 62;
     }
 
-    const companyInfoParagraphs = isGtMode
+    const createCompanyInfoParagraphs = () => isGtMode
       ? [
           new Paragraph({
             children: [
@@ -472,9 +481,10 @@ export async function POST(request: NextRequest) {
           }),
         ];
 
-    if (logoImageRun) {
-      children.push(
-        new Table({
+    const createHeaderBlock = async () => {
+      const logoRun = activeLogoPath ? await getImageRunHelper(activeLogoPath, logoW, logoH) : null;
+      if (logoRun) {
+        return new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
           borders: {
             top: { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' },
@@ -488,20 +498,26 @@ export async function POST(request: NextRequest) {
             new TableRow({
               children: [
                 new TableCell({
-                  width: { size: 18, type: WidthType.PERCENTAGE },
-                  children: [new Paragraph({ children: [logoImageRun] })],
+                  width: { size: 16, type: WidthType.PERCENTAGE },
+                  children: [new Paragraph({ children: [logoRun] })],
                 }),
                 new TableCell({
-                  width: { size: 82, type: WidthType.PERCENTAGE },
-                  children: companyInfoParagraphs,
+                  width: { size: 84, type: WidthType.PERCENTAGE },
+                  children: createCompanyInfoParagraphs(),
                 }),
               ],
             }),
           ],
-        })
-      );
+        });
+      }
+      return null;
+    };
+
+    const headerBlock = await createHeaderBlock();
+    if (headerBlock) {
+      children.push(headerBlock);
     } else {
-      children.push(...companyInfoParagraphs);
+      children.push(...createCompanyInfoParagraphs());
     }
 
     // Divider Line
