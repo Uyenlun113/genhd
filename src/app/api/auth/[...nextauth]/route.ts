@@ -68,6 +68,10 @@ export const authOptions: AuthOptions = {
           throw new Error('Tài khoản không tồn tại');
         }
 
+        if (user.active === false) {
+          throw new Error('Tài khoản này đã bị ngừng hoạt động!');
+        }
+
         const isValid = await bcrypt.compare(credentials.password, user.password);
 
         if (!isValid) {

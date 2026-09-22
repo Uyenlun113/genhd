@@ -16,6 +16,9 @@ import {
   Check,
   Key,
   Dna,
+  UserX,
+  CheckCircle,
+  Power,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSession } from 'next-auth/react';
@@ -28,6 +31,7 @@ interface UserItem {
   role: 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn';
   allowedCategories?: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'adn'>;
   title?: string;
+  active?: boolean;
   createdAt: string;
 }
 
@@ -46,11 +50,15 @@ export default function UserManagementPage() {
     isOpen: boolean;
     title: string;
     message: string;
+    confirmText?: string;
+    type?: 'danger' | 'info' | 'success';
     onConfirm: () => void;
   }>({
     isOpen: false,
     title: '',
     message: '',
+    confirmText: 'Xác nhận',
+    type: 'danger',
     onConfirm: () => { },
   });
 
@@ -61,12 +69,13 @@ export default function UserManagementPage() {
     role: 'doctor' as 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn',
     allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'adn'] as string[],
     title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
+    active: true,
   });
 
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/users');
+      const res = await fetch('/api/users?includeInactive=true');
       if (res.ok) {
         const data = await res.json();
         setUsers(data || []);
@@ -94,8 +103,9 @@ export default function UserManagementPage() {
       password: '',
       fullName: '',
       role: 'doctor',
-      allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh'],
+      allowedCategories: ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'adn'],
       title: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
+      active: true,
     });
     setShowModal(true);
   };
@@ -107,8 +117,9 @@ export default function UserManagementPage() {
       password: '',
       fullName: user.fullName,
       role: user.role,
-      allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh'],
+      allowedCategories: user.allowedCategories || ['cell', 'thinprep', 'hpv40', 'hpv20', 'hpv23', 'soituoi', 'giaiphaubenh', 'adn'],
       title: user.title || '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
+      active: user.active !== false,
     });
     setShowModal(true);
   };
@@ -153,6 +164,7 @@ export default function UserManagementPage() {
         role: formData.role,
         allowedCategories: formData.allowedCategories,
         title: formData.title,
+        active: formData.active,
       };
 
       if (formData.password) {
@@ -178,23 +190,37 @@ export default function UserManagementPage() {
     }
   };
 
-  const handleDeleteClick = (userId: string, userName: string) => {
+  const handleToggleStatusClick = (userId: string, userName: string, currentActive: boolean) => {
+    const isDeactivating = currentActive;
+
     setConfirmConfig({
       isOpen: true,
-      title: 'Xác nhận xóa tài khoản',
-      message: `Bạn có chắc chắn muốn xóa tài khoản "${userName}"? Thao tác này không thể hoàn tác.`,
+      title: isDeactivating ? 'Ngừng hoạt động tài khoản' : 'Kích hoạt lại tài khoản',
+      message: isDeactivating
+        ? `Bạn có chắc chắn muốn ngừng hoạt động tài khoản "${userName}"? Tài khoản này sẽ không thể đăng nhập và không hiển thị khi chọn Bác sĩ đọc kết quả.`
+        : `Bạn có chắc chắn muốn kích hoạt lại tài khoản "${userName}"?`,
+      confirmText: isDeactivating ? 'Ngừng hoạt động' : 'Kích hoạt lại',
+      type: isDeactivating ? 'danger' : 'success',
       onConfirm: async () => {
         setConfirmConfig((prev) => ({ ...prev, isOpen: false }));
         try {
-          const res = await fetch(`/api/users/${userId}`, { method: 'DELETE' });
+          const res = await fetch(`/api/users/${userId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ active: !isDeactivating }),
+          });
           if (res.ok) {
-            toast.success('Xóa tài khoản thành công');
+            toast.success(
+              isDeactivating
+                ? `Đã ngừng hoạt động tài khoản "${userName}"`
+                : `Đã kích hoạt lại tài khoản "${userName}"`
+            );
             fetchUsers();
           } else {
-            toast.error('Không thể xóa tài khoản này');
+            toast.error('Cập nhật trạng thái thất bại');
           }
         } catch {
-          toast.error('Lỗi khi gửi yêu cầu xóa');
+          toast.error('Lỗi khi gửi yêu cầu');
         }
       },
     });
@@ -233,6 +259,7 @@ export default function UserManagementPage() {
                     <th>Tên đăng nhập</th>
                     <th>Họ và tên</th>
                     <th>Vai trò</th>
+                    <th>Trạng thái</th>
                     <th>Danh mục được phân quyền</th>
                     <th style={{ textAlign: 'right' }}>Thao tác</th>
                   </tr>
@@ -240,19 +267,19 @@ export default function UserManagementPage() {
                 <tbody>
                   {loading ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400 text-sm">
+                      <td colSpan={6} className="text-center py-8 text-slate-400 text-sm">
                         Đang tải danh sách tài khoản...
                       </td>
                     </tr>
                   ) : users.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="text-center py-8 text-slate-400 text-sm">
+                      <td colSpan={6} className="text-center py-8 text-slate-400 text-sm">
                         Chưa có tài khoản nào
                       </td>
                     </tr>
                   ) : (
                     users.map((user) => (
-                      <tr key={user._id}>
+                      <tr key={user._id} className={user.active === false ? 'bg-slate-100/60 opacity-80' : ''}>
                         <td className="font-semibold text-slate-800 text-xs">{user.username}</td>
                         <td className="font-bold text-sky-900 text-xs">{user.fullName}</td>
                         <td>
@@ -280,6 +307,19 @@ export default function UserManagementPage() {
                             <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                               <UserCheck className="w-3.5 h-3.5" />
                               <span>Phòng khám / Nhân viên</span>
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {user.active !== false ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                              <CheckCircle className="w-3 h-3 text-emerald-600" />
+                              <span>Hoạt động</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
+                              <UserX className="w-3 h-3 text-rose-600" />
+                              <span>Ngừng hoạt động</span>
                             </span>
                           )}
                         </td>
@@ -322,11 +362,15 @@ export default function UserManagementPage() {
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDeleteClick(user._id, user.fullName)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                              title="Xóa tài khoản"
+                              onClick={() => handleToggleStatusClick(user._id, user.fullName, user.active !== false)}
+                              className={`p-1.5 rounded-md transition-colors ${
+                                user.active !== false
+                                  ? 'text-rose-500 hover:text-rose-700 hover:bg-rose-50'
+                                  : 'text-emerald-600 hover:text-emerald-800 hover:bg-emerald-50'
+                              }`}
+                              title={user.active !== false ? 'Ngừng hoạt động tài khoản' : 'Kích hoạt lại tài khoản'}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {user.active !== false ? <Power className="w-4 h-4" /> : <UserCheck className="w-4 h-4" />}
                             </button>
                           </div>
                         </td>
@@ -411,6 +455,23 @@ export default function UserManagementPage() {
                         <option value="lab_admin">Admin Phòng Lab (Xem tất cả phiếu các Bác sĩ)</option>
                         <option value="lab_adn">Admin Lab ADN (Tạo & Quản lý danh sách ADN)</option>
                         <option value="admin">Quản trị viên (Admin Hệ Thống)</option>
+                      </select>
+                    </div>
+
+                    <div className="form-group mb-0 sm:col-span-2">
+                      <label>Trạng thái tài khoản</label>
+                      <select
+                        className="form-select"
+                        value={formData.active ? 'true' : 'false'}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            active: e.target.value === 'true',
+                          })
+                        }
+                      >
+                        <option value="true">Hoạt động (Được đăng nhập & hiển thị Bác sĩ)</option>
+                        <option value="false">Ngừng hoạt động (Không thể đăng nhập & ẩn tên Bác sĩ)</option>
                       </select>
                     </div>
                   </div>
@@ -522,13 +583,13 @@ export default function UserManagementPage() {
             </div>
           )}
 
-          {/* Confirm Delete Modal */}
+          {/* Confirm Status Change Modal */}
           <ConfirmModal
             isOpen={confirmConfig.isOpen}
             title={confirmConfig.title}
             message={confirmConfig.message}
-            confirmText="Xóa tài khoản"
-            type="danger"
+            confirmText={confirmConfig.confirmText || 'Xác nhận'}
+            type={confirmConfig.type || 'danger'}
             onConfirm={confirmConfig.onConfirm}
             onCancel={() => setConfirmConfig((prev) => ({ ...prev, isOpen: false }))}
           />

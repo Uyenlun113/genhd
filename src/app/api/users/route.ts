@@ -17,6 +17,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const roleFilter = searchParams.get('role');
     const categoryFilter = searchParams.get('category');
+    const includeInactive = searchParams.get('includeInactive');
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const query: any = {};
@@ -25,6 +26,10 @@ export async function GET(request: NextRequest) {
     }
     if (categoryFilter) {
       query.allowedCategories = categoryFilter;
+    }
+    // Only return active users unless includeInactive is explicitly requested (e.g. for admin management)
+    if (includeInactive !== 'true') {
+      query.active = { $ne: false };
     }
 
     const users = await User.find(query)

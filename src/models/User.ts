@@ -7,6 +7,7 @@ export interface IUser extends Document {
   role: 'admin' | 'doctor' | 'staff' | 'lab_admin' | 'lab_adn';
   allowedCategories: Array<'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'adn' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv23_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep' | 'combo_hpv23_thinprep'>;
   title: string;
+  active?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +42,10 @@ const UserSchema = new Schema<IUser>(
     title: {
       type: String,
       default: '(Chuyên khoa Xét nghiệm - Giải phẫu bệnh lý)',
+    },
+    active: {
+      type: Boolean,
+      default: true,
     },
   },
   {

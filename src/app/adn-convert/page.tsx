@@ -958,7 +958,7 @@ export default function AdnConvertListPage() {
                 </Link>
               </div>
             ) : (
-              <div className="data-table-container min-h-[380px]">
+              <div className="data-table-container pb-6">
                 <table className="data-table">
                   <thead>
                     <tr>

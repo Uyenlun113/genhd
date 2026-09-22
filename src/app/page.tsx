@@ -575,7 +575,7 @@ function DashboardContent() {
 
           {/* Data Table */}
           <div className="glass-card" ref={menuRef}>
-            <div className="data-table-container min-h-[380px] pb-40">
+            <div className="data-table-container pb-16">
               <table className="data-table">
                 <thead>
                   <tr>

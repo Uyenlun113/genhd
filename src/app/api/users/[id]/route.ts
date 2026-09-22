@@ -25,7 +25,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 
     const { id } = await params;
     const body = await request.json();
-    const { username, fullName, role, password, allowedCategories, title } = body;
+    const { username, fullName, role, password, allowedCategories, title, active } = body;
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updateData: any = {};
@@ -40,6 +40,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     if (role) updateData.role = role;
     if (allowedCategories) updateData.allowedCategories = allowedCategories;
     if (title !== undefined) updateData.title = title;
+    if (active !== undefined) updateData.active = active;
     if (password) {
       updateData.password = await bcrypt.hash(password, 12);
     }
@@ -59,7 +60,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
   }
 }
 
-// DELETE: Delete user (Admin only)
+// DELETE: Deactivate user (Soft delete - Admin only)
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     await dbConnect();
@@ -70,17 +71,17 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 
     const currentUserRole = (session.user as { role?: string })?.role;
     if (currentUserRole !== 'admin') {
-      return NextResponse.json({ error: 'Chỉ Admin mới có quyền xóa tài khoản' }, { status: 403 });
+      return NextResponse.json({ error: 'Chỉ Admin mới có quyền thao tác' }, { status: 403 });
     }
 
     const { id } = await params;
-    const deletedUser = await User.findByIdAndDelete(id);
+    const deactivatedUser = await User.findByIdAndUpdate(id, { active: false }, { new: true });
 
-    if (!deletedUser) {
+    if (!deactivatedUser) {
       return NextResponse.json({ error: 'Không tìm thấy người dùng' }, { status: 404 });
     }
 
-    return NextResponse.json({ message: 'Đã xóa tài khoản thành công' });
+    return NextResponse.json({ message: 'Đã ngừng hoạt động tài khoản thành công' });
   } catch (error) {
     console.error('DELETE user error:', error);
     return NextResponse.json({ error: 'Lỗi xóa user' }, { status: 500 });
