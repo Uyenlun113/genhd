@@ -283,60 +283,105 @@ const toEnglishText = (text: any, type: 'name' | 'address' | 'agency' | 'nationa
   return removeVietnameseTones(s);
 };
 
+// Helper to convert any Buffer / Uint8Array into a standalone Uint8Array (offset 0)
+// This is critical because pdf-lib inspects bytes.buffer directly without taking byteOffset into account,
+// causing "SOI not found in JPEG" when Node.js allocates Buffers from a shared buffer pool (e.g. fs.readFileSync).
+function toCleanUint8Array(data: Buffer | Uint8Array | ArrayBuffer): Uint8Array {
+  if (data instanceof Uint8Array) {
+    return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  }
+  return new Uint8Array(data);
+}
+
+// Safely embed any image buffer/bytes (PNG or JPG) into a PDF document
+async function embedBytesSafe(pdfDoc: PDFDocument, rawBytes: Buffer | Uint8Array | ArrayBuffer | null | undefined) {
+  if (!rawBytes) return null;
+  const cleanBytes = toCleanUint8Array(rawBytes);
+  if (cleanBytes.byteLength === 0) return null;
+
+  // Check magic bytes: PNG begins with 89 50 4E 47, JPEG begins with FF D8
+  const isPng =
+    cleanBytes.length >= 8 &&
+    cleanBytes[0] === 0x89 &&
+    cleanBytes[1] === 0x50 &&
+    cleanBytes[2] === 0x4e &&
+    cleanBytes[3] === 0x47;
+
+  const isJpg =
+    cleanBytes.length >= 2 &&
+    cleanBytes[0] === 0xff &&
+    cleanBytes[1] === 0xd8;
+
+  if (isPng) {
+    try {
+      return await pdfDoc.embedPng(cleanBytes);
+    } catch {
+      try {
+        return await pdfDoc.embedJpg(cleanBytes);
+      } catch (err) {
+        console.error('embedBytesSafe: failed embedding PNG/fallback JPG:', err);
+        return null;
+      }
+    }
+  } else if (isJpg) {
+    try {
+      return await pdfDoc.embedJpg(cleanBytes);
+    } catch {
+      try {
+        return await pdfDoc.embedPng(cleanBytes);
+      } catch (err) {
+        console.error('embedBytesSafe: failed embedding JPG/fallback PNG:', err);
+        return null;
+      }
+    }
+  } else {
+    // Unknown format: try PNG first, then JPG
+    try {
+      return await pdfDoc.embedPng(cleanBytes);
+    } catch {
+      try {
+        return await pdfDoc.embedJpg(cleanBytes);
+      } catch (err) {
+        console.error('embedBytesSafe: failed embedding unrecognized image type:', err);
+        return null;
+      }
+    }
+  }
+}
+
 // Helper to embed image (base64 data URI or file path/buffer) onto PDF
 async function embedImageHelper(pdfDoc: PDFDocument, imgStr: string) {
   if (!imgStr || typeof imgStr !== 'string') return null;
   try {
-    let imageBytes: Uint8Array | null = null;
-    let isPng = false;
+    let imageBytes: Uint8Array | Buffer | null = null;
 
     if (imgStr.startsWith('http://') || imgStr.startsWith('https://')) {
       const resp = await fetch(imgStr);
       if (!resp.ok) return null;
       const arrayBuffer = await resp.arrayBuffer();
       imageBytes = new Uint8Array(arrayBuffer);
-      const contentType = resp.headers.get('content-type') || '';
-      isPng = contentType.includes('png') || imgStr.toLowerCase().endsWith('.png');
     } else if (imgStr.startsWith('data:image/png;base64,')) {
-      isPng = true;
       imageBytes = Buffer.from(imgStr.replace('data:image/png;base64,', ''), 'base64');
     } else if (imgStr.startsWith('data:image/jpeg;base64,') || imgStr.startsWith('data:image/jpg;base64,')) {
-      isPng = false;
       imageBytes = Buffer.from(imgStr.replace(/^data:image\/(jpeg|jpg);base64,/, ''), 'base64');
     } else if (imgStr.startsWith('data:')) {
       const parts = imgStr.split(',');
-      const header = parts[0] || '';
       const base64Data = parts[1];
       if (base64Data) {
         imageBytes = Buffer.from(base64Data, 'base64');
-        isPng = header.includes('png');
       }
     } else if (imgStr.startsWith('/')) {
       const publicPath = path.join(process.cwd(), 'public', imgStr);
       if (fs.existsSync(publicPath)) {
         imageBytes = fs.readFileSync(publicPath);
-        isPng = publicPath.toLowerCase().endsWith('.png');
       }
     } else if (fs.existsSync(imgStr)) {
       imageBytes = fs.readFileSync(imgStr);
-      isPng = imgStr.toLowerCase().endsWith('.png');
     }
 
     if (!imageBytes) return null;
 
-    if (isPng) {
-      try {
-        return await pdfDoc.embedPng(imageBytes);
-      } catch {
-        return await pdfDoc.embedJpg(imageBytes);
-      }
-    } else {
-      try {
-        return await pdfDoc.embedJpg(imageBytes);
-      } catch {
-        return await pdfDoc.embedPng(imageBytes);
-      }
-    }
+    return await embedBytesSafe(pdfDoc, imageBytes);
   } catch (err) {
     console.error('Image embedding error:', err);
     return null;
@@ -439,40 +484,46 @@ export async function POST(request: NextRequest) {
     try {
       if (isGtMode && fs.existsSync(logoGtPath)) {
         const wmBytes = fs.readFileSync(logoGtPath);
-        const wmImg = await pdfDoc.embedPng(wmBytes);
-        const wmWidth = 340;
-        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
-        page1.drawImage(wmImg, {
-          x: (width - wmWidth) / 2,
-          y: (height - wmHeight) / 2,
-          width: wmWidth,
-          height: wmHeight,
-          opacity: 0.14,
-        });
+        const wmImg = await embedBytesSafe(pdfDoc, wmBytes);
+        if (wmImg) {
+          const wmWidth = 340;
+          const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+          page1.drawImage(wmImg, {
+            x: (width - wmWidth) / 2,
+            y: (height - wmHeight) / 2,
+            width: wmWidth,
+            height: wmHeight,
+            opacity: 0.14,
+          });
+        }
       } else if (fs.existsSync(watermarkJpgPath)) {
         const wmBytes = fs.readFileSync(watermarkJpgPath);
-        const wmImg = await pdfDoc.embedJpg(wmBytes);
-        const wmWidth = 360;
-        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
-        page1.drawImage(wmImg, {
-          x: (width - wmWidth) / 2,
-          y: (height - wmHeight) / 2,
-          width: wmWidth,
-          height: wmHeight,
-          opacity: 0.14,
-        });
+        const wmImg = await embedBytesSafe(pdfDoc, wmBytes);
+        if (wmImg) {
+          const wmWidth = 360;
+          const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+          page1.drawImage(wmImg, {
+            x: (width - wmWidth) / 2,
+            y: (height - wmHeight) / 2,
+            width: wmWidth,
+            height: wmHeight,
+            opacity: 0.14,
+          });
+        }
       } else if (fs.existsSync(watermarkPngPath)) {
         const wmBytes = fs.readFileSync(watermarkPngPath);
-        const wmImg = await pdfDoc.embedPng(wmBytes);
-        const wmWidth = 360;
-        const wmHeight = wmWidth * (wmImg.height / wmImg.width);
-        page1.drawImage(wmImg, {
-          x: (width - wmWidth) / 2,
-          y: (height - wmHeight) / 2,
-          width: wmWidth,
-          height: wmHeight,
-          opacity: 0.14,
-        });
+        const wmImg = await embedBytesSafe(pdfDoc, wmBytes);
+        if (wmImg) {
+          const wmWidth = 360;
+          const wmHeight = wmWidth * (wmImg.height / wmImg.width);
+          page1.drawImage(wmImg, {
+            x: (width - wmWidth) / 2,
+            y: (height - wmHeight) / 2,
+            width: wmWidth,
+            height: wmHeight,
+            opacity: 0.14,
+          });
+        }
       }
     } catch (err) {
       console.error('Page 1 watermark drawing error:', err);
@@ -480,30 +531,45 @@ export async function POST(request: NextRequest) {
 
     // 1. Top Logo Header
     let logoGtWidth = 0;
-    if (isGtMode && fs.existsSync(logoGtPath)) {
-      const logoBytes = fs.readFileSync(logoGtPath);
-      const logoImg = await pdfDoc.embedPng(logoBytes);
-      const targetH = 58;
-      const targetW = targetH * (logoImg.width / logoImg.height);
-      logoGtWidth = targetW;
-      page1.drawImage(logoImg, {
-        x: margin,
-        y: height - 25 - targetH,
-        width: targetW,
-        height: targetH,
-      });
-    } else {
-      const logoHkPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
-      if (fs.existsSync(logoHkPath)) {
-        const logoBytes = fs.readFileSync(logoHkPath);
-        const logoImg = await pdfDoc.embedJpg(logoBytes);
-        page1.drawImage(logoImg, {
-          x: margin,
-          y: height - margin - 48,
-          width: 72,
-          height: 48,
-        });
+    try {
+      if (isGtMode && fs.existsSync(logoGtPath)) {
+        const logoBytes = fs.readFileSync(logoGtPath);
+        const logoImg = await embedBytesSafe(pdfDoc, logoBytes);
+        if (logoImg) {
+          const targetH = 58;
+          const targetW = targetH * (logoImg.width / logoImg.height);
+          logoGtWidth = targetW;
+          page1.drawImage(logoImg, {
+            x: margin,
+            y: height - 25 - targetH,
+            width: targetW,
+            height: targetH,
+          });
+        }
+      } else {
+        const logoHkPath = path.join(process.cwd(), 'public', 'logo_hk.jpg');
+        const logoPngPath = path.join(process.cwd(), 'public', 'logo.png');
+        const activeLogoPath = fs.existsSync(logoHkPath)
+          ? logoHkPath
+          : fs.existsSync(logoPngPath)
+          ? logoPngPath
+          : null;
+
+        if (activeLogoPath) {
+          const logoBytes = fs.readFileSync(activeLogoPath);
+          const logoImg = await embedBytesSafe(pdfDoc, logoBytes);
+          if (logoImg) {
+            page1.drawImage(logoImg, {
+              x: margin,
+              y: height - margin - 48,
+              width: 72,
+              height: 48,
+            });
+          }
+        }
       }
+    } catch (err) {
+      console.error('Top logo drawing error:', err);
     }
 
     let currentY = isGtMode ? height - 28 : height - margin - 8;

@@ -3,6 +3,13 @@ import fontkit from '@pdf-lib/fontkit';
 import fs from 'fs';
 import path from 'path';
 
+function toCleanUint8Array(data: Buffer | Uint8Array | ArrayBuffer): Uint8Array {
+  if (data instanceof Uint8Array) {
+    return new Uint8Array(data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength));
+  }
+  return new Uint8Array(data);
+}
+
 export interface ITestResultData {
   maSo: string;
   loaiXetNghiem?: 'cell' | 'thinprep' | 'hpv40' | 'hpv20' | 'hpv23' | 'soituoi' | 'giaiphaubenh' | 'combo_hpv20_cell' | 'combo_hpv40_cell' | 'combo_hpv23_cell' | 'combo_hpv20_thinprep' | 'combo_hpv40_thinprep' | 'combo_hpv23_thinprep';
@@ -294,7 +301,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
   if (fs.existsSync(logoPath)) {
     try {
       const logoBytes = fs.readFileSync(logoPath);
-      logoImage = await pdfDoc.embedPng(logoBytes);
+      logoImage = await pdfDoc.embedPng(toCleanUint8Array(logoBytes));
     } catch (err) {
       console.error('Failed to embed logo:', err);
     }
@@ -306,7 +313,7 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
   if (fs.existsSync(stampPath)) {
     try {
       const stampBytes = fs.readFileSync(stampPath);
-      stampImage = await pdfDoc.embedPng(stampBytes);
+      stampImage = await pdfDoc.embedPng(toCleanUint8Array(stampBytes));
     } catch (err) {
       console.error('Failed to embed stamp:', err);
     }
@@ -349,16 +356,20 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
 
     if (fs.existsSync(sigPath)) {
       try {
-        const sigBytes = fs.readFileSync(sigPath);
+        const sigBytes = toCleanUint8Array(fs.readFileSync(sigPath));
         try {
           signatureImg = await pdfDoc.embedPng(sigBytes);
         } catch {
           try {
             signatureImg = await pdfDoc.embedJpg(sigBytes);
           } catch {
-            const sharp = require('sharp');
-            const cleanPngBytes = await sharp(sigBytes).png().toBuffer();
-            signatureImg = await pdfDoc.embedPng(cleanPngBytes);
+            try {
+              const sharp = require('sharp');
+              const cleanPngBytes = await sharp(sigBytes).png().toBuffer();
+              signatureImg = await pdfDoc.embedPng(toCleanUint8Array(cleanPngBytes));
+            } catch (sharpErr) {
+              console.error('Failed to convert signature with sharp:', sharpErr);
+            }
           }
         }
       } catch (err) {
@@ -636,15 +647,20 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
         }
 
         let img: any = null;
+        const cleanBytes = toCleanUint8Array(imageBytes);
         try {
-          img = await pdfDoc.embedPng(imageBytes);
+          img = await pdfDoc.embedPng(cleanBytes);
         } catch {
           try {
-            img = await pdfDoc.embedJpg(imageBytes);
+            img = await pdfDoc.embedJpg(cleanBytes);
           } catch {
-            const sharp = require('sharp');
-            const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
-            img = await pdfDoc.embedPng(cleanPngBytes);
+            try {
+              const sharp = require('sharp');
+              const cleanPngBytes = await sharp(cleanBytes).png().toBuffer();
+              img = await pdfDoc.embedPng(toCleanUint8Array(cleanPngBytes));
+            } catch (sharpErr) {
+              console.error('Failed to convert image with sharp:', sharpErr);
+            }
           }
         }
 
@@ -1218,15 +1234,20 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
           }
 
           let img: any = null;
+          const cleanBytes = toCleanUint8Array(imageBytes);
           try {
-            img = await pdfDoc.embedPng(imageBytes);
+            img = await pdfDoc.embedPng(cleanBytes);
           } catch {
             try {
-              img = await pdfDoc.embedJpg(imageBytes);
+              img = await pdfDoc.embedJpg(cleanBytes);
             } catch {
-              const sharp = require('sharp');
-              const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
-              img = await pdfDoc.embedPng(cleanPngBytes);
+              try {
+                const sharp = require('sharp');
+                const cleanPngBytes = await sharp(cleanBytes).png().toBuffer();
+                img = await pdfDoc.embedPng(toCleanUint8Array(cleanPngBytes));
+              } catch (sharpErr) {
+                console.error('Failed to convert HPV image with sharp:', sharpErr);
+              }
             }
           }
 
@@ -1703,15 +1724,20 @@ export async function generateSingleTestPDF(data: ITestResultData): Promise<Uint
         }
 
         let img: any = null;
+        const cleanBytes = toCleanUint8Array(imageBytes);
         try {
-          img = await pdfDoc.embedPng(imageBytes);
+          img = await pdfDoc.embedPng(cleanBytes);
         } catch {
           try {
-            img = await pdfDoc.embedJpg(imageBytes);
+            img = await pdfDoc.embedJpg(cleanBytes);
           } catch {
-            const sharp = require('sharp');
-            const cleanPngBytes = await sharp(imageBytes).png().toBuffer();
-            img = await pdfDoc.embedPng(cleanPngBytes);
+            try {
+              const sharp = require('sharp');
+              const cleanPngBytes = await sharp(cleanBytes).png().toBuffer();
+              img = await pdfDoc.embedPng(toCleanUint8Array(cleanPngBytes));
+            } catch (sharpErr) {
+              console.error('Failed to convert cell image with sharp:', sharpErr);
+            }
           }
         }
 
